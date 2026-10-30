@@ -1,2 +1,6 @@
 .out/
 data/
+**/target/
+__pycache__/
+.codegraph/
+.cursor/

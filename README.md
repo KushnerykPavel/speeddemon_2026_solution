@@ -1,6 +1,12 @@
 # Speed Demon 2026 starter
 
-A working entry for all four tracks of [Speed Demon 2026](https://speeddemon.dev). Each `track-*` folder holds the organisers' naive Python reference, packaged the way the live board builds and runs it. Use it to check your setup end to end, then replace the reference with your own code.
+Team Kushneryk's repository for [Speed Demon 2026](https://speeddemon.dev).
+Tracks A (Ingest) and D (Traverse) contain dependency-free Rust baseline ports
+of the organisers' Python algorithms. Tracks B and C remain unchanged starter
+references. The original A and D Python files are preserved in `tests/reference/`.
+
+See [baseline verification](tests/README.md) for reproducible Rust-versus-Python
+checks using the official generators and container restrictions.
 
 ## Start in five steps
 

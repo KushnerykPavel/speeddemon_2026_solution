@@ -1,0 +1,138 @@
+[
+  {
+    "track": "a",
+    "case": "edge-cases",
+    "sha256": "07d401c5f5de6222c82f9e5d342220e64a23027db8daf1d311ca5318821ff4f2",
+    "rust_seconds_including_container_start": 0.39,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "a",
+    "case": "empty",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rust_seconds_including_container_start": 0.5,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "d",
+    "case": "edge-cases",
+    "sha256": "2e9871bba1d5013144ceff48d806a28da0e3f203b29118a89d98d8f654c3f6a0",
+    "rust_seconds_including_container_start": 0.39,
+    "byte_equal": true,
+    "published_hash_checked": true
+  },
+  {
+    "track": "d",
+    "case": "no-edges",
+    "sha256": "506e2bfd11650b547deac071a486fee5d72b3e22f6dd87724cca748094941334",
+    "rust_seconds_including_container_start": 0.42,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "d",
+    "case": "no-queries",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rust_seconds_including_container_start": 0.38,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "a",
+    "case": "tiny-seed1",
+    "sha256": "c24fa507c963eaeac9224fd8435019b4f4e8c002ece7e32f316681a3957eb92f",
+    "rust_seconds_including_container_start": 0.45,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "d",
+    "case": "tiny-seed1",
+    "sha256": "ecaca77d3221fe3928109da36480cfdb39f288f2e57ecbc61d3d7706d5cb4bd5",
+    "rust_seconds_including_container_start": 0.38,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "a",
+    "case": "tiny-seed7",
+    "sha256": "4ba05ab1a7a257e847c25beded9bf3cc658fb1d41f398b84a8a983a7b91f026d",
+    "rust_seconds_including_container_start": 0.42,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "d",
+    "case": "tiny-seed7",
+    "sha256": "70595ddd5a567f2b63ed182123353053ab42dfb521865ec44e81f684be9ba836",
+    "rust_seconds_including_container_start": 0.43,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "a",
+    "case": "tiny-seed42",
+    "sha256": "5f7611f0f34b3cdfee59ca627d66d19b53b9c8ff13127b2f2073ff13c9583429",
+    "rust_seconds_including_container_start": 0.41,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "d",
+    "case": "tiny-seed42",
+    "sha256": "fbfcc948817019836ba14858214b7615f37f29adc095ad4712373df0064c33b5",
+    "rust_seconds_including_container_start": 0.46,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "a",
+    "case": "sample-seed1",
+    "sha256": "ca6311bbeb536fa55d85265bf6fd3d24cc9586f13de1ac73bd2a23ac3893aac3",
+    "rust_seconds_including_container_start": 0.78,
+    "byte_equal": true,
+    "published_hash_checked": true
+  },
+  {
+    "track": "d",
+    "case": "sample-seed1",
+    "sha256": "a4c76ed030bc7e365db33191f6cf74708fba7f25eb48d64c8c4279f2e57046a0",
+    "rust_seconds_including_container_start": 1.81,
+    "byte_equal": true,
+    "published_hash_checked": true
+  },
+  {
+    "track": "a",
+    "case": "sample-seed7",
+    "sha256": "39bfccc5334c93cbe0c762f5e6c3300e91ca2e266567561da3176c038cee49f7",
+    "rust_seconds_including_container_start": 0.89,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "d",
+    "case": "sample-seed7",
+    "sha256": "88bf36c94620505d1beafe7cd56a08dc2d261b71f9824d2f764d5ce6e5d7872e",
+    "rust_seconds_including_container_start": 2.32,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "a",
+    "case": "sample-seed42",
+    "sha256": "835c36377118af19264750c9b1031225ead44a8555e913c22d31a827dbe486c8",
+    "rust_seconds_including_container_start": 0.81,
+    "byte_equal": true,
+    "published_hash_checked": false
+  },
+  {
+    "track": "d",
+    "case": "sample-seed42",
+    "sha256": "e003ecd1553a9010cca836975f759aa8588403070e83ed359cc3fd991a2275a6",
+    "rust_seconds_including_container_start": 1.93,
+    "byte_equal": true,
+    "published_hash_checked": false
+  }
+]
