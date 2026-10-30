@@ -1,0 +1,32 @@
+{
+  "source_sha256": "53d7d87a1a32425fc3c8e60c674e1871497d76e396539fdc49d826af94989957",
+  "checks": [
+    {
+      "case": "crlf",
+      "byte_equal": true
+    },
+    {
+      "case": "no-final-newline",
+      "byte_equal": true
+    },
+    {
+      "case": "long-record",
+      "byte_equal": true
+    },
+    {
+      "case": "missing-field",
+      "exit_code": 1,
+      "stderr": "Error: \"expected five log fields\""
+    },
+    {
+      "case": "extra-field",
+      "exit_code": 1,
+      "stderr": "Error: \"expected five log fields\""
+    },
+    {
+      "case": "overflow",
+      "exit_code": 1,
+      "stderr": "Error: \"integer overflow\""
+    }
+  ]
+}

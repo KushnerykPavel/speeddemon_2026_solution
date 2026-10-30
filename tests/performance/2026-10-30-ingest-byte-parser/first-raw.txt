@@ -1,0 +1,22 @@
+PASS empty: Python == before == after (e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855)
+PASS edge-cases: Python == before == after (07d401c5f5de6222c82f9e5d342220e64a23027db8daf1d311ca5318821ff4f2)
+PASS tiny-seed1: Python == before == after (c24fa507c963eaeac9224fd8435019b4f4e8c002ece7e32f316681a3957eb92f)
+PASS tiny-seed7: Python == before == after (4ba05ab1a7a257e847c25beded9bf3cc658fb1d41f398b84a8a983a7b91f026d)
+PASS tiny-seed42: Python == before == after (5f7611f0f34b3cdfee59ca627d66d19b53b9c8ff13127b2f2073ff13c9583429)
+PASS sample-seed1: Python == before == after (ca6311bbeb536fa55d85265bf6fd3d24cc9586f13de1ac73bd2a23ac3893aac3)
+PASS sample-seed7: Python == before == after (39bfccc5334c93cbe0c762f5e6c3300e91ca2e266567561da3176c038cee49f7)
+PASS sample-seed42: Python == before == after (835c36377118af19264750c9b1031225ead44a8555e913c22d31a827dbe486c8)
+PASS full-seed1: Python == before == after (495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3)
+{"seconds": 0.9189555000048131, "peak_rss_bytes": 61898752, "variant": "before", "round": 0, "warmup": true}
+{"seconds": 0.9338816660456359, "peak_rss_bytes": 58769408, "variant": "after", "round": 0, "warmup": true}
+{"seconds": 1.1758709580171853, "peak_rss_bytes": 62750720, "variant": "after", "round": 1, "warmup": false}
+{"seconds": 1.5232893750071526, "peak_rss_bytes": 58146816, "variant": "before", "round": 1, "warmup": false}
+{"seconds": 0.8570256670936942, "peak_rss_bytes": 58048512, "variant": "before", "round": 2, "warmup": false}
+{"seconds": 0.8929236249532551, "peak_rss_bytes": 58933248, "variant": "after", "round": 2, "warmup": false}
+{"seconds": 0.8301552080083638, "peak_rss_bytes": 58982400, "variant": "after", "round": 3, "warmup": false}
+{"seconds": 0.7527165829669684, "peak_rss_bytes": 63062016, "variant": "before", "round": 3, "warmup": false}
+{"seconds": 0.7933610419277102, "peak_rss_bytes": 59457536, "variant": "before", "round": 4, "warmup": false}
+{"seconds": 0.8615297919604927, "peak_rss_bytes": 63389696, "variant": "after", "round": 4, "warmup": false}
+{"seconds": 0.7800809170585126, "peak_rss_bytes": 62439424, "variant": "after", "round": 5, "warmup": false}
+{"seconds": 0.8016870419960469, "peak_rss_bytes": 58834944, "variant": "before", "round": 5, "warmup": false}
+{"trimmed_mean_seconds": {"before": 0.8173579170058171, "after": 0.8615362083073705}, "speedup": 0.9487214920562085, "time_reduction_percent": -5.405011731383169}

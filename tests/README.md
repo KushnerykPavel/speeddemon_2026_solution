@@ -1,5 +1,15 @@
 # Rust baseline correctness checks
 
+Track A byte-parser regression tests can also run locally without Docker:
+
+```sh
+rustc --edition=2024 --test -O tests/ingest-parser.rs -o /tmp/ingest-parser-tests
+/tmp/ingest-parser-tests
+```
+
+These cover every buffer boundary, LF/CRLF and EOF tails, long records, numeric
+limits, malformed fields, and read failures. Tests live outside the scored track.
+
 `reference/` preserves the organisers' MIT-licensed Python implementations
 unchanged, outside the independently scored track folders.
 
