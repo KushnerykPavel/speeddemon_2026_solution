@@ -1,0 +1,30 @@
+{
+  "source_url": "https://s3.amazonaws.com/raptors.dev/speeddemon.dev/2026/board/board.json",
+  "generated_at": "2026-10-30T15:19:42Z",
+  "provenance": "Selected fields transcribed from the feed read during this chat; original full snapshot was not saved.",
+  "commit": "55522c458f6bd6463544d6bc130e2f9ed5b97014",
+  "tracks": {
+    "a": {
+      "run_id": "run-735e9cb7363e",
+      "T_s": 1.397731,
+      "M_bytes": 62058496,
+      "S": 69,
+      "D": 1,
+      "K": 6.020118,
+      "points": 38.980249,
+      "stage": "scored",
+      "all_gates_passed": true
+    },
+    "d": {
+      "run_id": "run-7fd912d41bce",
+      "T_s": 12.531876,
+      "M_bytes": 256811008,
+      "S": 91,
+      "D": 1,
+      "K": 2.761472,
+      "points": 22.057032,
+      "stage": "scored",
+      "all_gates_passed": true
+    }
+  }
+}

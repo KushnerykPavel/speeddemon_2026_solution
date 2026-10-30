@@ -1,0 +1,24 @@
+ARTIFACTS /tmp/ingest-speed-9rls_vfu
+   Compiling ingest-baseline v0.1.0 (/work/before)
+    Finished `release` profile [optimized] target(s) in 0.78s
+   Compiling ingest-baseline v0.1.0 (/work/after)
+    Finished `release` profile [optimized] target(s) in 0.69s
+Linux 7.0.0-28-generic x86_64 GNU/Linux
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+{"round":0,"variant":"before","seconds":2.073549519,"byte_equal":true}
+{"round":0,"variant":"after","seconds":1.809828907,"byte_equal":true}
+{"round":1,"variant":"after","seconds":1.573380868,"byte_equal":true}
+{"round":1,"variant":"before","seconds":2.012824176,"byte_equal":true}
+{"round":2,"variant":"before","seconds":1.9318981389999998,"byte_equal":true}
+{"round":2,"variant":"after","seconds":1.804865451,"byte_equal":true}
+{"round":3,"variant":"after","seconds":1.610122782,"byte_equal":true}
+{"round":3,"variant":"before","seconds":2.231016527,"byte_equal":true}
+{"round":4,"variant":"before","seconds":2.25981746,"byte_equal":true}
+{"round":4,"variant":"after","seconds":1.719828636,"byte_equal":true}
+{"round":5,"variant":"after","seconds":1.678517319,"byte_equal":true}
+{"round":5,"variant":"before","seconds":2.146541772,"byte_equal":true}
+
+495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3  /tmp/ingest-speed-9rls_vfu/out-after/summary.txt
+before [2.012824176, 1.9318981389999998, 2.231016527, 2.25981746, 2.146541772] trimmed_mean 2.130127491666667
+after [1.573380868, 1.804865451, 1.610122782, 1.719828636, 1.678517319] trimmed_mean 1.6694895789999997
+SPEEDUP 1.275915416580547 TIME_REDUCTION_PCT 21.62489871938379

@@ -4,7 +4,6 @@ use std::fs::{self, File};
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
-#[derive(Default)]
 struct Group {
     latencies: Vec<u32>,
     errors: u64,
@@ -26,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let mut groups: HashMap<(String, String), Group> = HashMap::new();
+    let mut groups: HashMap<[u8; 13], HashMap<String, Group>> = HashMap::new();
     let mut reader = BufReader::new(File::open(data.join("requests.log"))?);
     let mut line = String::new();
     loop {
@@ -54,21 +53,38 @@ fn main() -> Result<(), Box<dyn Error>> {
         // The spec guarantees fixed-width, valid UTC timestamps. Their first
         // thirteen bytes identify the calendar hour, including month changes.
         let hour = timestamp.get(..13).ok_or("invalid timestamp")?;
-        let group = groups
-            .entry((hour.to_owned(), endpoint.to_owned()))
-            .or_default();
-        group.latencies.push(latency.parse()?);
+        let hour: [u8; 13] = hour.as_bytes().try_into()?;
+        let latency = latency.parse()?;
         let status: u16 = status.parse()?;
-        if (500..=599).contains(&status) {
-            group.errors += 1;
+        let errors = u64::from((500..=599).contains(&status));
+        let endpoints = groups.entry(hour).or_default();
+        if let Some(group) = endpoints.get_mut(endpoint) {
+            group.latencies.push(latency);
+            group.errors += errors;
+        } else {
+            endpoints.insert(
+                endpoint.to_owned(),
+                Group {
+                    latencies: vec![latency],
+                    errors,
+                },
+            );
         }
     }
 
-    let mut groups: Vec<_> = groups.into_iter().collect();
+    let mut groups: Vec<_> = groups
+        .into_iter()
+        .flat_map(|(hour, endpoints)| {
+            endpoints
+                .into_iter()
+                .map(move |(endpoint, group)| ((hour, endpoint), group))
+        })
+        .collect();
     groups.sort_by(|a, b| a.0.cmp(&b.0));
     fs::create_dir_all(&out)?;
     let mut output = BufWriter::new(File::create(out.join("summary.txt"))?);
     for ((hour, endpoint), mut group) in groups {
+        let hour = std::str::from_utf8(&hour)?;
         group.latencies.sort();
         let count = group.latencies.len();
         let ppm = group.errors * 1_000_000 / count as u64;

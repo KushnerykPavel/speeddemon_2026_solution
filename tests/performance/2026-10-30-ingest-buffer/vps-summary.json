@@ -1,0 +1,119 @@
+{
+  "date": "2026-10-30",
+  "host": "my-vps",
+  "architecture": "x86_64",
+  "kernel": "Linux 7.0.0-28-generic",
+  "host_logical_cpus": 6,
+  "cpuset_cpus": "2",
+  "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+  "build": "cargo build --release --offline --locked",
+  "dataset": {
+    "scale": "full",
+    "seed": 1,
+    "rows": 3100000,
+    "bytes": 238836234,
+    "remote_path": "/home/student/speed-demon-2026/data/rust-validation/a/full-seed1"
+  },
+  "commits": {
+    "before": "55522c458f6bd6463544d6bc130e2f9ed5b97014",
+    "after": "389721669dd32ecd60a25e35012e1e33e29f2896"
+  },
+  "source_sha256": {
+    "before": "f3f313e3b23e327f7da09985afc2a2a9d57c26ff3fd307c98aaaa11c78d950b9",
+    "after": "6f27ca40477fe763f2e67841bbd659f83404adf5d252f067a74972bb31eb6618"
+  },
+  "remote_artifacts": "/tmp/ingest-speed-9rls_vfu",
+  "timing": "Rust Instant around child process status; Docker startup excluded; includes process startup and exit",
+  "warmup_round": 0,
+  "measured_rounds": 5,
+  "order": "alternating before/after and after/before",
+  "aggregation": "arithmetic mean after dropping min and max independently per variant",
+  "runs": [
+    {
+      "round": 0,
+      "variant": "before",
+      "seconds": 2.073549519,
+      "byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "after",
+      "seconds": 1.809828907,
+      "byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "after",
+      "seconds": 1.573380868,
+      "byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "before",
+      "seconds": 2.012824176,
+      "byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "before",
+      "seconds": 1.9318981389999998,
+      "byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "after",
+      "seconds": 1.804865451,
+      "byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "after",
+      "seconds": 1.610122782,
+      "byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "before",
+      "seconds": 2.231016527,
+      "byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "before",
+      "seconds": 2.25981746,
+      "byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "after",
+      "seconds": 1.719828636,
+      "byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "after",
+      "seconds": 1.678517319,
+      "byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "before",
+      "seconds": 2.146541772,
+      "byte_equal": true
+    }
+  ],
+  "trimmed_mean_seconds": {
+    "before": 2.130127491666667,
+    "after": 1.6694895789999997
+  },
+  "speedup": 1.275915416580547,
+  "time_reduction_percent": 21.62489871938379,
+  "output_sha256": "495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3",
+  "memory_measured": false,
+  "limitations": [
+    "Shared VPS, no isolation from unrelated host workloads",
+    "CPU model and governor not captured in local log",
+    "No cgroup memory.peak collected",
+    "Noticeable spread; local estimate, not official board score"
+  ]
+}

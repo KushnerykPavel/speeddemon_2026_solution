@@ -1,0 +1,224 @@
+{
+  "source_url": "https://s3.amazonaws.com/raptors.dev/speeddemon.dev/2026/board/board.json",
+  "generated_at": "2026-10-30T15:32:11Z",
+  "rules": {
+    "runs_per_push": 1,
+    "timeout_factor": 3.0,
+    "min_interval_s": 900,
+    "branch": "speed-demon",
+    "build_timeout_s": 600,
+    "image_max_bytes": 2147483648
+  },
+  "team": {
+    "team": "Kushneryk",
+    "slug": "kushneryk-d7faec",
+    "watch": {
+      "ok": true,
+      "error": null,
+      "head": "389721669dd32ecd60a25e35012e1e33e29f2896",
+      "checked_at": "2026-10-30T15:32:11Z"
+    },
+    "queue": {
+      "in_flight": null,
+      "queued": null
+    },
+    "tracks": {
+      "a": {
+        "registered": true,
+        "best": {
+          "run_id": "run-aa9a80757414",
+          "commit": "389721669dd32ecd60a25e35012e1e33e29f2896",
+          "pushed_at": "2026-10-30T15:29:04Z",
+          "dispatched_at": "2026-10-30T15:29:04Z",
+          "started_at": "2026-10-30T15:29:29Z",
+          "ended_at": "2026-10-30T15:29:31Z",
+          "queue_latency_s": 24.6,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 1.087126,
+          "M_bytes": 61673472,
+          "S": 87,
+          "D": 1,
+          "K": 6.601109,
+          "points": 40.980844,
+          "static_axes": "measured",
+          "timeout_s": 96.142,
+          "build_s": 14.443,
+          "image_bytes": 118273366,
+          "failure": null
+        },
+        "latest": {
+          "run_id": "run-aa9a80757414",
+          "commit": "389721669dd32ecd60a25e35012e1e33e29f2896",
+          "pushed_at": "2026-10-30T15:29:04Z",
+          "dispatched_at": "2026-10-30T15:29:04Z",
+          "started_at": "2026-10-30T15:29:29Z",
+          "ended_at": "2026-10-30T15:29:31Z",
+          "queue_latency_s": 24.6,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 1.087126,
+          "M_bytes": 61673472,
+          "S": 87,
+          "D": 1,
+          "K": 6.601109,
+          "points": 40.980844,
+          "static_axes": "measured",
+          "timeout_s": 96.142,
+          "build_s": 14.443,
+          "image_bytes": 118273366,
+          "failure": null
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "b": {
+        "registered": false,
+        "best": null,
+        "latest": {
+          "run_id": "run-ee625a495670",
+          "commit": "389721669dd32ecd60a25e35012e1e33e29f2896",
+          "pushed_at": "2026-10-30T15:29:04Z",
+          "dispatched_at": "2026-10-30T15:29:04Z",
+          "started_at": null,
+          "ended_at": null,
+          "queue_latency_s": null,
+          "ok": false,
+          "stage": "unchanged",
+          "gates": {
+            "check": true,
+            "build": null,
+            "correctness": null,
+            "timeout": null,
+            "sandbox": null
+          },
+          "T_s": null,
+          "M_bytes": null,
+          "S": null,
+          "D": null,
+          "K": null,
+          "points": null,
+          "static_axes": null,
+          "timeout_s": null,
+          "build_s": null,
+          "image_bytes": null,
+          "failure": "this folder is the unchanged starter, which is the published reference and scores about 0, so the board does not run it; change the code and push again"
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "c": {
+        "registered": false,
+        "best": null,
+        "latest": {
+          "run_id": "run-0052f3b6a6e9",
+          "commit": "389721669dd32ecd60a25e35012e1e33e29f2896",
+          "pushed_at": "2026-10-30T15:29:04Z",
+          "dispatched_at": "2026-10-30T15:29:04Z",
+          "started_at": null,
+          "ended_at": null,
+          "queue_latency_s": null,
+          "ok": false,
+          "stage": "unchanged",
+          "gates": {
+            "check": true,
+            "build": null,
+            "correctness": null,
+            "timeout": null,
+            "sandbox": null
+          },
+          "T_s": null,
+          "M_bytes": null,
+          "S": null,
+          "D": null,
+          "K": null,
+          "points": null,
+          "static_axes": null,
+          "timeout_s": null,
+          "build_s": null,
+          "image_bytes": null,
+          "failure": "this folder is the unchanged starter, which is the published reference and scores about 0, so the board does not run it; change the code and push again"
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "d": {
+        "registered": true,
+        "best": {
+          "run_id": "run-dcba6eebf961",
+          "commit": "389721669dd32ecd60a25e35012e1e33e29f2896",
+          "pushed_at": "2026-10-30T15:29:04Z",
+          "dispatched_at": "2026-10-30T15:29:04Z",
+          "started_at": "2026-10-30T15:29:31Z",
+          "ended_at": "2026-10-30T15:29:43Z",
+          "queue_latency_s": 26.2,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 12.360906,
+          "M_bytes": 257007616,
+          "S": 91,
+          "D": 1,
+          "K": 2.780079,
+          "points": 22.202853,
+          "static_axes": "measured",
+          "timeout_s": 218.078,
+          "build_s": 7.301,
+          "image_bytes": 118254057,
+          "failure": null
+        },
+        "latest": {
+          "run_id": "run-dcba6eebf961",
+          "commit": "389721669dd32ecd60a25e35012e1e33e29f2896",
+          "pushed_at": "2026-10-30T15:29:04Z",
+          "dispatched_at": "2026-10-30T15:29:04Z",
+          "started_at": "2026-10-30T15:29:31Z",
+          "ended_at": "2026-10-30T15:29:43Z",
+          "queue_latency_s": 26.2,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 12.360906,
+          "M_bytes": 257007616,
+          "S": 91,
+          "D": 1,
+          "K": 2.780079,
+          "points": 22.202853,
+          "static_axes": "measured",
+          "timeout_s": 218.078,
+          "build_s": 7.301,
+          "image_bytes": 118254057,
+          "failure": null
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      }
+    }
+  }
+}
