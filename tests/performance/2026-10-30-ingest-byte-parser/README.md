@@ -1,5 +1,9 @@
 # Buffered byte parser — 2026-10-30
 
+Follow-up: the [Linux x86-64 check](../2026-10-30-ingest-byte-parser-linux/README.md)
+also found no demonstrated speedup across two noisy batches. Full correctness
+and optimized parser regression tests passed on Linux; all new evidence is archived separately.
+
 Track A now scans complete records in a 64 KiB `BufReader` buffer, retaining only
 split records in a reusable byte vector. Decimal fields use checked byte parsing;
 endpoint lookup, grouping, sorting and output remain the same.

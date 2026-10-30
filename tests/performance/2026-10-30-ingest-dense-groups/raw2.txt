@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/tmp/ingest-dense-e_fg95z0/runner.py", line 147, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/ingest-dense-e_fg95z0/runner.py", line 104, in main
+    expected = (reference / "summary.txt").read_bytes()
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 778, in read_bytes
+    with self.open(mode='rb', buffering=0) as f:
+         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 772, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/ingest-dense-e_fg95z0/batch1/empty/reference/summary.txt'

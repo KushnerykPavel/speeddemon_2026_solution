@@ -1,0 +1,127 @@
+diff --git a/track-a/src/main.rs b/track-a/src/main.rs
+index 86e9ac7..3b2a9cf 100644
+--- a/track-a/src/main.rs
++++ b/track-a/src/main.rs
+@@ -4,12 +4,18 @@ use std::fs::{self, File};
+ use std::io::{BufRead, BufReader, BufWriter, Write};
+ use std::path::PathBuf;
+ 
++#[derive(Default)]
+ struct Group {
+     latencies: Vec<u32>,
+     errors: u64,
+ }
+ 
+-type Groups = HashMap<[u8; 13], HashMap<String, Group>>;
++#[derive(Default)]
++struct Groups {
++    endpoints: HashMap<String, usize>,
++    hours: HashMap<[u8; 13], usize>,
++    rows: Vec<Vec<Group>>,
++}
+ 
+ #[derive(Debug)]
+ struct Record<'a> {
+@@ -76,25 +82,31 @@ fn parse_record(line: &[u8]) -> Result<Record<'_>, &'static str> {
+ 
+ fn add_record(groups: &mut Groups, line: &[u8]) -> Result<(), &'static str> {
+     let record = parse_record(line)?;
+-    let errors = u64::from(record.error);
+-    let endpoints = groups.entry(record.hour).or_default();
+-    if let Some(group) = endpoints.get_mut(record.endpoint) {
+-        group.latencies.push(record.latency);
+-        group.errors += errors;
+-    } else {
+-        endpoints.insert(
+-            record.endpoint.to_owned(),
+-            Group {
+-                latencies: vec![record.latency],
+-                errors,
+-            },
+-        );
++    let endpoint_id = match groups.endpoints.get(record.endpoint) {
++        Some(&id) => id,
++        None => {
++            let id = groups.endpoints.len();
++            groups.endpoints.insert(record.endpoint.to_owned(), id);
++            id
++        }
++    };
++    let hour_id = *groups.hours.entry(record.hour).or_insert_with(|| {
++        groups.rows.push(Vec::new());
++        groups.rows.len() - 1
++    });
++    let row = &mut groups.rows[hour_id];
++    // Rows grow independently: discovering an endpoint never changes existing IDs.
++    if row.len() <= endpoint_id {
++        row.resize_with(endpoint_id + 1, Group::default);
+     }
++    let group = &mut row[endpoint_id];
++    group.latencies.push(record.latency);
++    group.errors += u64::from(record.error);
+     Ok(())
+ }
+ 
+ fn read_groups(reader: &mut impl BufRead) -> Result<Groups, Box<dyn Error>> {
+-    let mut groups = Groups::new();
++    let mut groups = Groups::default();
+     let mut partial = Vec::new();
+     loop {
+         let buffer = reader.fill_buf()?;
+@@ -142,30 +154,35 @@ fn main() -> Result<(), Box<dyn Error>> {
+     let mut reader = BufReader::with_capacity(64 * 1024, File::open(data.join("requests.log"))?);
+     let groups = read_groups(&mut reader)?;
+ 
+-    let mut groups: Vec<_> = groups
+-        .into_iter()
+-        .flat_map(|(hour, endpoints)| {
+-            endpoints
+-                .into_iter()
+-                .map(move |(endpoint, group)| ((hour, endpoint), group))
+-        })
+-        .collect();
+-    groups.sort_by(|a, b| a.0.cmp(&b.0));
++    let mut hours: Vec<_> = groups.hours.into_iter().collect();
++    hours.sort_unstable_by_key(|&(hour, _)| hour);
++    let mut endpoints: Vec<_> = groups.endpoints.into_iter().collect();
++    endpoints.sort_unstable_by(|a, b| a.0.cmp(&b.0));
++    let mut rows = groups.rows;
+     fs::create_dir_all(&out)?;
+     let mut output = BufWriter::new(File::create(out.join("summary.txt"))?);
+-    for ((hour, endpoint), mut group) in groups {
++    for (hour, hour_id) in hours {
+         let hour = std::str::from_utf8(&hour)?;
+-        group.latencies.sort_unstable();
+-        let count = group.latencies.len();
+-        let ppm = group.errors * 1_000_000 / count as u64;
+-        writeln!(
+-            output,
+-            "{hour}:00:00Z {endpoint} {count} {} {} {} {} {ppm}",
+-            percentile(&group.latencies, 50),
+-            percentile(&group.latencies, 95),
+-            percentile(&group.latencies, 99),
+-            group.errors
+-        )?;
++        let row = &mut rows[hour_id];
++        for (endpoint, endpoint_id) in &endpoints {
++            let Some(group) = row.get_mut(*endpoint_id) else {
++                continue;
++            };
++            let count = group.latencies.len();
++            if count == 0 {
++                continue;
++            }
++            group.latencies.sort_unstable();
++            let ppm = group.errors * 1_000_000 / count as u64;
++            writeln!(
++                output,
++                "{hour}:00:00Z {endpoint} {count} {} {} {} {} {ppm}",
++                percentile(&group.latencies, 50),
++                percentile(&group.latencies, 95),
++                percentile(&group.latencies, 99),
++                group.errors
++            )?;
++        }
+     }
+     output.flush()?;
+     Ok(())

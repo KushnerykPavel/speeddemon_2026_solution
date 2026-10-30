@@ -1,0 +1,188 @@
+{
+  "platform": "Linux-7.0.0-28-generic-x86_64-with-glibc2.43",
+  "machine": "x86_64",
+  "logical_cpus": 6,
+  "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+  "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1\n",
+  "conditions": {
+    "native": true,
+    "docker": false,
+    "cpu_affinity": [
+      2
+    ],
+    "warmups_per_variant": 1,
+    "measured_runs_per_variant": 5,
+    "order": "alternating before/after each round",
+    "memory": "per-child peak RSS from wait4; not cgroup memory.peak",
+    "timing": "process spawn through exit; output comparison excluded",
+    "cache": "warm input; reference and correctness runs precede benchmark"
+  },
+  "source_sha256": {
+    "before": "53d7d87a1a32425fc3c8e60c674e1871497d76e396539fdc49d826af94989957",
+    "after": "6828e9c514a2acc3ee5e2cfef203db74086d293be2e3b6424cccb280c016aa24",
+    "manifest": "6da2f8742d3111c8d45cd71382d286871cc55fbbb20730b29355be8034eb3306",
+    "reference": "6c3cff053f5d620aa873038e30bb32a31319bcbcd79b3b662a2ae152bb2664f1"
+  },
+  "binary_sha256": {
+    "before": "61128fc063b795ce0e79f8d7b106c84ff047687910a26c7f7a78c48a29992ab1",
+    "after": "2c24cdbd6860c3f54bfe32cff179401edfc9815aa88321678b6fdb299bbd4bae"
+  },
+  "correctness": [
+    {
+      "case": "empty",
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byte_equal": true,
+      "published_hash_checked": false
+    },
+    {
+      "case": "edge-cases",
+      "input_sha256": "82b25177b1972f0488454c455c9f6f4d7f0ac8d18912505eef23c6cf6f1efa67",
+      "output_sha256": "07d401c5f5de6222c82f9e5d342220e64a23027db8daf1d311ca5318821ff4f2",
+      "byte_equal": true,
+      "published_hash_checked": false
+    },
+    {
+      "case": "tiny-seed1",
+      "input_sha256": "a99dd14856a3e6e408097dabc1b3ad5ac5a3801fb12f388bacb2802c8591339f",
+      "output_sha256": "c24fa507c963eaeac9224fd8435019b4f4e8c002ece7e32f316681a3957eb92f",
+      "byte_equal": true,
+      "published_hash_checked": false
+    },
+    {
+      "case": "tiny-seed7",
+      "input_sha256": "c7e5a1156b9b3d5937b46c3392c9093609a0b20e767511f74de95687231133c5",
+      "output_sha256": "4ba05ab1a7a257e847c25beded9bf3cc658fb1d41f398b84a8a983a7b91f026d",
+      "byte_equal": true,
+      "published_hash_checked": false
+    },
+    {
+      "case": "tiny-seed42",
+      "input_sha256": "9044f995c8276f981e1f5303a5a998c40c8b1341445ed81f4d0f737420726417",
+      "output_sha256": "5f7611f0f34b3cdfee59ca627d66d19b53b9c8ff13127b2f2073ff13c9583429",
+      "byte_equal": true,
+      "published_hash_checked": false
+    },
+    {
+      "case": "sample-seed1",
+      "input_sha256": "7b22c678acceba2b82120394afe27e827ca4083a677a8e51147defa854c86847",
+      "output_sha256": "ca6311bbeb536fa55d85265bf6fd3d24cc9586f13de1ac73bd2a23ac3893aac3",
+      "byte_equal": true,
+      "published_hash_checked": true
+    },
+    {
+      "case": "sample-seed7",
+      "input_sha256": "ff6d791b81d773c23eff1d3e9fa1d4b2984137338b1fba90cf5f492934ce8cfe",
+      "output_sha256": "39bfccc5334c93cbe0c762f5e6c3300e91ca2e266567561da3176c038cee49f7",
+      "byte_equal": true,
+      "published_hash_checked": false
+    },
+    {
+      "case": "sample-seed42",
+      "input_sha256": "6522782f0ae5fb6be5fd41779ef41531080f1e59aed2ebc48ff45c95cb944744",
+      "output_sha256": "835c36377118af19264750c9b1031225ead44a8555e913c22d31a827dbe486c8",
+      "byte_equal": true,
+      "published_hash_checked": false
+    },
+    {
+      "case": "full-seed1",
+      "input_sha256": "7ec80ba45bceef51ac7f79d3a14521fc6187b2dcb87b5e5542d08063fe5d962a",
+      "output_sha256": "495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3",
+      "byte_equal": true,
+      "published_hash_checked": true
+    }
+  ],
+  "benchmark": [
+    {
+      "seconds": 1.3610865492373705,
+      "peak_rss_bytes": 49176576,
+      "variant": "before",
+      "round": 0,
+      "warmup": true
+    },
+    {
+      "seconds": 1.2415971923619509,
+      "peak_rss_bytes": 49176576,
+      "variant": "after",
+      "round": 0,
+      "warmup": true
+    },
+    {
+      "seconds": 1.1994699081405997,
+      "peak_rss_bytes": 49176576,
+      "variant": "after",
+      "round": 1,
+      "warmup": false
+    },
+    {
+      "seconds": 1.3085297597572207,
+      "peak_rss_bytes": 49176576,
+      "variant": "before",
+      "round": 1,
+      "warmup": false
+    },
+    {
+      "seconds": 1.267001973465085,
+      "peak_rss_bytes": 49176576,
+      "variant": "before",
+      "round": 2,
+      "warmup": false
+    },
+    {
+      "seconds": 1.324353695847094,
+      "peak_rss_bytes": 49176576,
+      "variant": "after",
+      "round": 2,
+      "warmup": false
+    },
+    {
+      "seconds": 1.2739672446623445,
+      "peak_rss_bytes": 49176576,
+      "variant": "after",
+      "round": 3,
+      "warmup": false
+    },
+    {
+      "seconds": 1.2846847008913755,
+      "peak_rss_bytes": 49176576,
+      "variant": "before",
+      "round": 3,
+      "warmup": false
+    },
+    {
+      "seconds": 1.351267097517848,
+      "peak_rss_bytes": 49176576,
+      "variant": "before",
+      "round": 4,
+      "warmup": false
+    },
+    {
+      "seconds": 1.1568851619958878,
+      "peak_rss_bytes": 49176576,
+      "variant": "after",
+      "round": 4,
+      "warmup": false
+    },
+    {
+      "seconds": 1.339727976359427,
+      "peak_rss_bytes": 49176576,
+      "variant": "after",
+      "round": 5,
+      "warmup": false
+    },
+    {
+      "seconds": 1.3833229159936309,
+      "peak_rss_bytes": 49176576,
+      "variant": "before",
+      "round": 5,
+      "warmup": false
+    }
+  ],
+  "reference_reused_from": "/tmp/ingest-dense-e_fg95z0/summary1.json",
+  "trimmed_mean_seconds": {
+    "before": 1.3148271860554814,
+    "after": 1.265930282883346
+  },
+  "speedup": 1.0386252733134445,
+  "time_reduction_percent": 3.7188844047883918
+}

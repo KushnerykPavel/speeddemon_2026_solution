@@ -1,0 +1,12 @@
+
+running 7 tests
+test parser_tests::empty_input_and_blank_records ... ok
+test parser_tests::endpoint_ids_remain_valid_as_hours_and_endpoints_arrive ... ok
+test parser_tests::read_errors_are_not_treated_as_eof ... ok
+test parser_tests::numeric_boundaries_and_error_statuses ... ok
+test parser_tests::rejects_malformed_records ... ok
+test parser_tests::record_longer_than_production_buffer ... ok
+test parser_tests::every_buffer_boundary_and_line_ending ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

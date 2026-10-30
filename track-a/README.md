@@ -8,11 +8,12 @@ Rust port of the organisers' Python reference. Scan byte records directly in a
 64 KiB read buffer using `fill_buf`/`consume`; copy only records crossing buffer
 boundaries into one reusable byte vector. Find field separators without temporary
 strings and parse decimal status/latency with overflow checks. Support LF, CRLF,
-and a final record without a newline. Group latencies in a hash map of UTC hours,
-each holding an endpoint map. The hour key is thirteen inline timestamp bytes; endpoint strings
-are allocated only for new groups, and existing groups are looked up using a
-borrowed string. Sort each group's latencies and emit exact nearest-rank
-percentiles and integer error rates. Sort the group keys before writing output.
+and a final record without a newline. Intern each distinct endpoint once and assign
+stable numeric IDs to endpoints and UTC hours. Store groups in per-hour vectors
+indexed by endpoint ID; grow each row independently as new endpoints arrive.
+Sort only the unique hours and endpoint names for output, skipping empty groups.
+Sort each group's latencies and emit exact nearest-rank percentiles and integer
+error rates. No endpoint catalogue or fixed calendar range is hard-coded.
 No parallelism, memory mapping or selection algorithm yet. The spec guarantees
 fixed-width valid UTC timestamps, so no date dependency is needed.
 
@@ -26,5 +27,5 @@ None.
 
 ## With another 24 hours
 
-Measure parsing, grouping and sorting separately; consider endpoint IDs,
-parallel parsing and exact selection for large groups.
+Measure parsing, grouping and sorting separately; consider parallel parsing,
+a contiguous latency arena and exact selection for large groups.

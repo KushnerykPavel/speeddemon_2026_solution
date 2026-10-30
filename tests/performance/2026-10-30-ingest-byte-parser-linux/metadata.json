@@ -1,0 +1,81 @@
+{
+  "remote_directory": "/tmp/ingest-byte-linux-mjj_tld6",
+  "repo_commit": "f70b65599340593274e6d8f08353821868ae514c",
+  "kernel": "Linux-7.0.0-28-generic-x86_64-with-glibc2.43",
+  "build_image": "rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb",
+  "build": "cargo build --release --offline --locked",
+  "runtime": "native Linux host",
+  "load_before": [
+    0.40966796875,
+    0.513671875,
+    0.5078125
+  ],
+  "cpu_affinity": [
+    2
+  ],
+  "source_sha256": {
+    "before/src/main.rs": "6a85988c32ef64e32423215955a3f04a6211cd46b837ee2d5a04671e897ea4f1",
+    "before/Cargo.toml": "6da2f8742d3111c8d45cd71382d286871cc55fbbb20730b29355be8034eb3306",
+    "before/Cargo.lock": "535ee31de8358d2e5b8a38590170dd96dc0133ac122dc54150cfd5b1021bdffc",
+    "before-main.rs": "6a85988c32ef64e32423215955a3f04a6211cd46b837ee2d5a04671e897ea4f1",
+    "track-a/src/main.rs": "53d7d87a1a32425fc3c8e60c674e1871497d76e396539fdc49d826af94989957",
+    "track-a/Cargo.toml": "6da2f8742d3111c8d45cd71382d286871cc55fbbb20730b29355be8034eb3306",
+    "track-a/Cargo.lock": "535ee31de8358d2e5b8a38590170dd96dc0133ac122dc54150cfd5b1021bdffc",
+    "tests/ingest-parser.rs": "7b479ef99f9a5c39e44868121822208035bb66f48c1536c2edf414eea64c73c8",
+    "tests/reference/a_ingest.py": "6c3cff053f5d620aa873038e30bb32a31319bcbcd79b3b662a2ae152bb2664f1",
+    "runner.py": "61afdb5bee9c4080d20d7d89a7ceb7d6e94b8eaae9876106c5a83f0b4ef247e6"
+  },
+  "commands": [
+    [
+      "taskset",
+      "-c",
+      "2",
+      "python3",
+      "/tmp/ingest-byte-linux-mjj_tld6/runner.py",
+      "--repo",
+      "/tmp/ingest-byte-linux-mjj_tld6",
+      "--data-root",
+      "/home/student/speed-demon-2026/data/rust-validation/a",
+      "--before",
+      "/tmp/ingest-byte-linux-mjj_tld6/before/target/release/ingest-baseline",
+      "--after",
+      "/tmp/ingest-byte-linux-mjj_tld6/track-a/target/release/ingest-baseline",
+      "--work",
+      "/tmp/ingest-byte-linux-mjj_tld6/batch1",
+      "--summary",
+      "/tmp/ingest-byte-linux-mjj_tld6/summary1.json",
+      "--rustc-version-file",
+      "/tmp/ingest-byte-linux-mjj_tld6/rustc-version.txt"
+    ],
+    [
+      "taskset",
+      "-c",
+      "2",
+      "python3",
+      "/tmp/ingest-byte-linux-mjj_tld6/runner.py",
+      "--repo",
+      "/tmp/ingest-byte-linux-mjj_tld6",
+      "--data-root",
+      "/home/student/speed-demon-2026/data/rust-validation/a",
+      "--before",
+      "/tmp/ingest-byte-linux-mjj_tld6/before/target/release/ingest-baseline",
+      "--after",
+      "/tmp/ingest-byte-linux-mjj_tld6/track-a/target/release/ingest-baseline",
+      "--work",
+      "/tmp/ingest-byte-linux-mjj_tld6/batch2",
+      "--summary",
+      "/tmp/ingest-byte-linux-mjj_tld6/summary2.json",
+      "--rustc-version-file",
+      "/tmp/ingest-byte-linux-mjj_tld6/rustc-version.txt",
+      "--reference-work",
+      "/tmp/ingest-byte-linux-mjj_tld6/batch1",
+      "--reference-summary",
+      "/tmp/ingest-byte-linux-mjj_tld6/summary1.json"
+    ]
+  ],
+  "load_after": [
+    1.4248046875,
+    0.9150390625,
+    0.65966796875
+  ]
+}

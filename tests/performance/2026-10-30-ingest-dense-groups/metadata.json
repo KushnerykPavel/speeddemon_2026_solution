@@ -1,0 +1,22 @@
+{
+  "baseline_commit": "f70b65599340593274e6d8f08353821868ae514c",
+  "candidate": "uncommitted; source snapshots and candidate.patch archived",
+  "remote_directory": "/tmp/ingest-dense-e_fg95z0",
+  "build_image": "rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb",
+  "build": "cargo build --release --offline --locked",
+  "runtime": "native Linux x86_64 host",
+  "reference_cache": "/tmp/ingest-byte-linux-mjj_tld6/batch1",
+  "reference_summary": "/tmp/ingest-byte-linux-mjj_tld6/summary1.json",
+  "cpu_affinity": [
+    2
+  ],
+  "host_load": "not recovered from initial failed orchestrator",
+  "source_sha256": {
+    "before-main.rs": "53d7d87a1a32425fc3c8e60c674e1871497d76e396539fdc49d826af94989957",
+    "measured-main.rs": "6828e9c514a2acc3ee5e2cfef203db74086d293be2e3b6424cccb280c016aa24",
+    "before-Cargo.toml": "6da2f8742d3111c8d45cd71382d286871cc55fbbb20730b29355be8034eb3306",
+    "measured-Cargo.toml": "6da2f8742d3111c8d45cd71382d286871cc55fbbb20730b29355be8034eb3306",
+    "runner.py": "61afdb5bee9c4080d20d7d89a7ceb7d6e94b8eaae9876106c5a83f0b4ef247e6"
+  },
+  "repeat_failure": "Initial batch2 pointed to batch1/reference outputs which were not copied when cached references were reused. No batch2 timing occurred; retry used original verified reference cache. Logs retained."
+}

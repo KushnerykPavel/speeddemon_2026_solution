@@ -6,6 +6,10 @@ mod parser_tests {
     use super::*;
     use std::io::{self, Cursor, Read};
 
+    fn group<'a>(groups: &'a Groups, hour: &[u8; 13], endpoint: &str) -> &'a Group {
+        &groups.rows[groups.hours[hour]][groups.endpoints[endpoint]]
+    }
+
     #[test]
     fn numeric_boundaries_and_error_statuses() {
         for (status, error) in [(499, false), (500, true), (599, true), (600, false)] {
@@ -60,11 +64,11 @@ mod parser_tests {
                     let mut reader =
                         BufReader::with_capacity(capacity, Cursor::new(input.as_bytes()));
                     let groups = read_groups(&mut reader).unwrap();
-                    assert_eq!(groups.len(), 2);
-                    let first = &groups[b"2026-10-31T23"]["/api"];
+                    assert_eq!(groups.hours.len(), 2);
+                    let first = group(&groups, b"2026-10-31T23", "/api");
                     assert_eq!(first.latencies, [0, 10]);
                     assert_eq!(first.errors, 1);
-                    let second = &groups[b"2026-11-01T00"]["/api/v1"];
+                    let second = group(&groups, b"2026-11-01T00", "/api/v1");
                     assert_eq!(second.latencies, [u32::MAX]);
                     assert_eq!(second.errors, 1);
                 }
@@ -75,7 +79,7 @@ mod parser_tests {
     #[test]
     fn empty_input_and_blank_records() {
         let mut empty = BufReader::with_capacity(1, Cursor::new(b""));
-        assert!(read_groups(&mut empty).unwrap().is_empty());
+        assert!(read_groups(&mut empty).unwrap().hours.is_empty());
         for input in [b"\n".as_slice(), b"\r\n", b"incomplete"] {
             let mut reader = BufReader::with_capacity(1, Cursor::new(input));
             assert!(read_groups(&mut reader).is_err());
@@ -91,10 +95,27 @@ mod parser_tests {
         );
         let mut reader = BufReader::with_capacity(64 * 1024, Cursor::new(input.as_bytes()));
         let groups = read_groups(&mut reader).unwrap();
-        let endpoints = &groups[b"2026-10-31T23"];
-        assert_eq!(endpoints.len(), 2);
-        assert_eq!(endpoints[&endpoint].latencies, [7]);
-        assert_eq!(endpoints["/next"].latencies, [8]);
+        assert_eq!(groups.endpoints.len(), 2);
+        assert_eq!(group(&groups, b"2026-10-31T23", &endpoint).latencies, [7]);
+        assert_eq!(group(&groups, b"2026-10-31T23", "/next").latencies, [8]);
+    }
+
+    #[test]
+    fn endpoint_ids_remain_valid_as_hours_and_endpoints_arrive() {
+        let input = b"2026-11-01T00:00:00.000000Z GET /z 200 1\n\
+                      2026-10-31T23:00:00.000000Z GET /a 500 2\n\
+                      2026-11-01T00:00:00.000000Z GET /aa 599 3\n\
+                      2026-11-01T00:00:00.000000Z GET /z 500 4\n\
+                      2026-10-31T23:00:00.000000Z GET /aa 200 5\n";
+        let groups = read_groups(&mut BufReader::with_capacity(7, &input[..])).unwrap();
+        assert_eq!(groups.endpoints.len(), 3);
+        assert_eq!(groups.hours.len(), 2);
+        assert_eq!(group(&groups, b"2026-11-01T00", "/z").latencies, [1, 4]);
+        assert_eq!(group(&groups, b"2026-11-01T00", "/z").errors, 1);
+        assert!(group(&groups, b"2026-11-01T00", "/a").latencies.is_empty());
+        assert!(group(&groups, b"2026-10-31T23", "/z").latencies.is_empty());
+        assert_eq!(group(&groups, b"2026-10-31T23", "/a").latencies, [2]);
+        assert_eq!(group(&groups, b"2026-10-31T23", "/aa").latencies, [5]);
     }
 
     #[test]
