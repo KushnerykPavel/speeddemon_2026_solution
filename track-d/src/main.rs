@@ -1,11 +1,14 @@
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::BinaryHeap;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
-type Graph = Vec<Vec<(usize, u32)>>;
+struct Graph {
+    offsets: Vec<u32>,
+    edges: Vec<(u32, u32)>,
+}
 
 fn read_graph(path: &Path) -> Result<Graph, Box<dyn Error>> {
     let mut lines = BufReader::new(File::open(path)?).lines();
@@ -13,45 +16,84 @@ fn read_graph(path: &Path) -> Result<Graph, Box<dyn Error>> {
     let fields: Vec<_> = header.split_whitespace().collect();
     let n: usize = fields[0].parse()?;
     let m: usize = fields[1].parse()?;
-    let mut graph = vec![Vec::new(); n];
-    let mut edges = 0;
+    let mut list = Vec::with_capacity(m);
+    let mut offsets = vec![0_u32; n + 1];
     for line in lines {
         let line = line?;
         let fields: Vec<_> = line.split_whitespace().collect();
         let u: usize = fields[0].parse()?;
-        let v: usize = fields[1].parse()?;
+        let v: u32 = fields[1].parse()?;
         let w: u32 = fields[2].parse()?;
-        graph[u].push((v, w));
-        edges += 1;
+        offsets[u + 1] += 1;
+        list.push((u as u32, v, w));
     }
-    if edges != m {
+    if list.len() != m {
         return Err("edge count differs from header".into());
     }
-    Ok(graph)
+    for i in 0..n {
+        offsets[i + 1] += offsets[i];
+    }
+    let mut cursor = offsets.clone();
+    let mut edges = vec![(0, 0); m];
+    for (u, v, w) in list {
+        edges[cursor[u as usize] as usize] = (v, w);
+        cursor[u as usize] += 1;
+    }
+    Ok(Graph { offsets, edges })
 }
 
-fn shortest_path(graph: &Graph, source: usize, target: usize) -> Option<u64> {
-    let mut distances = HashMap::from([(source, 0_u64)]);
-    let mut heap = BinaryHeap::from([Reverse((0_u64, source))]);
-    while let Some(Reverse((distance, node))) = heap.pop() {
-        if distance > distances[&node] {
-            continue;
-        }
-        if node == target {
-            return Some(distance);
-        }
-        for &(next, weight) in &graph[node] {
-            let candidate = distance + u64::from(weight);
-            if distances
-                .get(&next)
-                .is_none_or(|&current| candidate < current)
-            {
-                distances.insert(next, candidate);
-                heap.push(Reverse((candidate, next)));
-            }
+struct Searcher {
+    distances: Vec<u64>,
+    touched: Vec<u32>,
+    heap: BinaryHeap<Reverse<(u64, u32)>>,
+}
+
+impl Searcher {
+    fn new(nodes: usize) -> Self {
+        Self {
+            distances: vec![u64::MAX; nodes],
+            touched: Vec::new(),
+            heap: BinaryHeap::new(),
         }
     }
-    None
+
+    fn shortest_path(&mut self, graph: &Graph, source: usize, target: usize) -> Option<u64> {
+        let found = self.search(graph, source as u32, target as u32);
+        for &node in &self.touched {
+            self.distances[node as usize] = u64::MAX;
+        }
+        self.touched.clear();
+        self.heap.clear();
+        found
+    }
+
+    fn search(&mut self, graph: &Graph, source: u32, target: u32) -> Option<u64> {
+        self.distances[source as usize] = 0;
+        self.touched.push(source);
+        self.heap.push(Reverse((0, source)));
+        while let Some(Reverse((distance, node))) = self.heap.pop() {
+            if distance > self.distances[node as usize] {
+                continue;
+            }
+            if node == target {
+                return Some(distance);
+            }
+            let range =
+                graph.offsets[node as usize] as usize..graph.offsets[node as usize + 1] as usize;
+            for &(next, weight) in &graph.edges[range] {
+                let candidate = distance + u64::from(weight);
+                let current = &mut self.distances[next as usize];
+                if candidate < *current {
+                    if *current == u64::MAX {
+                        self.touched.push(next);
+                    }
+                    *current = candidate;
+                    self.heap.push(Reverse((candidate, next)));
+                }
+            }
+        }
+        None
+    }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -76,8 +118,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
     fs::create_dir_all(&out)?;
     let mut output = BufWriter::new(File::create(out.join("distances.txt"))?);
+    let mut searcher = Searcher::new(graph.offsets.len() - 1);
     for (source, target) in queries {
-        match shortest_path(&graph, source, target) {
+        match searcher.shortest_path(&graph, source, target) {
             Some(distance) => writeln!(output, "{distance}")?,
             None => writeln!(output, "-1")?,
         }

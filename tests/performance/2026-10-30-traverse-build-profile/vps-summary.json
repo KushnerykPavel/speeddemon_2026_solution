@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-30",
+  "host": "my-vps",
+  "architecture": "x86_64",
+  "cpu": "Intel Core Processor (Haswell, no TSX), KVM, AVX2",
+  "host_logical_cpus": 6,
+  "cpuset_cpus": "2",
+  "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+  "remote_artifacts": "/tmp/traverse-build-t9o4c8h9",
+  "dataset": {
+    "track": "d",
+    "scale": "full",
+    "seed": 1,
+    "nodes": 1740512,
+    "edges": 5000000,
+    "queries": 2000,
+    "path": "/home/student/speed-demon-2026/data/rust-validation/d/full-seed1"
+  },
+  "comparison": "Identical current CSR/array-distance source; default release vs fat LTO + codegen-units=1 + panic=abort + target-cpu=native",
+  "timing": "Rust Instant around child process launch through exit; Docker startup excluded; warm input page cache",
+  "order": "alternating; one warmup plus five measured runs per variant",
+  "runs": [
+    {
+      "round": 0,
+      "variant": "before",
+      "seconds": 15.921458108,
+      "byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "after",
+      "seconds": 17.756333987,
+      "byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "after",
+      "seconds": 17.457003298,
+      "byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "before",
+      "seconds": 18.135001941,
+      "byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "before",
+      "seconds": 18.235619201,
+      "byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "after",
+      "seconds": 17.525414698,
+      "byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "after",
+      "seconds": 17.184048557,
+      "byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "before",
+      "seconds": 19.688484287,
+      "byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "before",
+      "seconds": 18.650938718,
+      "byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "after",
+      "seconds": 17.622001528,
+      "byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "after",
+      "seconds": 17.24024418,
+      "byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "before",
+      "seconds": 15.351041382,
+      "byte_equal": true
+    }
+  ],
+  "trimmed_mean_seconds": {
+    "before": 18.34051995333333,
+    "after": 17.407554058666665
+  },
+  "median_seconds": {
+    "before": 18.235619201,
+    "after": 17.457003298
+  },
+  "speedup": 1.053595461575038,
+  "time_reduction_percent": 5.086910823905521,
+  "measured_spread_percent": {
+    "before": 28.255040143959942,
+    "after": 2.5486018009510003
+  },
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "correctness": "All 12 outputs byte-equal to saved Python full-seed1 reference; reference hash verified",
+  "memory_measured": false,
+  "board_run_id": null,
+  "limitations": [
+    "Shared VPS, no exclusion of other workloads",
+    "Large baseline spread; small aggregate improvement is inconclusive",
+    "No memory.peak or official score measured",
+    "VPS Haswell differs from scoring machine CPU"
+  ],
+  "local_head": "a2217a2d6d39bcefbfda0aaa1d8865b1f7556c54",
+  "source_sha256": "e64daa9318a0b6f854a923f9c9b91585a4738739e02a1c08a0c6cfe173f17820",
+  "files_sha256": {
+    "before/src/main.rs": "e64daa9318a0b6f854a923f9c9b91585a4738739e02a1c08a0c6cfe173f17820",
+    "after/src/main.rs": "e64daa9318a0b6f854a923f9c9b91585a4738739e02a1c08a0c6cfe173f17820",
+    "before/Cargo.toml": "4d8814b989486adc444c384b0cda769ede9aab3fe5b227e80bdc28defedd7163",
+    "after/Cargo.toml": "ca61ff94e64b8f3c77d9f1fb9118a4563ea66626e515973f59d39fbd1a0c3f20",
+    "before/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "after/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "runner.rs": "1913ac2315470bbff8749204ace58c36f803a77be6a0a231cdf63cf8e61746a9"
+  }
+}

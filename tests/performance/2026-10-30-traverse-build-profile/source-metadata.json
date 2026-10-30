@@ -1,0 +1,13 @@
+{
+  "local_head": "a2217a2d6d39bcefbfda0aaa1d8865b1f7556c54",
+  "source_sha256": "e64daa9318a0b6f854a923f9c9b91585a4738739e02a1c08a0c6cfe173f17820",
+  "files_sha256": {
+    "before/src/main.rs": "e64daa9318a0b6f854a923f9c9b91585a4738739e02a1c08a0c6cfe173f17820",
+    "after/src/main.rs": "e64daa9318a0b6f854a923f9c9b91585a4738739e02a1c08a0c6cfe173f17820",
+    "before/Cargo.toml": "4d8814b989486adc444c384b0cda769ede9aab3fe5b227e80bdc28defedd7163",
+    "after/Cargo.toml": "ca61ff94e64b8f3c77d9f1fb9118a4563ea66626e515973f59d39fbd1a0c3f20",
+    "before/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "after/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "runner.rs": "1913ac2315470bbff8749204ace58c36f803a77be6a0a231cdf63cf8e61746a9"
+  }
+}

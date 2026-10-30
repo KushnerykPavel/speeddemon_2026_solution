@@ -1,0 +1,31 @@
+REMOTE_ARTIFACTS=/tmp/traverse-build-t9o4c8h9
+COMMAND=['docker', 'run', '--rm', '--network=none', '-v', '/tmp/traverse-build-t9o4c8h9:/work', '-w', '/work/before', 'rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb', 'cargo', 'build', '--release', '--offline', '--locked']
+   Compiling traverse-baseline v0.1.0 (/work/before)
+    Finished `release` profile [optimized] target(s) in 0.71s
+COMMAND=['docker', 'run', '--rm', '--network=none', '-v', '/tmp/traverse-build-t9o4c8h9:/work', '-w', '/work/after', '-e', 'RUSTFLAGS=-C target-cpu=native', 'rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb', 'cargo', 'build', '--release', '--offline', '--locked']
+   Compiling traverse-baseline v0.1.0 (/work/after)
+    Finished `release` profile [optimized] target(s) in 5.29s
+COMMAND=['docker', 'run', '--rm', '--network=none', '-v', '/tmp/traverse-build-t9o4c8h9:/work', '-w', '/work', 'rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb', 'rustc', '--edition=2024', '-O', 'runner.rs', '-o', 'runner']
+rustc 1.99.1 (58cf8f9c3 2026-10-13)
+binary: rustc
+commit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67
+commit-date: 2026-10-13
+host: x86_64-unknown-linux-gnu
+release: 1.99.1
+LLVM version: 23.1.1
+
+COMMAND=['docker', 'run', '--rm', '--network=none', '--read-only', '--cpuset-cpus=2', '--memory=8g', '--memory-swap=8g', '--pids-limit=512', '--cap-drop=ALL', '--security-opt=no-new-privileges', '--user', '65534:65534', '-v', '/tmp/traverse-build-t9o4c8h9:/work', '-v', '/home/student/speed-demon-2026/data/rust-validation/d/full-seed1:/data:ro', 'debian:13-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e25137e0a92b20be455898a9f034ad', '/work/runner']
+{"round":0,"variant":"before","seconds":15.921458108,"byte_equal":true}
+{"round":0,"variant":"after","seconds":17.756333987,"byte_equal":true}
+{"round":1,"variant":"after","seconds":17.457003298,"byte_equal":true}
+{"round":1,"variant":"before","seconds":18.135001941,"byte_equal":true}
+{"round":2,"variant":"before","seconds":18.235619201,"byte_equal":true}
+{"round":2,"variant":"after","seconds":17.525414698,"byte_equal":true}
+{"round":3,"variant":"after","seconds":17.184048557,"byte_equal":true}
+{"round":3,"variant":"before","seconds":19.688484287,"byte_equal":true}
+{"round":4,"variant":"before","seconds":18.650938718,"byte_equal":true}
+{"round":4,"variant":"after","seconds":17.622001528,"byte_equal":true}
+{"round":5,"variant":"after","seconds":17.24024418,"byte_equal":true}
+{"round":5,"variant":"before","seconds":15.351041382,"byte_equal":true}
+OUTPUT_SHA256=a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e
+DONE=/tmp/traverse-build-t9o4c8h9
