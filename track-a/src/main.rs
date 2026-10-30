@@ -27,20 +27,38 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut groups: HashMap<(String, String), Group> = HashMap::new();
-    for line in BufReader::new(File::open(data.join("requests.log"))?).lines() {
-        let line = line?;
-        let fields: Vec<_> = line.split(' ').collect();
-        if fields.len() != 5 {
-            return Err("expected five log fields".into());
+    let mut reader = BufReader::new(File::open(data.join("requests.log"))?);
+    let mut line = String::new();
+    loop {
+        line.clear();
+        if reader.read_line(&mut line)? == 0 {
+            break;
         }
+        if line.ends_with('\n') {
+            line.pop();
+            if line.ends_with('\r') {
+                line.pop();
+            }
+        }
+        let mut fields = line.split(' ');
+        let (Some(timestamp), Some(_method), Some(endpoint), Some(status), Some(latency), None) = (
+            fields.next(),
+            fields.next(),
+            fields.next(),
+            fields.next(),
+            fields.next(),
+            fields.next(),
+        ) else {
+            return Err("expected five log fields".into());
+        };
         // The spec guarantees fixed-width, valid UTC timestamps. Their first
         // thirteen bytes identify the calendar hour, including month changes.
-        let hour = fields[0].get(..13).ok_or("invalid timestamp")?;
+        let hour = timestamp.get(..13).ok_or("invalid timestamp")?;
         let group = groups
-            .entry((hour.to_owned(), fields[2].to_owned()))
+            .entry((hour.to_owned(), endpoint.to_owned()))
             .or_default();
-        group.latencies.push(fields[4].parse()?);
-        let status: u16 = fields[3].parse()?;
+        group.latencies.push(latency.parse()?);
+        let status: u16 = status.parse()?;
         if (500..=599).contains(&status) {
             group.errors += 1;
         }
