@@ -26,9 +26,14 @@ unreachable vertices, empty queries, LF/CRLF and EOF tails are included. Degree
 rejection checks cover isolated self paths, no-in targets, no-out sources,
 self-loop-only components, bitset word boundaries and state reuse after rejection.
 The Python comparison runs every case with default scheduling and explicit
-1/2/4/6/12 workers (1,224 comparisons), plus three invalid thread options. Seven
+1/2/4/6/12 workers (1,224 comparisons), plus three invalid thread options. Ten
 Rust tests include repeated parallel-versus-serial comparisons with skewed work,
 duplicate queries, large distances, fewer queries than workers and empty input.
+The graph-loader test verifies exact CSR offsets and per-source edge multisets,
+incoming bits, max-u32 weights, CRLF/EOF, empty mappings and zero-edge graphs.
+Chunk tests check complete, nonoverlapping coverage at newline boundaries;
+contention tests repeatedly scatter 20,000 edges into three source rows using
+1/2/4/6/12 workers. Within-source edge order may vary; every edge must remain.
 
 `reference/` preserves the organisers' MIT-licensed Python implementations
 unchanged, outside the independently scored track folders.

@@ -1,0 +1,251 @@
+--- a/track-d/src/main.rs
++++ b/track-d/src/main.rs
+@@ -3,8 +3,9 @@
+ use std::error::Error;
+ use std::fs::{self, File};
+ use std::io::{self, BufRead, BufReader, BufWriter, Write};
++use std::os::fd::AsRawFd;
+ use std::path::{Path, PathBuf};
+-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
++use std::sync::atomic::{AtomicPtr, AtomicU32, AtomicU64, AtomicUsize, Ordering};
+ use std::thread;
+ 
+ struct Graph {
+@@ -21,6 +22,10 @@
+     if reader.read_until(b'\n', buffer)? == 0 {
+         return Ok(None);
+     }
++    parse_fields(buffer).map(Some)
++}
++
++fn parse_fields<const N: usize>(buffer: &[u8]) -> io::Result<[u32; N]> {
+     let invalid = || io::Error::new(io::ErrorKind::InvalidData, "expected uint32 fields");
+     let mut fields = [0_u32; N];
+     let mut position = 0;
+@@ -47,42 +52,188 @@
+     {
+         return Err(invalid());
+     }
+-    Ok(Some(fields))
+-}
+-
+-fn read_graph(path: &Path) -> Result<Graph, Box<dyn Error>> {
+-    let mut reader = BufReader::new(File::open(path)?);
+-    let mut buffer = Vec::with_capacity(64);
+-    let [n, m] = read_record(&mut reader, &mut buffer)?.ok_or("missing graph header")?;
++    Ok(fields)
++}
++
++// The competition target and local development hosts use 64-bit Unix off_t.
++unsafe extern "C" {
++    fn mmap(
++        address: *mut std::ffi::c_void,
++        length: usize,
++        protection: i32,
++        flags: i32,
++        fd: i32,
++        offset: i64,
++    ) -> *mut std::ffi::c_void;
++    fn munmap(address: *mut std::ffi::c_void, length: usize) -> i32;
++}
++
++struct MappedFile {
++    address: *mut std::ffi::c_void,
++    length: usize,
++}
++
++impl MappedFile {
++    fn open(path: &Path) -> io::Result<Self> {
++        let file = File::open(path)?;
++        let length = usize::try_from(file.metadata()?.len()).map_err(io::Error::other)?;
++        if length > isize::MAX as usize {
++            return Err(io::Error::other("input is too large to map"));
++        }
++        let mut mapping = Self {
++            address: std::ptr::null_mut(),
++            length: 0,
++        };
++        if length != 0 {
++            // Read-only MAP_PRIVATE mapping. Inputs must not be modified/truncated
++            // during loading, as guaranteed by the read-only competition data mount.
++            let address = unsafe { mmap(std::ptr::null_mut(), length, 1, 2, file.as_raw_fd(), 0) };
++            if address as isize == -1 {
++                return Err(io::Error::last_os_error());
++            }
++            if address.is_null() {
++                unsafe {
++                    munmap(address, length);
++                }
++                return Err(io::Error::other("null mapping address"));
++            }
++            mapping = Self { address, length };
++        }
++        Ok(mapping)
++    }
++
++    fn bytes(&self) -> &[u8] {
++        if self.length == 0 {
++            return &[];
++        }
++        // The mapping stays alive for this borrow; all scoped workers finish
++        // before read_graph returns and Drop unmaps the input.
++        unsafe { std::slice::from_raw_parts(self.address.cast(), self.length) }
++    }
++}
++
++impl Drop for MappedFile {
++    fn drop(&mut self) {
++        if self.length != 0 {
++            unsafe {
++                munmap(self.address, self.length);
++            }
++        }
++    }
++}
++
++fn line_chunks(bytes: &[u8], workers: usize) -> Vec<&[u8]> {
++    let workers = workers.clamp(1, 12);
++    let mut chunks = Vec::with_capacity(workers);
++    let mut start = 0;
++    for part in 1..=workers {
++        let mut end = (bytes.len() / workers * part).max(start);
++        if part == workers {
++            end = bytes.len();
++        }
++        while end < bytes.len() && end > 0 && bytes[end - 1] != b'\n' {
++            end += 1;
++        }
++        if end > start {
++            chunks.push(&bytes[start..end]);
++        }
++        start = end;
++    }
++    chunks
++}
++
++fn parse_chunks(
++    chunks: &[&[u8]],
++    visit: impl Fn([u32; 3]) -> io::Result<()> + Sync,
++) -> io::Result<usize> {
++    thread::scope(|scope| {
++        let handles: Vec<_> = chunks
++            .iter()
++            .map(|&chunk| {
++                let visit = &visit;
++                scope.spawn(move || {
++                    let mut count = 0;
++                    for line in chunk.split_inclusive(|&byte| byte == b'\n') {
++                        visit(parse_fields(line)?)?;
++                        count += 1;
++                    }
++                    Ok::<_, io::Error>(count)
++                })
++            })
++            .collect();
++        handles
++            .into_iter()
++            .map(|handle| {
++                handle
++                    .join()
++                    .map_err(|_| io::Error::other("graph worker panicked"))?
++            })
++            .sum()
++    })
++}
++
++fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
++    let invalid = |message| io::Error::new(io::ErrorKind::InvalidData, message);
++    if bytes.is_empty() {
++        return Err(invalid("missing graph header"));
++    }
++    let header_end = bytes
++        .iter()
++        .position(|&byte| byte == b'\n')
++        .map_or(bytes.len(), |i| i + 1);
++    let [n, m] = parse_fields(&bytes[..header_end])?;
+     let (n, m) = (n as usize, m as usize);
+-    let mut list = Vec::with_capacity(m);
++    let chunks = line_chunks(&bytes[header_end..], workers);
++    let degrees: Vec<_> = (0..n).map(|_| AtomicU32::new(0)).collect();
++    let incoming: Vec<_> = (0..n.div_ceil(64)).map(|_| AtomicU64::new(0)).collect();
++    let count = parse_chunks(&chunks, |[u, v, _]| {
++        if u as usize >= n || v as usize >= n {
++            return Err(invalid("edge vertex outside graph"));
++        }
++        degrees[u as usize].fetch_add(1, Ordering::Relaxed);
++        incoming[v as usize / 64].fetch_or(1_u64 << (v % 64), Ordering::Relaxed);
++        Ok(())
++    })?;
++    if count != m {
++        return Err(invalid("edge count differs from header"));
++    }
+     let mut offsets = vec![0_u32; n + 1];
+-    let mut incoming = vec![0_u64; n.div_ceil(64)];
+-    while let Some([u, v, w]) = read_record(&mut reader, &mut buffer)? {
++    for (i, degree) in degrees.into_iter().enumerate() {
++        offsets[i + 1] = offsets[i] + degree.into_inner();
++    }
++    let cursor: Vec<_> = offsets[..n]
++        .iter()
++        .map(|&offset| AtomicU32::new(offset))
++        .collect();
++    let mut edges = vec![(0, 0); m];
++    let slots = AtomicPtr::new(edges.as_mut_ptr());
++    parse_chunks(&chunks, |[u, v, w]| {
+         if u as usize >= n || v as usize >= n {
+-            return Err("edge vertex outside graph".into());
+-        }
+-        offsets[u as usize + 1] += 1;
+-        incoming[v as usize / 64] |= 1_u64 << (v % 64);
+-        list.push((u, v, w));
+-    }
+-    if list.len() != m {
+-        return Err("edge count differs from header".into());
+-    }
+-    for i in 0..n {
+-        offsets[i + 1] += offsets[i];
+-    }
+-    let mut cursor = offsets.clone();
+-    let mut edges = vec![(0, 0); m];
+-    for (u, v, w) in list {
+-        edges[cursor[u as usize] as usize] = (v, w);
+-        cursor[u as usize] += 1;
+-    }
++            return Err(invalid("edge vertex outside graph"));
++        }
++        let index = cursor[u as usize].fetch_add(1, Ordering::Relaxed) as usize;
++        if index >= offsets[u as usize + 1] as usize {
++            return Err(invalid("edge count changed"));
++        }
++        // Each record belongs to exactly one newline-aligned chunk. Atomic
++        // cursors assign unique, in-bounds slots. The Vec never moves or reallocates,
++        // and no edge is read until every scoped writer has joined. Adjacent slots
++        // are disjoint objects. Only edge order within a vertex is nondeterministic.
++        unsafe {
++            slots.load(Ordering::Relaxed).add(index).write((v, w));
++        }
++        Ok(())
++    })?;
+     Ok(Graph {
+         offsets,
+         edges,
+-        incoming,
++        incoming: incoming.into_iter().map(AtomicU64::into_inner).collect(),
+     })
++}
++
++fn read_graph(path: &Path, workers: usize) -> io::Result<Graph> {
++    let mapping = MappedFile::open(path)?;
++    build_graph(mapping.bytes(), workers)
+ }
+ 
+ struct Searcher {
+@@ -207,7 +358,7 @@
+             _ => return Err(format!("unknown argument: {arg}").into()),
+         }
+     }
+-    let graph = read_graph(&data.join("graph.txt"))?;
++    let graph = read_graph(&data.join("graph.txt"), workers)?;
+     let mut reader = BufReader::new(File::open(data.join("queries.txt"))?);
+     let mut buffer = Vec::with_capacity(32);
+     let mut queries = Vec::new();

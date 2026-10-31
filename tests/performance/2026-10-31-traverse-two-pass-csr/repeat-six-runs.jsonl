@@ -1,0 +1,12 @@
+{"seconds": 3.569779042, "max_rss_kib": 135228, "variant": "before", "round": 0, "python_byte_equal": true}
+{"seconds": 4.113986381, "max_rss_kib": 135396, "variant": "after", "round": 0, "python_byte_equal": true}
+{"seconds": 4.159140375, "max_rss_kib": 135232, "variant": "after", "round": 1, "python_byte_equal": true}
+{"seconds": 3.839778662, "max_rss_kib": 135144, "variant": "before", "round": 1, "python_byte_equal": true}
+{"seconds": 3.588148613, "max_rss_kib": 136044, "variant": "before", "round": 2, "python_byte_equal": true}
+{"seconds": 4.03739894, "max_rss_kib": 135192, "variant": "after", "round": 2, "python_byte_equal": true}
+{"seconds": 4.177281452, "max_rss_kib": 135384, "variant": "after", "round": 3, "python_byte_equal": true}
+{"seconds": 3.665027883, "max_rss_kib": 135736, "variant": "before", "round": 3, "python_byte_equal": true}
+{"seconds": 3.693157029, "max_rss_kib": 134600, "variant": "before", "round": 4, "python_byte_equal": true}
+{"seconds": 4.189530973, "max_rss_kib": 135388, "variant": "after", "round": 4, "python_byte_equal": true}
+{"seconds": 3.95377229, "max_rss_kib": 135892, "variant": "after", "round": 5, "python_byte_equal": true}
+{"seconds": 3.683967644, "max_rss_kib": 135308, "variant": "before", "round": 5, "python_byte_equal": true}

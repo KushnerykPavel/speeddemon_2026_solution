@@ -1,0 +1,28 @@
+{
+  "before": {
+    "phases": {
+      "graph_s": 1.6584542469999999,
+      "query_parse_s": 0.000205701,
+      "search_s": 1.983556969,
+      "output_s": 0.00018187
+    },
+    "graph_phases": {
+      "first_pass_s": 0.938487745,
+      "prefix_allocate_s": 0.007989867,
+      "scatter_s": 0.754753635
+    }
+  },
+  "after": {
+    "phases": {
+      "graph_s": 0.378113154,
+      "query_parse_s": 0.000199469,
+      "search_s": 1.96118543,
+      "output_s": 0.000116246
+    },
+    "graph_phases": {
+      "first_pass_s": 0.140716916,
+      "prefix_allocate_s": 0.01676927,
+      "scatter_s": 0.214048584
+    }
+  }
+}

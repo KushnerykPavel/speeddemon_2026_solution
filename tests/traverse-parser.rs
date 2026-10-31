@@ -3,6 +3,115 @@ mod traverse {
     include!("../track-d/src/main.rs");
 
     #[test]
+    fn graph_loader_preserves_every_edge() {
+        let directory = std::env::temp_dir().join(format!("traverse-csr-{}", std::process::id()));
+        fs::create_dir(&directory).unwrap();
+        let path = directory.join("graph.txt");
+        fs::write(
+            &path,
+            b"5 7\r\n2 3 4294967295\r\n0 1 9\r\n0 1 0\r\n1 1 0\r\n2 3 4294967295\r\n3 0 4\r\n0 2 5",
+        )
+        .unwrap();
+        let expected = [
+            vec![(1, 0), (1, 9), (2, 5)],
+            vec![(1, 0)],
+            vec![(3, u32::MAX), (3, u32::MAX)],
+            vec![(0, 4)],
+            vec![],
+        ];
+        for workers in [1, 2, 3, 6, 12, 99] {
+            let graph = read_graph(&path, workers).unwrap();
+            assert_eq!(graph.offsets, [0, 3, 4, 6, 7, 7]);
+            for (node, expected) in expected.iter().enumerate() {
+                let mut edges = graph.edges
+                    [graph.offsets[node] as usize..graph.offsets[node + 1] as usize]
+                    .to_vec();
+                edges.sort_unstable();
+                assert_eq!(&edges, expected);
+            }
+            assert_eq!(graph.incoming, [0b1111]);
+        }
+        for nodes in [0, 5, 65] {
+            fs::write(&path, format!("{nodes} 0\n")).unwrap();
+            let graph = read_graph(&path, 6).unwrap();
+            assert_eq!(graph.offsets, vec![0; nodes + 1]);
+            assert!(graph.edges.is_empty());
+            assert!(graph.incoming.iter().all(|&word| word == 0));
+        }
+        fs::write(&path, b"").unwrap();
+        let mapping = MappedFile::open(&path).unwrap();
+        assert!(mapping.bytes().is_empty());
+        assert!(build_graph(mapping.bytes(), 6).is_err());
+        drop(mapping);
+        fs::remove_file(path).unwrap();
+        fs::remove_dir(directory).unwrap();
+    }
+
+    #[test]
+    fn chunks_cover_input_without_splitting_lines() {
+        for length in 0..=150 {
+            let mut bytes = Vec::new();
+            for index in 0..length {
+                bytes.extend_from_slice(if index % 2 == 0 {
+                    b"1 2 3\r\n"
+                } else {
+                    b"4 5 6\n"
+                });
+            }
+            bytes.extend_from_slice(b"7 8 9");
+            for workers in 1..=20 {
+                let chunks = line_chunks(&bytes, workers);
+                assert_eq!(chunks.concat(), bytes);
+                for chunk in &chunks[..chunks.len().saturating_sub(1)] {
+                    assert_eq!(chunk.last(), Some(&b'\n'));
+                }
+                let seen = AtomicUsize::new(0);
+                let count = parse_chunks(&chunks, |_| {
+                    seen.fetch_add(1, Ordering::Relaxed);
+                    Ok(())
+                })
+                .unwrap();
+                assert_eq!(count, length + 1);
+                assert_eq!(seen.into_inner(), length + 1);
+            }
+        }
+        assert!(line_chunks(b"", 12).is_empty());
+        for bytes in [&b"1 2 3\n\n"[..], &b"1 2 4294967296\n"[..], &b"1 2\n"[..]] {
+            for workers in [1, 6, 12] {
+                assert!(parse_chunks(&line_chunks(bytes, workers), |_| Ok(())).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn parallel_scatter_preserves_edges_under_cursor_contention() {
+        let count = 20_000;
+        let mut bytes = format!("130 {count}\n").into_bytes();
+        let mut expected = vec![Vec::new(); 130];
+        for index in 0..count {
+            let (source, target, weight) = (index % 3, index % 130, index as u32);
+            writeln!(bytes, "{source} {target} {weight}").unwrap();
+            expected[source].push((target as u32, weight));
+        }
+        for edges in &mut expected {
+            edges.sort_unstable();
+        }
+        for workers in [1, 2, 4, 6, 12] {
+            for _ in 0..3 {
+                let graph = build_graph(&bytes, workers).unwrap();
+                for (node, expected) in expected.iter().enumerate() {
+                    let mut edges = graph.edges
+                        [graph.offsets[node] as usize..graph.offsets[node + 1] as usize]
+                        .to_vec();
+                    edges.sort_unstable();
+                    assert_eq!(&edges, expected);
+                }
+                assert_eq!(graph.incoming, [u64::MAX, u64::MAX, 3]);
+            }
+        }
+    }
+
+    #[test]
     fn parallel_answers_match_serial_with_skewed_work_and_duplicates() {
         let nodes = 130;
         let mut offsets: Vec<u32> = (0..nodes as u32).collect();

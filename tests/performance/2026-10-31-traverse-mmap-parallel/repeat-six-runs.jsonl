@@ -1,0 +1,12 @@
+{"seconds": 3.808565528, "max_rss_kib": 134968, "cgroup_peak_bytes": 138760192, "cgroup_metric": "v2 memory.peak", "variant": "before", "round": 0, "python_byte_equal": true}
+{"seconds": 2.406392234, "max_rss_kib": 144316, "cgroup_peak_bytes": 140591104, "cgroup_metric": "v2 memory.peak", "variant": "after", "round": 0, "python_byte_equal": true}
+{"seconds": 2.37746223, "max_rss_kib": 144400, "cgroup_peak_bytes": 140283904, "cgroup_metric": "v2 memory.peak", "variant": "after", "round": 1, "python_byte_equal": true}
+{"seconds": 3.734066019, "max_rss_kib": 135112, "cgroup_peak_bytes": 138969088, "cgroup_metric": "v2 memory.peak", "variant": "before", "round": 1, "python_byte_equal": true}
+{"seconds": 3.7616999030000002, "max_rss_kib": 135112, "cgroup_peak_bytes": 138997760, "cgroup_metric": "v2 memory.peak", "variant": "before", "round": 2, "python_byte_equal": true}
+{"seconds": 2.268033822, "max_rss_kib": 144372, "cgroup_peak_bytes": 140783616, "cgroup_metric": "v2 memory.peak", "variant": "after", "round": 2, "python_byte_equal": true}
+{"seconds": 2.435834411, "max_rss_kib": 144396, "cgroup_peak_bytes": 140595200, "cgroup_metric": "v2 memory.peak", "variant": "after", "round": 3, "python_byte_equal": true}
+{"seconds": 3.786587082, "max_rss_kib": 134988, "cgroup_peak_bytes": 138477568, "cgroup_metric": "v2 memory.peak", "variant": "before", "round": 3, "python_byte_equal": true}
+{"seconds": 3.754073622, "max_rss_kib": 136160, "cgroup_peak_bytes": 139730944, "cgroup_metric": "v2 memory.peak", "variant": "before", "round": 4, "python_byte_equal": true}
+{"seconds": 2.379986124, "max_rss_kib": 143996, "cgroup_peak_bytes": 140767232, "cgroup_metric": "v2 memory.peak", "variant": "after", "round": 4, "python_byte_equal": true}
+{"seconds": 2.385327434, "max_rss_kib": 144296, "cgroup_peak_bytes": 140193792, "cgroup_metric": "v2 memory.peak", "variant": "after", "round": 5, "python_byte_equal": true}
+{"seconds": 3.820146783, "max_rss_kib": 135304, "cgroup_peak_bytes": 139014144, "cgroup_metric": "v2 memory.peak", "variant": "before", "round": 5, "python_byte_equal": true}

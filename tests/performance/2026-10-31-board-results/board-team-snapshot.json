@@ -1,0 +1,237 @@
+{
+  "source_url": "https://s3.amazonaws.com/raptors.dev/speeddemon.dev/2026/board/board.json",
+  "generated_at": "2026-10-31T15:19:48Z",
+  "dataset": "full public dataset, seed 1",
+  "rules": {
+    "runs_per_push": 1,
+    "timeout_factor": 3.0,
+    "min_interval_s": 300,
+    "branch": "speed-demon",
+    "build_timeout_s": 600,
+    "image_max_bytes": 2147483648
+  },
+  "team": {
+    "team": "Kushneryk",
+    "slug": "kushneryk-d7faec",
+    "watch": {
+      "ok": true,
+      "error": null,
+      "head": "b8e5bc17c22d380898a650b399bd04aefb21ec04",
+      "checked_at": "2026-10-31T15:19:21Z"
+    },
+    "queue": {
+      "in_flight": null,
+      "queued": null
+    },
+    "tracks": {
+      "a": {
+        "registered": true,
+        "best": {
+          "run_id": "run-12ff8c772294",
+          "commit": "531def7dd3ab135c5d606d3e2d3a4aad6536596c",
+          "pushed_at": "2026-10-30T17:01:20Z",
+          "dispatched_at": "2026-10-30T17:02:05Z",
+          "started_at": "2026-10-30T17:02:18Z",
+          "ended_at": "2026-10-30T17:02:20Z",
+          "queue_latency_s": 58.7,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 0.876075,
+          "M_bytes": 35188736,
+          "S": 183,
+          "D": 1,
+          "K": 7.358433,
+          "points": 43.339268,
+          "static_axes": "measured",
+          "timeout_s": 96.142,
+          "build_s": 9.65,
+          "image_bytes": 118144848,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "latest": {
+          "run_id": "run-b6806a903087",
+          "commit": "b8e5bc17c22d380898a650b399bd04aefb21ec04",
+          "pushed_at": "2026-10-31T15:18:14Z",
+          "dispatched_at": "2026-10-31T15:19:09Z",
+          "started_at": "2026-10-31T15:19:32Z",
+          "ended_at": "2026-10-31T15:19:34Z",
+          "queue_latency_s": 77.3,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 0.90658,
+          "M_bytes": 35127296,
+          "S": 183,
+          "D": 1,
+          "K": 7.236103,
+          "points": 42.975236,
+          "static_axes": "measured",
+          "timeout_s": 96.142,
+          "build_s": 0.913,
+          "image_bytes": 118141702,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "b": {
+        "registered": false,
+        "best": null,
+        "latest": {
+          "run_id": "run-65dad14cbd0e",
+          "commit": "b8e5bc17c22d380898a650b399bd04aefb21ec04",
+          "pushed_at": "2026-10-31T15:18:14Z",
+          "dispatched_at": "2026-10-31T15:19:09Z",
+          "started_at": null,
+          "ended_at": null,
+          "queue_latency_s": null,
+          "ok": false,
+          "stage": "unchanged",
+          "gates": {
+            "check": true,
+            "build": null,
+            "correctness": null,
+            "timeout": null,
+            "sandbox": null
+          },
+          "T_s": null,
+          "M_bytes": null,
+          "S": null,
+          "D": null,
+          "K": null,
+          "points": null,
+          "static_axes": null,
+          "timeout_s": null,
+          "build_s": null,
+          "image_bytes": null,
+          "failure": "this folder is the unchanged starter, which is the published reference and scores about 0, so the board does not run it; change the code and push again"
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "c": {
+        "registered": false,
+        "best": null,
+        "latest": {
+          "run_id": "run-26addb57737a",
+          "commit": "b8e5bc17c22d380898a650b399bd04aefb21ec04",
+          "pushed_at": "2026-10-31T15:18:14Z",
+          "dispatched_at": "2026-10-31T15:19:09Z",
+          "started_at": null,
+          "ended_at": null,
+          "queue_latency_s": null,
+          "ok": false,
+          "stage": "unchanged",
+          "gates": {
+            "check": true,
+            "build": null,
+            "correctness": null,
+            "timeout": null,
+            "sandbox": null
+          },
+          "T_s": null,
+          "M_bytes": null,
+          "S": null,
+          "D": null,
+          "K": null,
+          "points": null,
+          "static_axes": null,
+          "timeout_s": null,
+          "build_s": null,
+          "image_bytes": null,
+          "failure": "this folder is the unchanged starter, which is the published reference and scores about 0, so the board does not run it; change the code and push again"
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "d": {
+        "registered": true,
+        "best": {
+          "run_id": "run-cffe0163d7c1",
+          "commit": "b8e5bc17c22d380898a650b399bd04aefb21ec04",
+          "pushed_at": "2026-10-31T15:18:14Z",
+          "dispatched_at": "2026-10-31T15:19:09Z",
+          "started_at": "2026-10-31T15:19:35Z",
+          "ended_at": "2026-10-31T15:19:37Z",
+          "queue_latency_s": 80.4,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 1.626762,
+          "M_bytes": 228868096,
+          "S": 230,
+          "D": 1,
+          "K": 6.824792,
+          "points": 41.70447,
+          "static_axes": "measured",
+          "timeout_s": 218.078,
+          "build_s": 8.084,
+          "image_bytes": 118182089,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "latest": {
+          "run_id": "run-cffe0163d7c1",
+          "commit": "b8e5bc17c22d380898a650b399bd04aefb21ec04",
+          "pushed_at": "2026-10-31T15:18:14Z",
+          "dispatched_at": "2026-10-31T15:19:09Z",
+          "started_at": "2026-10-31T15:19:35Z",
+          "ended_at": "2026-10-31T15:19:37Z",
+          "queue_latency_s": 80.4,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 1.626762,
+          "M_bytes": 228868096,
+          "S": 230,
+          "D": 1,
+          "K": 6.824792,
+          "points": 41.70447,
+          "static_axes": "measured",
+          "timeout_s": 218.078,
+          "build_s": 8.084,
+          "image_bytes": 118182089,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      }
+    }
+  }
+}

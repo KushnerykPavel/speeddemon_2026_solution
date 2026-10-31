@@ -4,23 +4,44 @@ Every step from the reference to your final version, each with the live-board ru
 
 | Step | Change | Run ID | T (s) | M (MB) | Points |
 |---|---|---|---|---|---|
-| 0 | The reference, unchanged | | 72.69 | 893 | 0 |
-| 1 | Rust baseline port; VPS correctness verified | | | | |
-| 2 | CSR graph (`u32` offsets, packed edges) + reusable array distances with touched-list reset, replacing per-query HashMap | | | | |
-| 3 | Release build: fat LTO, one codegen unit, abort on panic; native CPU in Docker build | | | | |
-| 4 | Direct checked `u32` byte parser with reusable line buffers for graph and queries | | | | |
-| 5 | D5: self-query shortcut and degree rejection using an incoming-edge bitset; provisional pending x86-64 measurement | | | | |
-| 6 | D7: dynamically scheduled independent queries with private search state, up to 12 standard-library workers | | | | |
+| 0 | The reference, unchanged | — | 72.69 | 893 | 0 |
+| 1 | Rust baseline port (`55522c4`) | run-7fd912d41bce | 12.531876 | 256.811008 | 22.057032 |
+| 2–3 | CSR + array distances/touched reset; release LTO/codegen/panic and native CPU (joint submission) (`f70b655`) | Not in public history | 7.467422 | 115.048448 | 29.954002 |
+| 4 | Direct checked uint32 byte parser (board time regression) (`6d6732f`) | Not in public history | 8.915943 | 114.974720 | 27.265802 |
+| 5 | D5: self-query shortcut and degree rejection (`292002c`) | Not in public history | 6.927519 | 115.212288 | 29.716415 |
+| 6 | D7: dynamically scheduled independent queries, up to 12 workers (`b8e5bc1`) | run-cffe0163d7c1 | 1.626762 | 228.868096 | 41.704470 |
+
+Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
+snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
+The table uses the first board measurement of each implementation, not a VPS
+or synthetic result. MB means decimal 1,000,000 bytes. These are single live-board
+runs; they do not isolate noise or replace final holdout scoring.
+`Not in public history` means the result is verified by commit/time, but its Run
+ID is omitted from the public compact history. IDs are recorded only when found
+in a saved or current full feed; none are inferred.
+Raw evidence, all 18 attempts (including unchanged-track reruns), sources and
+provenance: [board results](../tests/performance/2026-10-31-board-results/README.md).
+
+Steps 2 and 3 were first submitted together at `f70b655`; no separate board run
+exists to attribute their effects individually. The combined submission reduced
+time 40.41%, memory 55.20%, and added 7.896970 points versus the Rust baseline.
+Step 4 increased time 19.40% and lost 2.688200 points compared with that first
+combined run (the unchanged-source rerun at `531def7` took 7.804536 s).
+Step 5 reduced time 22.30% and added 2.450613 points versus step 4.
+Step 6 reduced time **76.52% (4.26x)** and added **11.988055 points** versus step 5,
+while measured memory rose 98.65%. It is the current best D run:
+**1.626762 s / 228.868096 MB / 41.704470 points**, `run-cffe0163d7c1`.
 
 The Rust baseline preserves adjacency lists and one fresh Dijkstra search per
 query, with a hash map and binary heap. No external dependencies.
 VPS tiny/sample/full outputs match Python byte-for-byte. Validation evidence
-is in `../tests/BASELINE_VALIDATION.md`. No live-board run ID or official
-performance measurement is available for this step yet.
+is in `../tests/BASELINE_VALIDATION.md`. The official baseline measurement and
+its saved Run ID are now recorded in the table above.
 
-Step 2: local check only (not a live-board run). 200 random small graphs match the
+Step 2, initial local check (not a live-board run): 200 random small graphs match the
 Python reference byte-for-byte. On a synthetic 90k-node grid with 300 queries
-(Mac), wall time fell from 6.3 s to 1.7 s with identical output. No run ID yet.
+(Mac), wall time fell from 6.3 s to 1.7 s with identical output. The subsequent
+board submission measured steps 2 and 3 together, as shown above.
 
 Step 3: build configuration only. Docker sets `-C target-cpu=native`; per the
 documented board behavior, this requests a build on the scoring machine so CPU
@@ -29,9 +50,10 @@ Local VPS full-seed1 comparison (same CSR source, CPU 2, warm page cache, one
 warmup plus five alternating measurements per version): default release
 18.340520 s versus tuned release 17.407554 s, trimmed means (5.09% less time).
 All twelve outputs match the saved Python reference byte-for-byte. Baseline
-max/min spread was 28.26%, so the improvement is inconclusive on the shared VPS;
-settings are retained provisionally pending a scoring-machine measurement.
-No memory/points measurement or live-board run ID. Reproduction and raw evidence:
+max/min spread was 28.26%, so the improvement is inconclusive on the shared VPS.
+The profile alone remains unisolated on the board; the joint CSR/profile result
+is recorded above. This VPS experiment did not measure memory or points.
+Reproduction and raw evidence:
 `../tests/performance/2026-10-30-traverse-build-profile/README.md`.
 Local validation: native-CPU release build, rustfmt and release Clippy passed;
 all three existing D fixtures match Python byte-for-byte (edge cases, no edges,
@@ -45,7 +67,8 @@ synthetic loading-dominated run (100k vertices, 1m edges, 10k source=target
 queries): median wall time 0.1700 s before versus 0.0447 s after, 73.71% less
 time, after one warmup and five alternating measurements per variant. All
 twelve outputs matched. This isolates loading and does not estimate full-track
-speedup; no board run, Linux/full-dataset measurement, memory or points result.
+speedup. That local experiment did not measure memory or points. The later board
+result above was slower than the previous implementation.
 Five parser regression tests passed, including every reader buffer boundary,
 numeric limits, malformed records and read failures. 203 graph/query cases
 matched Python byte-for-byte; eight invalid-input cases failed cleanly.
@@ -65,9 +88,8 @@ Local Mac diagnostic on a shuffled/relabelled 90,003-node grid: mixed workload
 82.71 → 76.41 ms in the first experiment and 82.65 → 70.50 ms on repeat (7.62%
 and 14.70% less time). Normal-only control: 75.19 → 84.96 ms first, 69.70 →
 70.90 ms on repeat. Short timings are noisy and the control does not show a
-speedup; this does not establish a full-track or x86-64 improvement. Retained
-provisionally pending the plan's x86-64/full-workload validation; no board run,
-measured memory/points result for this step yet.
+speedup; this does not establish a full-track or x86-64 improvement by itself.
+The subsequent board result is recorded above and shows a time improvement.
 Raw runs, workload generator and exact source patch:
 `../tests/performance/2026-10-31-traverse-degree-rejection/README.md`.
 
@@ -87,9 +109,9 @@ pass. Local Mac synthetic 90k-node shuffled/relabelled grid, 1,000 skewed querie
 trimmed means 296.58 → 68.74 ms (12 workers, 4.31x) and repeat 266.87 → 56.30 ms
 (4.74x); six workers gave 70.22 and 68.86 ms (4.22x and 3.88x). The new serial
 path took 339.84 and 285.14 ms, slower than the previous binary. All 72 benchmark
-outputs match Python. These are local diagnostics; default worker choice remains
-provisional pending scoring-machine time and cgroup memory measurements. No board
-run ID or measured memory/points result yet. Raw runs and reproduction:
+outputs match Python. These are local diagnostics; the later board time, memory,
+points and Run ID are in the table above. Controlled six-vs-twelve-worker tuning
+on the scoring machine remains unmeasured. Raw local runs and reproduction:
 `../tests/performance/2026-10-31-traverse-parallel/README.md`.
 
 Step 6 VPS validation: Linux x86-64, six Haswell KVM vCPUs, CPU set 0-5 for
@@ -111,3 +133,127 @@ Default selects six workers on this VPS. Twelve workers oversubscribe six CPUs;
 this result does not choose between six and twelve on the competition machine.
 Remote checkout was left unchanged; evidence and exact commands:
 `../tests/performance/2026-10-31-traverse-parallel-vps/README.md`.
+
+
+## Step 7 experiment — phase profiling and two-pass CSR (rejected)
+
+Compared submitted D7 (`b8e5bc1`) with an isolated candidate that replaces only
+`read_graph`: first parse/count, rewind the same reader, parse/scatter directly
+into CSR. Same checked byte parser, edge order, Dijkstra and query scheduling.
+It removes the 60,000,000-byte temporary triple payload at full scale. This
+candidate was not adopted into the scored source or submitted to the board.
+
+Linux x86-64 VPS, six Haswell KVM vCPUs, CPU set 0-5, identical native/offline
+release builds in the pinned Rust 1.99.1 image, same runtime limits as step 6.
+Full official seed 1, warm input. Per variant: one warmup, five rotating-order
+runs, remove min/max and average middle three. These are VPS results, not board
+measurements; RSS below is child `wait4` peak, not cgroup memory.peak.
+
+| Workers | Baseline T (s) | Two-pass T (s) | Change | Baseline peak RSS (MiB) | Two-pass peak RSS (MiB) |
+|---|---:|---:|---:|---:|---:|
+| 1 | 12.856764 | 13.414020 | +4.33% | 110.73 | 60.96 |
+| 6 | 3.755675 | 4.154059 | +10.61% | 132.58 | 132.46 |
+| 12 | 3.630838 | 4.285671 | +18.04% | 217.51 | 217.72 |
+
+Baseline six-worker spread was 10.47%, so repeated that comparison on the same
+binaries (one warmup and five alternating runs, same trimmed-mean calculation):
+3.680718 → 4.124607 s (+12.06%); RSS 132.86 → 132.71 MiB. Repeat spreads remained
+7.01%/5.96%, so precise slowdown is not established on the shared host. Both
+batches show a slowdown and no parallel peak-memory saving. One worker saves
+44.95% RSS, but the current parallel mode peaks in graph-plus-worker search state.
+
+Separate diagnostic builds add phase timers outside the scored track. Three
+alternating runs per variant at six workers; medians of each phase:
+
+| Phase | Baseline (s) | Two-pass (s) |
+|---|---:|---:|
+| Graph load/build | 1.575736 | 2.143336 |
+| Parse queries | 0.000311 | 0.000189 |
+| Search, worker state and joins | 1.991407 | 1.980895 |
+| Format/flush output | 0.000121 | 0.000109 |
+
+Graph first parse/count: 0.870965 → 0.778087 s; prefix/allocation:
+0.006498 → 0.006355 s; scatter (including the candidate second parse):
+0.731631 → 1.325531 s. Outer graph phase rises 36.02%; search is approximately
+unchanged. Individual medians need not sum to the median outer phase. Baseline
+phase-time shares are about 44% graph and 56% search; query parsing/output are
+negligible. Timed normal binaries contain no profiling instrumentation.
+
+All 54 full outputs (36 normal, six diagnostic, twelve repeat) match the saved
+Python reference. The candidate passes eight Rust regression tests on VPS and
+1,224 Python fixture/random comparisons, eight malformed-input checks and three
+invalid thread options. A new direct loader test verifies offsets, all edges and
+their within-source order, incoming presence, u32 limits, CRLF/EOF and zero-edge
+graphs. It passes on the baseline too. Candidate release Clippy and formatting
+passed locally. No dependencies or unsafe code were added to the candidate.
+
+Reject this serial buffered implementation; keep submitted D7 as the scored
+source. Next loading experiments can test mmap/parallel parsing independently;
+D8 remains the next search-layout experiment. Exact snapshots, patches, profiling
+generator, remote scripts, all logs and source hashes:
+[phase/CSR evidence](../tests/performance/2026-10-31-traverse-two-pass-csr/README.md).
+
+
+## Step 8 — mmap and parallel CSR (implemented; VPS measurement)
+
+Graph input is read-only MAP_PRIVATE, divided into newline-aligned slices.
+Scoped std workers parse directly from borrowed bytes. First pass validates
+records and counts degrees/incoming presence with relaxed atomics; a prefix
+allocates CSR. Second pass scatters into uniquely assigned atomic cursor slots.
+Every edge is retained; within-source order may vary without changing shortest
+paths. The 60 MB temporary triple array is removed. Graph mapping is released
+before query processing, including loader error paths. Queries retain their small
+buffer and share the same checked u32 field parser. Loader and query worker limits
+both use available parallelism capped at 12, overridable via --threads.
+
+Std-only 64-bit Unix mmap/munmap wrapper, no new dependencies. Unsafe writes are
+limited to unique in-bounds edge slots: the allocation is stable, each record
+belongs to one chunk, atomic cursors assign unique positions, and scoped joins
+finish before any edge is read. Input is immutable under the read-only data mount.
+
+Compared against submitted D7 b8e5bc1 on the same six-vCPU Linux x86-64 VPS,
+CPU set 0-5, same pinned native/offline release toolchain and runtime constraints.
+Each variant has one warmup and five rotating-order measurements, then min/max
+are discarded and the middle three averaged. Whole-container v2 memory.peak is
+now collected by an external wrapper after child exit (fresh 8 GB cgroup per run,
+inputs prewarmed outside the cgroup); RSS is also saved and includes mapped input
+pages, so it is not substituted for the cgroup metric. No board score inferred.
+
+| Workers | D7 T (s) | Mmap/parallel T (s) | Time change | D7 cgroup peak (MB) | Mmap/parallel peak (MB) |
+|---|---:|---:|---:|---:|---:|
+| 1 | 12.794612 | 13.718822 | +7.22% | 115.802112 | 69.505024 |
+| 6 | 3.738694 | 2.403746 | -35.71% | 139.251712 | 140.656640 |
+| 12 | 3.708020 | 2.377229 | -35.89% | 228.446208 | 228.941824 |
+
+Candidate six-worker spread was 6.62%, prompting one repeat on the exact same
+binaries: **3.767454 → 2.380925 s (-36.80%, 1.58x)**; maximum cgroup peak
+139.730944 → 140.783616 MB (+0.75%). Spreads were 2.31% / 7.40%, so exact speedup
+remains uncertain on this shared VPS. Both batches show the same large time
+improvement. One worker is slower but saves about 40% cgroup peak; twelve workers
+oversubscribe this six-CPU VM, so this does not choose six vs twelve for the board.
+
+Separate diagnostic builds, three alternating runs each at six workers, medians:
+
+| Phase | D7 (s) | Mmap/parallel (s) |
+|---|---:|---:|
+| Graph load/build | 1.658454 | 0.378113 |
+| Parse queries | 0.000206 | 0.000199 |
+| Search incl. state/joins | 1.983557 | 1.961185 |
+| Format/flush output | 0.000182 | 0.000116 |
+
+Graph subphases: first parse/count 0.938488 → 0.140717 s; prefix/allocation
+0.007990 → 0.016769 s; scatter (with second parse after) 0.754754 → 0.214049 s.
+Graph loading/building is 4.39x faster by diagnostic medians. Search now accounts
+for about 84% of phase time, making D8 the larger remaining target. Individual
+phase medians need not sum to the outer/process median; normal timings use
+uninstrumented binaries.
+
+All 54 full outputs (36 normal/warmups, six diagnostics, twelve repeat) match
+Python byte-for-byte. Ten Rust tests and 1,224 Python random/fixture comparisons
+pass on macOS and Linux, along with eight invalid-input and three invalid-thread
+checks. New tests verify chunk coverage, retained edge multisets and repeated
+20,000-edge contention on three source rows. Release Clippy, build and formatting
+pass. The candidate is retained in the scored source; no board run ID yet.
+Full sources, patches, preparation/remote scripts, all raw measurements, normalized
+memory labels, compiler/CPU records and source hashes:
+[mmap/parallel evidence](../tests/performance/2026-10-31-traverse-mmap-parallel/README.md).

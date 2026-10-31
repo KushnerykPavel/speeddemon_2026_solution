@@ -4,12 +4,30 @@ Every step from the reference to your final version, each with the live-board ru
 
 | Step | Change | Run ID | T (s) | M (MB) | Points |
 |---|---|---|---|---|---|
-| 0 | The reference, unchanged | | 32.05 | 228 | 0 |
+| 0 | The reference, unchanged | — | 32.05 | 228 | 0 |
 | 1 | Rust baseline port (`55522c4`) | run-735e9cb7363e | 1.397731 | 62.058496 | 38.980249 |
 | 2 | Reuse line buffer; iterate fields without a temporary Vec (`3897216`) | run-aa9a80757414 | 1.087126 | 61.673472 | 40.980844 |
-| 3 (local candidate) | Inline hour keys; borrowed endpoint lookup | Pending | | | |
-| 4 (no measured win) | Buffered byte parser (`a2217a2`); Linux comparison archived | Pending | | | |
-| 5 (local candidate) | Intern endpoints; numeric hour/endpoint IDs and vector groups | Pending | | | |
+| 3 | Inline hour keys; borrowed endpoint lookup (`ff39a9a`) | Not in public history | 0.938535 | 50.634752 | 42.883192 |
+| 4 | Buffered byte parser (no board time win) (`a2217a2`) | Not in public history | 0.959642 | 49.434624 | 41.171803 |
+| 5 | Intern endpoints; numeric hour/endpoint IDs and vector groups (`531def7`) | run-12ff8c772294 | 0.876075 | 35.188736 | 43.339268 |
+
+Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
+snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
+The table uses the first board measurement of each implementation, not a VPS
+or synthetic result. MB means decimal 1,000,000 bytes. These are single live-board
+runs; they do not isolate noise or replace final holdout scoring.
+`Not in public history` means the result is verified by commit/time, but its Run
+ID is omitted from the public compact history. IDs are recorded only when found
+in a saved or current full feed; none are inferred.
+Raw evidence, all 18 attempts (including unchanged-track reruns), sources and
+provenance: [board results](../tests/performance/2026-10-31-board-results/README.md).
+
+Current best: step 5, **0.876075 s / 35.188736 MB / 43.339268 points**.
+Latest rerun of the same Track A source at `b8e5bc1`: 0.906580 s / 35.127296 MB /
+42.975236 points, `run-b6806a903087`; this is not a new A optimization.
+Step 3 reduced time 13.67% and added 1.902348 points versus step 2. Step 4
+increased time 2.25% and lost 1.711389 points versus step 3, despite lower memory.
+Step 5 reduced time 8.71% and added 2.167465 points versus step 4.
 
 The Rust baseline preserves grouping and sorting; fixed-width UTC timestamps
 identify the hour without a date dependency. No external dependencies.
@@ -47,7 +65,7 @@ All raw timings, conditions, source hashes, exact timing runner, board evidence
 and reproduction instructions are preserved in
 [`tests/performance/2026-10-30-ingest-buffer`](../tests/performance/2026-10-30-ingest-buffer/README.md).
 
-## Step 3 — group key allocation, 2026-10-30 (local candidate)
+## Step 3 — group key allocation, 2026-10-30
 
 Replace `HashMap<(String, String), Group>` with an hour map keyed by `[u8; 13]`,
 each value holding an endpoint map. Copy the hour inline; look up existing
@@ -62,7 +80,8 @@ Same protocol as step 2: five measured runs per version after warmup,
 alternating order, CPU 2, process time including startup/exit, excluding Docker
 startup. Run-to-run variation remains noticeable on the shared VPS.
 Do not compare absolute times across the two separate experiments.
-Memory and source-size score were not measured; board run ID and score pending.
+That VPS experiment did not measure memory or source-size score. The later
+official board measurement is recorded in the table above.
 
 All 12 VPS executions matched each other byte-for-byte and the official full
 seed-1 SHA-256. Local Python comparisons passed existing edge cases, empty,

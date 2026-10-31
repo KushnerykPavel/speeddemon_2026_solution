@@ -18,13 +18,24 @@ atomic counter; indexed answers preserve input order. No routing index or answer
 cache is used. The default uses available parallelism capped at 12 workers and
 the query count; `--threads N` overrides it (positive integer, capped at 12).
 One worker follows the serial path; empty queries allocate no search state.
-On the six-vCPU Linux VPS, full seed 1 matches Python and six workers reduce
-time from 12.99 s to 3.71 s (3.50x); measurements and limitations are in `PERF.md`.
+On the six-vCPU Linux VPS, full seed 1 matches Python. Adding mmap/parallel CSR
+to D7 reduced time from 3.77 s to 2.38 s at six workers (36.8% less time), with
+container peak memory 139.7 to 140.8 MB. One-worker loading is slower; the
+improvement applies to parallel modes. Details and limitations are in `PERF.md`.
 
-Graph headers, edges and queries are parsed directly from ASCII bytes into
-`u32` values, using one reusable line buffer per file. There are no temporary
-strings or per-record field vectors. Parsing checks overflow, field counts and
-vertex bounds, and supports LF, CRLF and a final line without a newline.
+The graph is mapped read-only with `mmap` and divided into newline-aligned chunks.
+Scoped workers make two passes: count degrees/incoming presence with relaxed
+atomics, prefix counts, then parse/scatter directly into CSR using unique atomic
+cursor positions. No temporary triple array is stored. The mapping is released
+after the loader's workers join. Within-source edge order may vary; every edge
+is retained. Loading uses the same worker limit as query processing.
+
+Graph fields are parsed directly from borrowed ASCII byte slices; queries retain
+a reusable line buffer and share the checked `u32` parser. No temporary strings
+or field vectors. Overflow, field counts, vertex bounds, LF/CRLF and final lines
+without a newline are handled. The std-only mapping wrapper targets 64-bit Unix
+(the Linux competition target and macOS development host); input files remain
+immutable during loading, as with the read-only competition data mount.
 
 Release builds use fat LTO, one codegen unit and abort on panic. Docker builds
 also use `target-cpu=native`. Local VPS measurements are recorded in `PERF.md`;

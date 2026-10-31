@@ -1,0 +1,56 @@
+--- a/track-d/src/main.rs
++++ b/track-d/src/main.rs
+@@ -2,7 +2,7 @@
+ use std::collections::BinaryHeap;
+ use std::error::Error;
+ use std::fs::{self, File};
+-use std::io::{self, BufRead, BufReader, BufWriter, Write};
++use std::io::{self, BufRead, BufReader, BufWriter, Seek, Write};
+ use std::path::{Path, PathBuf};
+ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+ use std::thread;
+@@ -55,18 +55,18 @@
+     let mut buffer = Vec::with_capacity(64);
+     let [n, m] = read_record(&mut reader, &mut buffer)?.ok_or("missing graph header")?;
+     let (n, m) = (n as usize, m as usize);
+-    let mut list = Vec::with_capacity(m);
++    let mut count = 0;
+     let mut offsets = vec![0_u32; n + 1];
+     let mut incoming = vec![0_u64; n.div_ceil(64)];
+-    while let Some([u, v, w]) = read_record(&mut reader, &mut buffer)? {
++    while let Some([u, v, _]) = read_record(&mut reader, &mut buffer)? {
+         if u as usize >= n || v as usize >= n {
+             return Err("edge vertex outside graph".into());
+         }
+         offsets[u as usize + 1] += 1;
+         incoming[v as usize / 64] |= 1_u64 << (v % 64);
+-        list.push((u, v, w));
+-    }
+-    if list.len() != m {
++        count += 1;
++    }
++    if count != m {
+         return Err("edge count differs from header".into());
+     }
+     for i in 0..n {
+@@ -74,9 +74,19 @@
+     }
+     let mut cursor = offsets.clone();
+     let mut edges = vec![(0, 0); m];
+-    for (u, v, w) in list {
++    reader.rewind()?;
++    if read_record(&mut reader, &mut buffer)? != Some([n as u32, m as u32]) {
++        return Err("graph header changed between passes".into());
++    }
++    while let Some([u, v, w]) = read_record(&mut reader, &mut buffer)? {
++        if u as usize >= n || v as usize >= n || cursor[u as usize] >= offsets[u as usize + 1] {
++            return Err("graph edges changed between passes".into());
++        }
+         edges[cursor[u as usize] as usize] = (v, w);
+         cursor[u as usize] += 1;
++    }
++    if cursor[..n] != offsets[1..] {
++        return Err("edge count changed between passes".into());
+     }
+     Ok(Graph {
+         offsets,
