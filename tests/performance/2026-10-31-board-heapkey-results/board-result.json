@@ -1,0 +1,74 @@
+{
+  "feed": "https://s3.amazonaws.com/raptors.dev/speeddemon.dev/2026/board/board.json",
+  "generated_at": "2026-10-31T20:24:12Z",
+  "team": "Kushneryk",
+  "track_d": {
+    "registered": true,
+    "best": {
+      "run_id": "run-3a1c4950924c",
+      "commit": "b9a93cd0c690839f8d961e68f4bbd88a175f3beb",
+      "pushed_at": "2026-10-31T20:23:47Z",
+      "dispatched_at": "2026-10-31T20:23:47Z",
+      "started_at": "2026-10-31T20:24:07Z",
+      "ended_at": "2026-10-31T20:24:09Z",
+      "queue_latency_s": 20.1,
+      "ok": true,
+      "stage": "scored",
+      "gates": {
+        "check": true,
+        "build": true,
+        "correctness": true,
+        "timeout": true,
+        "sandbox": true
+      },
+      "T_s": 0.221692,
+      "M_bytes": 101761024,
+      "S": 759,
+      "D": 1,
+      "K": 18.176073,
+      "points": 62.975003,
+      "static_axes": "measured",
+      "timeout_s": 218.078,
+      "build_s": 9.982,
+      "image_bytes": 118255432,
+      "failure": null,
+      "lang": [
+        "Rust"
+      ]
+    },
+    "latest": {
+      "run_id": "run-3a1c4950924c",
+      "commit": "b9a93cd0c690839f8d961e68f4bbd88a175f3beb",
+      "pushed_at": "2026-10-31T20:23:47Z",
+      "dispatched_at": "2026-10-31T20:23:47Z",
+      "started_at": "2026-10-31T20:24:07Z",
+      "ended_at": "2026-10-31T20:24:09Z",
+      "queue_latency_s": 20.1,
+      "ok": true,
+      "stage": "scored",
+      "gates": {
+        "check": true,
+        "build": true,
+        "correctness": true,
+        "timeout": true,
+        "sandbox": true
+      },
+      "T_s": 0.221692,
+      "M_bytes": 101761024,
+      "S": 759,
+      "D": 1,
+      "K": 18.176073,
+      "points": 62.975003,
+      "static_axes": "measured",
+      "timeout_s": 218.078,
+      "build_s": 9.982,
+      "image_bytes": 118255432,
+      "failure": null,
+      "lang": [
+        "Rust"
+      ]
+    },
+    "queue_position": null,
+    "queue_latency_s": null
+  }
+}

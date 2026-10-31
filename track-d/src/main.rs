@@ -9,6 +9,17 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicPtr, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::thread;
 
+/// Hints the CPU to start loading `value`'s cache line; no effect elsewhere.
+fn prefetch<T>(value: &T) {
+    #[cfg(target_arch = "x86_64")]
+    unsafe {
+        use std::arch::x86_64::{_MM_HINT_T0, _mm_prefetch};
+        _mm_prefetch::<_MM_HINT_T0>((value as *const T).cast());
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    let _ = value;
+}
+
 /// Exact weights of edges whose packed weight is the escape code, keyed by edge
 /// index; filled by parallel builders and sorted when the graph is finished.
 type Heavy = Mutex<Vec<(u32, u32)>>;
@@ -66,6 +77,14 @@ impl Graph {
             edges,
             heavy,
             packing,
+        }
+    }
+
+    /// Starts loading vertex `node`'s row bounds and first edges into cache.
+    fn prefetch_row(&self, node: usize) {
+        prefetch(&self.offsets[node]);
+        if let Some(edge) = self.edges.get(self.offsets[node] as usize) {
+            prefetch(edge);
         }
     }
 
@@ -418,6 +437,13 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
                         let mut head = region.order.len();
                         region.order.push(root as u32);
                         while head < region.order.len() {
+                            // Breadth-first reads are random: ask for rows ahead.
+                            if let Some(&ahead) = region.order.get(head + 8) {
+                                prefetch(&graph.offsets[ahead as usize]);
+                            }
+                            if let Some(&ahead) = region.order.get(head + 4) {
+                                graph.prefetch_row(ahead as usize);
+                            }
                             let node = region.order[head] as usize;
                             head += 1;
                             for (target, weight) in graph.row(node) {
@@ -649,6 +675,9 @@ impl<D: Distance> Side<D> {
         let (distance, node) = D::unkey(key);
         if distance > self.distance(node) {
             return u64::MAX;
+        }
+        if let Some(&Reverse(next)) = self.heap.peek() {
+            graph.prefetch_row(D::unkey(next).1 as usize);
         }
         let mut meeting = u64::MAX;
         for (next, weight) in graph.row(node as usize) {

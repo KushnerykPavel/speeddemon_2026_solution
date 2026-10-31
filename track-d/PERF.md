@@ -18,6 +18,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 13 | Single-pass bucketed graph build (`853ae88`) | run-07992c342c3a | 0.238915 | 141.635584 | 61.108794 |
 | 14 | Packed 32-bit edges + exact heavy-weight list (`1767ec0`) | run-f3b44d092f5b | 0.242579 | 132.395008 | 60.976955 |
 | 15 | 4 KB pages: `prctl(PR_SET_THP_DISABLE)` (`a37144d`) | run-b5ad6625b248 | 0.253390 | 101.629952 | 61.599011 |
+| 16 | Single-`u64` heap keys for the `u32` search (`b9a93cd`) | run-3a1c4950924c | 0.221692 | 101.761024 | 62.975003 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -619,7 +620,32 @@ Same VPS protocol, baseline `a37144d`: total 0.5917 → 0.5627 s
 0.293 → 0.262 s and 0.304 → 0.283 s. Run spreads were
 14–19%, so the total change is not cleanly resolved; both search phases moved
 the same way. All outputs match Python; fifteen Rust tests and 1,224 Python
-comparisons pass. Mutation caught: swapped key halves (2 tests fail). No board
-run ID yet.
+comparisons pass. Mutation caught: swapped key halves (2 tests fail). Board
+result follows below.
 Evidence: [heap key](../tests/performance/2026-10-31-traverse-heap-key/README.md).
+
+Step 16 official board result, feed 2026-10-31 20:24:12 UTC (21:24:12 Warsaw):
+`run-3a1c4950924c`, commit `b9a93cd`, all gates passed. **0.221692 s,
+101.761024 MB, S=759, D=1, K=18.176073, 62.975003 points**. New team best;
+versus step 15: time −12.51% (1.1430x), memory +0.13%, +1.375992 points. The
+board gain exceeds the VPS estimate (−4.3% at 12 workers); part may be board
+noise around step 15's slower run. Derived Track D position: 32 of 90 (tenth
+place 68.45). Evidence:
+[official heap-key result](../tests/performance/2026-10-31-board-heapkey-results/README.md).
+
+
+## Step 17 — software prefetch (VPS measurement)
+
+`_mm_prefetch` hints on x86-64 (no-op elsewhere): after each heap pop, the row
+bounds and first edge of the vertex now on top of that side's heap; in the
+renumbering BFS, row bounds eight queued vertices ahead and the first edge four
+ahead. Idea credit: Team7's public PERF.md.
+
+Same VPS protocol, baseline `b9a93cd`: total 0.5409 → 0.4818 s (-10.9%) at
+6 workers and 0.5411 → 0.4734 s (-12.5%) at 12, peak unchanged.
+Phase medians: renumbering 0.110 → 0.083 s / 0.112 → 0.088 s; search
+0.270 → 0.252 s / 0.272 → 0.236 s (6 / 12 workers). Run spreads were 14–25%;
+both phases moved the same way at both worker counts. All outputs match
+Python; fifteen Rust tests and 1,224 Python comparisons pass. No board run ID yet.
+Evidence: [prefetch](../tests/performance/2026-10-31-traverse-prefetch/README.md).
 
