@@ -8,6 +8,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 1 | Rust baseline port; VPS correctness verified | | | | |
 | 2 | CSR graph (`u32` offsets, packed edges) + reusable array distances with touched-list reset, replacing per-query HashMap | | | | |
 | 3 | Release build: fat LTO, one codegen unit, abort on panic; native CPU in Docker build | | | | |
+| 4 | Direct checked `u32` byte parser with reusable line buffers for graph and queries | | | | |
 
 The Rust baseline preserves adjacency lists and one fresh Dijkstra search per
 query, with a hash map and binary heap. No external dependencies.
@@ -34,3 +35,17 @@ Local validation: native-CPU release build, rustfmt and release Clippy passed;
 all three existing D fixtures match Python byte-for-byte (edge cases, no edges,
 no queries). VPS Docker builds and full-seed1 execution passed; the local Docker
 daemon remains stopped.
+
+Step 4: removed per-line `String` allocation, whitespace field vectors and
+string-to-integer parsing. The graph header, edges and queries share a checked
+ASCII decimal parser; CSR construction and Dijkstra are unchanged. Local Mac
+synthetic loading-dominated run (100k vertices, 1m edges, 10k source=target
+queries): median wall time 0.1700 s before versus 0.0447 s after, 73.71% less
+time, after one warmup and five alternating measurements per variant. All
+twelve outputs matched. This isolates loading and does not estimate full-track
+speedup; no board run, Linux/full-dataset measurement, memory or points result.
+Five parser regression tests passed, including every reader buffer boundary,
+numeric limits, malformed records and read failures. 203 graph/query cases
+matched Python byte-for-byte; eight invalid-input cases failed cleanly.
+Release build, rustfmt and release Clippy passed. Reproduction and raw timings:
+`../tests/performance/2026-10-31-traverse-byte-parser/README.md`.

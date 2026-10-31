@@ -1,0 +1,88 @@
+{
+  "platform": "macOS-14.5-arm64-arm-64bit",
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "nodes": 100000,
+  "edges": 1000000,
+  "queries": 10000,
+  "graph_sha256": "92e3966291eec94d824c757cc0ad180681d682c5488b4e825f5073af0dd522f2",
+  "method": "warm cache; one warmup and five alternating runs per variant; median wall time",
+  "rows": [
+    {
+      "round": 0,
+      "variant": "before",
+      "seconds": 0.5594278748612851,
+      "byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "after",
+      "seconds": 0.058024875121191144,
+      "byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "after",
+      "seconds": 0.12379149999469519,
+      "byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "before",
+      "seconds": 0.17946387501433492,
+      "byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "before",
+      "seconds": 0.18231104197911918,
+      "byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "after",
+      "seconds": 0.04419220797717571,
+      "byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "after",
+      "seconds": 0.04469991708174348,
+      "byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "before",
+      "seconds": 0.15890825004316866,
+      "byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "before",
+      "seconds": 0.16999912494793534,
+      "byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "after",
+      "seconds": 0.04745554178953171,
+      "byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "after",
+      "seconds": 0.043201500084251165,
+      "byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "before",
+      "seconds": 0.15315220807678998,
+      "byte_equal": true
+    }
+  ],
+  "median_seconds": {
+    "before": 0.16999912494793534,
+    "after": 0.04469991708174348
+  },
+  "time_reduction_percent": 73.70579578251744
+}

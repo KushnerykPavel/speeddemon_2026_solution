@@ -2,7 +2,7 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 use std::error::Error;
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader, BufWriter, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
 
 struct Graph {
@@ -10,22 +10,56 @@ struct Graph {
     edges: Vec<(u32, u32)>,
 }
 
+fn read_record<const N: usize>(
+    reader: &mut impl BufRead,
+    buffer: &mut Vec<u8>,
+) -> io::Result<Option<[u32; N]>> {
+    buffer.clear();
+    if reader.read_until(b'\n', buffer)? == 0 {
+        return Ok(None);
+    }
+    let invalid = || io::Error::new(io::ErrorKind::InvalidData, "expected uint32 fields");
+    let mut fields = [0_u32; N];
+    let mut position = 0;
+    for field in &mut fields {
+        while position < buffer.len() && buffer[position].is_ascii_whitespace() {
+            position += 1;
+        }
+        let start = position;
+        while position < buffer.len() && buffer[position].is_ascii_digit() {
+            *field = field
+                .checked_mul(10)
+                .and_then(|value| value.checked_add(u32::from(buffer[position] - b'0')))
+                .ok_or_else(invalid)?;
+            position += 1;
+        }
+        if position == start || (position < buffer.len() && !buffer[position].is_ascii_whitespace())
+        {
+            return Err(invalid());
+        }
+    }
+    if buffer[position..]
+        .iter()
+        .any(|byte| !byte.is_ascii_whitespace())
+    {
+        return Err(invalid());
+    }
+    Ok(Some(fields))
+}
+
 fn read_graph(path: &Path) -> Result<Graph, Box<dyn Error>> {
-    let mut lines = BufReader::new(File::open(path)?).lines();
-    let header = lines.next().ok_or("missing graph header")??;
-    let fields: Vec<_> = header.split_whitespace().collect();
-    let n: usize = fields[0].parse()?;
-    let m: usize = fields[1].parse()?;
+    let mut reader = BufReader::new(File::open(path)?);
+    let mut buffer = Vec::with_capacity(64);
+    let [n, m] = read_record(&mut reader, &mut buffer)?.ok_or("missing graph header")?;
+    let (n, m) = (n as usize, m as usize);
     let mut list = Vec::with_capacity(m);
     let mut offsets = vec![0_u32; n + 1];
-    for line in lines {
-        let line = line?;
-        let fields: Vec<_> = line.split_whitespace().collect();
-        let u: usize = fields[0].parse()?;
-        let v: u32 = fields[1].parse()?;
-        let w: u32 = fields[2].parse()?;
-        offsets[u + 1] += 1;
-        list.push((u as u32, v, w));
+    while let Some([u, v, w]) = read_record(&mut reader, &mut buffer)? {
+        if u as usize >= n || v as usize >= n {
+            return Err("edge vertex outside graph".into());
+        }
+        offsets[u as usize + 1] += 1;
+        list.push((u, v, w));
     }
     if list.len() != m {
         return Err("edge count differs from header".into());
@@ -108,14 +142,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
     let graph = read_graph(&data.join("graph.txt"))?;
-    let queries = BufReader::new(File::open(data.join("queries.txt"))?)
-        .lines()
-        .map(|line| {
-            let line = line?;
-            let fields: Vec<_> = line.split_whitespace().collect();
-            Ok((fields[0].parse::<usize>()?, fields[1].parse::<usize>()?))
-        })
-        .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
+    let mut reader = BufReader::new(File::open(data.join("queries.txt"))?);
+    let mut buffer = Vec::with_capacity(32);
+    let mut queries = Vec::new();
+    while let Some([source, target]) = read_record(&mut reader, &mut buffer)? {
+        if source as usize >= graph.offsets.len() - 1 || target as usize >= graph.offsets.len() - 1
+        {
+            return Err("query vertex outside graph".into());
+        }
+        queries.push((source as usize, target as usize));
+    }
     fs::create_dir_all(&out)?;
     let mut output = BufWriter::new(File::create(out.join("distances.txt"))?);
     let mut searcher = Searcher::new(graph.offsets.len() - 1);

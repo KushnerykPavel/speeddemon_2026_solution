@@ -11,6 +11,11 @@ only touched vertices. Stop when the target is popped, skipping stale entries.
 Zero weights, parallel edges, duplicates and isolated nodes are supported.
 Queries run sequentially; no routing index or answer cache is used.
 
+Graph headers, edges and queries are parsed directly from ASCII bytes into
+`u32` values, using one reusable line buffer per file. There are no temporary
+strings or per-record field vectors. Parsing checks overflow, field counts and
+vertex bounds, and supports LF, CRLF and a final line without a newline.
+
 Release builds use fat LTO, one codegen unit and abort on panic. Docker builds
 also use `target-cpu=native`. Local VPS measurements are recorded in `PERF.md`;
 the small measured build-profile improvement remains inconclusive.
@@ -26,4 +31,4 @@ None.
 ## With another 24 hours
 
 Measure loading and query work separately, add degree-based query rejection,
-then compare byte parsing and parallel independent queries.
+then compare parallel independent queries.

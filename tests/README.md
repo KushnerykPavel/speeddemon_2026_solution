@@ -10,6 +10,20 @@ rustc --edition=2024 --test -O tests/ingest-parser.rs -o /tmp/ingest-parser-test
 These cover every buffer boundary, LF/CRLF and EOF tails, long records, numeric
 limits, malformed fields, and read failures. Tests live outside the scored track.
 
+Track D byte-parser regression and Python-reference checks:
+
+```sh
+rustc --edition=2024 --test -O tests/traverse-parser.rs -o /tmp/traverse-parser-tests
+/tmp/traverse-parser-tests
+cargo build --manifest-path track-d/Cargo.toml --release --offline --locked
+python3 tests/traverse-check.py track-d/target/release/traverse-baseline
+```
+
+These cover parser boundaries and errors, 203 deterministic graph/query cases
+(including 200 random graphs), and eight invalid inputs. Full-width weights,
+distances above `u32::MAX`, zero weights, duplicate edges, self-loops,
+unreachable vertices, empty queries, LF/CRLF and EOF tails are included.
+
 `reference/` preserves the organisers' MIT-licensed Python implementations
 unchanged, outside the independently scored track folders.
 
