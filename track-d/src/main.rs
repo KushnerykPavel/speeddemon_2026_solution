@@ -96,11 +96,12 @@ impl Graph {
     fn row(&self, node: usize) -> impl Iterator<Item = (u32, u32)> + '_ {
         let start = self.offsets[node] as usize;
         let edges = &self.edges[start..self.offsets[node + 1] as usize];
-        edges.iter().zip(start as u32..).map(|(&packed, index)| {
+        edges.iter().enumerate().map(move |(offset, &packed)| {
             let (head, code) = self.packing.unpack(packed);
             if code != self.packing.escape() {
                 return (head, code);
             }
+            let index = (start + offset) as u32;
             let at = self.heavy.partition_point(|&(heavy, _)| heavy < index);
             (head, self.heavy[at].1)
         })

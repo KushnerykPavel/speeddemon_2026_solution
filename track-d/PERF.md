@@ -23,6 +23,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 18 | SWAR record parsing (`d6954e2`) | run-39656346ac0a | 0.210076 | 101.093376 | 63.332170 |
 | 19 | Memory diet: 8-byte buckets, order-then-copy renumbering, `mallopt` (`3b648eb`) | run-b507a889127d | 0.195022 | 79.945728 | **64.951278** |
 | 20 | Code-size pass, 866 → 713 code lines (`1851b13`) | run-49484fa644ae | 0.211929 | 79.613952 | 64.692701 |
+| 20 (re-sample) | Same track code, record-only commit (`2012f4e`) | run-abe73b97cc7d | 0.203360 | 79.261696 | **65.160080** |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -743,3 +744,23 @@ step 19 stays the team best. The VPS A/B had the slim build faster, and board
 times for steps 17–20 span 0.195–0.212 s, so this is not yet evidence of a
 regression. Evidence:
 [official code-size result](../tests/performance/2026-10-31-board-code-size-results/README.md).
+
+Step 20 re-sample: `2012f4e` only records the result above, so the board
+rebuilt the same binary (`run-abe73b97cc7d`): **0.203360 s, 79.261696 MB,
+S=722, 65.160080 points**, the new team best (+0.208802 over step 19). Two
+runs of one binary differ by 4.0% in time, so single board runs cannot
+resolve changes smaller than that. Evidence:
+[official code-size result](../tests/performance/2026-10-31-board-code-size-results/README.md).
+
+## Step 21 — Dial bucket queue (VPS measurement, rejected)
+
+Public Track D code (Gigatron, FAHHHH) replaced the binary heap with a Dial
+ring and recorded 15–33% gains. Two versions were tried inside the
+bidirectional search: a ring of `Vec` buckets (4096 or 8192) with a far list,
+and a pooled linked-list ring with an occupancy bitmap. Against the current
+heap at 12 workers: +11%, +13% and +1.3% time, and cgroup peaks of 86.8, 89.7
+and 84.8 MB, because buckets hold every pushed entry until the query ends.
+Not adopted; the code is archived with the measurements. `Graph::row` goes
+back to `enumerate()` (the slim pass had switched to `zip(start..)`, which
+loses the slice-zip specialization on the hottest loop; same line count).
+Evidence: [Dial queue](../tests/performance/2026-11-01-traverse-dial-queue/README.md).

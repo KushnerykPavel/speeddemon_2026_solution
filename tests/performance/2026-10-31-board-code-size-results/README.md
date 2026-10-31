@@ -13,3 +13,15 @@ points, still the team best): time +8.67%, memory −0.41%, S 875 → 722
 slim build 2.8–5.9% faster, so the board time is either single-run noise
 (steps 17–20 ranged 0.195–0.212 s) or a board-only effect. Rank 25 of 91 by
 best points (tenth: 68.46). Raw record: `board-result.json`.
+
+## Re-sample: same track code, record-only commit
+
+| Run ID | Commit | Gates | T (s) | M (bytes) | S | D | Points |
+|---|---|---|---:|---:|---:|---:|---:|
+| run-abe73b97cc7d | `2012f4e` | all passed | 0.203360 | 79,261,696 | 722 | 1 | 65.160080 |
+
+`2012f4e` changes only `PERF.md` and this folder, so the board built the same
+binary as `1851b13`. The second sample is 4.0% faster than the first, which
+puts the slim build at a new team best (+0.208802 points over step 19) and
+shows that single board runs of this code vary by about ±4% in time. Raw
+record: `board-result-resample.json`.

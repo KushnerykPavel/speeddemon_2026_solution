@@ -1,0 +1,68 @@
+{
+  "cpuset": "0-5",
+  "memory_limit": "8g",
+  "method": "one warmup, five rotating-order runs; trimmed mean of middle three",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "variants": {
+    "before-6": {
+      "trimmed_mean_seconds": 0.49773083933333334,
+      "median_seconds": 0.506185389,
+      "spread_percent": 20.691984332287984,
+      "max_rss_kib": 165504,
+      "max_cgroup_peak_bytes": 78331904
+    },
+    "before-12": {
+      "trimmed_mean_seconds": 0.476478503,
+      "median_seconds": 0.468812137,
+      "spread_percent": 10.896614506357704,
+      "max_rss_kib": 166216,
+      "max_cgroup_peak_bytes": 78721024
+    },
+    "dial-6": {
+      "trimmed_mean_seconds": 0.4923270166666667,
+      "median_seconds": 0.495812772,
+      "spread_percent": 30.65938669280097,
+      "max_rss_kib": 165620,
+      "max_cgroup_peak_bytes": 78020608
+    },
+    "dial-12": {
+      "trimmed_mean_seconds": 0.5288054346666666,
+      "median_seconds": 0.522293612,
+      "spread_percent": 15.183954165959834,
+      "max_rss_kib": 173756,
+      "max_cgroup_peak_bytes": 86822912
+    },
+    "dial8k-6": {
+      "trimmed_mean_seconds": 0.535762497,
+      "median_seconds": 0.529634307,
+      "spread_percent": 16.873127352302532,
+      "max_rss_kib": 165380,
+      "max_cgroup_peak_bytes": 78123008
+    },
+    "dial8k-12": {
+      "trimmed_mean_seconds": 0.5385798346666667,
+      "median_seconds": 0.537885132,
+      "spread_percent": 8.605173079561478,
+      "max_rss_kib": 176860,
+      "max_cgroup_peak_bytes": 89702400
+    }
+  },
+  "comparison": {
+    "dial-6": {
+      "time_change_percent": -1.0856917513699993,
+      "memory_change_percent": -0.39740640033465446
+    },
+    "dial8k-6": {
+      "time_change_percent": 7.641008886973277,
+      "memory_change_percent": -0.2666806107508912
+    },
+    "dial-12": {
+      "time_change_percent": 10.982013110183608,
+      "memory_change_percent": 10.291898641968888
+    },
+    "dial8k-12": {
+      "time_change_percent": 13.033396318126588,
+      "memory_change_percent": 13.949737239190373
+    }
+  }
+}
