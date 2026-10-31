@@ -1,0 +1,68 @@
+{
+  "cpuset": "0-5",
+  "memory_limit": "8g",
+  "method": "one warmup, five rotating-order runs; trimmed mean of middle three",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "variants": {
+    "before-6": {
+      "trimmed_mean_seconds": 1.2398409913333333,
+      "median_seconds": 1.25198151,
+      "spread_percent": 13.833650504074434,
+      "max_rss_kib": 144320,
+      "max_cgroup_peak_bytes": 113127424
+    },
+    "before-12": {
+      "trimmed_mean_seconds": 1.2213113086666667,
+      "median_seconds": 1.245589822,
+      "spread_percent": 7.355289200069293,
+      "max_rss_kib": 154324,
+      "max_cgroup_peak_bytes": 158687232
+    },
+    "bidir-dense-6": {
+      "trimmed_mean_seconds": 0.7713477796666667,
+      "median_seconds": 0.765064798,
+      "spread_percent": 17.714689919627503,
+      "max_rss_kib": 217688,
+      "max_cgroup_peak_bytes": 223440896
+    },
+    "bidir-dense-12": {
+      "trimmed_mean_seconds": 0.8243517706666667,
+      "median_seconds": 0.824222764,
+      "spread_percent": 12.18183453678725,
+      "max_rss_kib": 300972,
+      "max_cgroup_peak_bytes": 309059584
+    },
+    "bidir-6": {
+      "trimmed_mean_seconds": 0.7652312066666667,
+      "median_seconds": 0.773587408,
+      "spread_percent": 5.819608434417312,
+      "max_rss_kib": 144040,
+      "max_cgroup_peak_bytes": 128786432
+    },
+    "bidir-12": {
+      "trimmed_mean_seconds": 0.7936610629999999,
+      "median_seconds": 0.805072228,
+      "spread_percent": 11.705835922519459,
+      "max_rss_kib": 144272,
+      "max_cgroup_peak_bytes": 143314944
+    }
+  },
+  "comparison": {
+    "bidir-dense-6": {
+      "time_change_percent": -37.78655609400733,
+      "memory_change_percent": 97.51258191824468
+    },
+    "bidir-6": {
+      "time_change_percent": -38.279891371898266,
+      "memory_change_percent": 13.84192041710417
+    },
+    "bidir-dense-12": {
+      "time_change_percent": -32.50273171001502,
+      "memory_change_percent": 94.76020855918641
+    },
+    "bidir-12": {
+      "time_change_percent": -35.01566247949855,
+      "memory_change_percent": -9.687161220380979
+    }
+  }
+}

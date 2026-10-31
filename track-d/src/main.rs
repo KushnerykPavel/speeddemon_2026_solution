@@ -9,10 +9,11 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicPtr, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::thread;
 
+/// Compressed sparse rows: the edges of vertex `v` are
+/// `edges[offsets[v]..offsets[v + 1]]` as `(other endpoint, weight)`.
 struct Graph {
     offsets: Vec<u32>,
     edges: Vec<(u32, u32)>,
-    incoming: Vec<u64>,
 }
 
 fn read_record<const N: usize>(
@@ -186,13 +187,11 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
     let (n, m) = (n as usize, m as usize);
     let chunks = line_chunks(&bytes[header_end..], workers);
     let degrees: Vec<_> = (0..n).map(|_| AtomicU32::new(0)).collect();
-    let incoming: Vec<_> = (0..n.div_ceil(64)).map(|_| AtomicU64::new(0)).collect();
     let count = parse_chunks(&chunks, |[u, v, _]| {
         if u as usize >= n || v as usize >= n {
             return Err(invalid("edge vertex outside graph"));
         }
         degrees[u as usize].fetch_add(1, Ordering::Relaxed);
-        incoming[v as usize / 64].fetch_or(1_u64 << (v % 64), Ordering::Relaxed);
         Ok(())
     })?;
     if count != m {
@@ -225,11 +224,7 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
         }
         Ok(())
     })?;
-    Ok(Graph {
-        offsets,
-        edges,
-        incoming: incoming.into_iter().map(AtomicU64::into_inner).collect(),
-    })
+    Ok(Graph { offsets, edges })
 }
 
 fn read_graph(path: &Path, workers: usize) -> io::Result<Graph> {
@@ -260,11 +255,7 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
     let workers = workers.clamp(1, 12);
     let bits = usize::BITS - nodes.leading_zeros();
     let claims: Vec<_> = (0..nodes).map(|_| AtomicU32::new(0)).collect();
-    let Graph {
-        offsets,
-        edges,
-        incoming,
-    } = graph;
+    let Graph { offsets, edges } = graph;
     let regions: Vec<Region> = thread::scope(|scope| {
         let handles: Vec<_> = (0..workers)
             .map(|worker| {
@@ -359,15 +350,6 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
             });
         }
     });
-    let mut new_incoming = vec![0_u64; nodes.div_ceil(64)];
-    for (region, &base) in regions.iter().zip(&node_base) {
-        for (position, &old) in region.order.iter().enumerate() {
-            let (old, new) = (old as usize, base as usize + position);
-            if incoming[old / 64] & (1_u64 << (old % 64)) != 0 {
-                new_incoming[new / 64] |= 1_u64 << (new % 64);
-            }
-        }
-    }
     for (source, target) in queries {
         *source = final_id(claims[*source].load(Ordering::Relaxed)) as usize;
         *target = final_id(claims[*target].load(Ordering::Relaxed)) as usize;
@@ -375,8 +357,56 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
     Graph {
         offsets: new_offsets,
         edges: new_edges,
-        incoming: new_incoming,
     }
+}
+
+/// Reverse graph: row `v` lists `(u, w)` for every edge `u -> v` of `graph`.
+/// Workers count in-degrees over disjoint source rows, then scatter each edge
+/// into a slot claimed from its target's atomic cursor.
+fn transpose(graph: &Graph, workers: usize) -> Graph {
+    let nodes = graph.offsets.len() - 1;
+    let workers = workers.clamp(1, 12);
+    let for_each_edge = |visit: &(dyn Fn(u32, u32, u32) + Sync)| {
+        thread::scope(|scope| {
+            for worker in 0..workers {
+                scope.spawn(move || {
+                    for source in nodes * worker / workers..nodes * (worker + 1) / workers {
+                        let row =
+                            graph.offsets[source] as usize..graph.offsets[source + 1] as usize;
+                        for &(target, weight) in &graph.edges[row] {
+                            visit(source as u32, target, weight);
+                        }
+                    }
+                });
+            }
+        });
+    };
+    let degrees: Vec<_> = (0..nodes).map(|_| AtomicU32::new(0)).collect();
+    for_each_edge(&|_, target, _| {
+        degrees[target as usize].fetch_add(1, Ordering::Relaxed);
+    });
+    let mut offsets = vec![0_u32; nodes + 1];
+    for (i, degree) in degrees.into_iter().enumerate() {
+        offsets[i + 1] = offsets[i] + degree.into_inner();
+    }
+    let cursor: Vec<_> = offsets[..nodes]
+        .iter()
+        .map(|&offset| AtomicU32::new(offset))
+        .collect();
+    let mut edges = vec![(0, 0); graph.edges.len()];
+    let slots = AtomicPtr::new(edges.as_mut_ptr());
+    for_each_edge(&|source, target, weight| {
+        let index = cursor[target as usize].fetch_add(1, Ordering::Relaxed) as usize;
+        // Every edge is visited once and the counted cursors hand out unique,
+        // in-bounds slots; the Vec does not move and is read only after the joins.
+        unsafe {
+            slots
+                .load(Ordering::Relaxed)
+                .add(index)
+                .write((source, weight));
+        }
+    });
+    Graph { offsets, edges }
 }
 
 /// Distance width used by one Dijkstra run; `MAX` marks unvisited vertices.
@@ -404,66 +434,144 @@ impl Distance for u64 {
     }
 }
 
-struct Search<D> {
-    distances: Vec<D>,
-    touched: Vec<u32>,
+/// Vertices per distance page (4 KB of `u32`). Renumbered searches are local,
+/// so a query touches few pages.
+const PAGE: usize = 1 << 10;
+const NO_PAGE: u32 = u32::MAX;
+
+/// One direction of a bidirectional search. Distances live in pages that are
+/// assigned on first write and returned after each query, so memory follows
+/// the largest search instead of the vertex count.
+struct Side<D> {
+    page_of_block: Vec<u32>,
+    pages: Vec<D>,
+    used_blocks: Vec<u32>,
     heap: BinaryHeap<Reverse<(D, u32)>>,
+}
+
+impl<D: Distance> Side<D> {
+    fn new(nodes: usize) -> Self {
+        Self {
+            page_of_block: vec![NO_PAGE; nodes.div_ceil(PAGE)],
+            pages: Vec::new(),
+            used_blocks: Vec::new(),
+            heap: BinaryHeap::new(),
+        }
+    }
+
+    fn distance(&self, node: u32) -> D {
+        match self.page_of_block[node as usize / PAGE] {
+            NO_PAGE => D::MAX,
+            page => self.pages[page as usize * PAGE + node as usize % PAGE],
+        }
+    }
+
+    fn reach(&mut self, node: u32, distance: D) {
+        let block = node as usize / PAGE;
+        let mut page = self.page_of_block[block];
+        if page == NO_PAGE {
+            page = self.used_blocks.len() as u32;
+            self.used_blocks.push(block as u32);
+            self.page_of_block[block] = page;
+            let end = (page as usize + 1) * PAGE;
+            if self.pages.len() < end {
+                self.pages.resize(end, D::MAX);
+            }
+        }
+        self.pages[page as usize * PAGE + node as usize % PAGE] = distance;
+        self.heap.push(Reverse((distance, node)));
+    }
+
+    /// Smallest queued key; a stale key is still a valid lower bound.
+    fn top(&self) -> Option<u64> {
+        self.heap
+            .peek()
+            .map(|&Reverse((distance, _))| distance.into())
+    }
+
+    /// Settles the next vertex and relaxes its edges in `graph`. Returns the
+    /// shortest path length through any edge that reaches a vertex `other` has
+    /// already labelled. Sums that do not fit `D` are skipped and flagged.
+    fn settle_next(&mut self, graph: &Graph, other: &Self, overflowed: &mut bool) -> u64 {
+        let Some(Reverse((distance, node))) = self.heap.pop() else {
+            return u64::MAX;
+        };
+        if distance > self.distance(node) {
+            return u64::MAX;
+        }
+        let mut meeting = u64::MAX;
+        let row = graph.offsets[node as usize] as usize..graph.offsets[node as usize + 1] as usize;
+        for &(next, weight) in &graph.edges[row] {
+            let Some(candidate) = distance.relax(weight) else {
+                *overflowed = true;
+                continue;
+            };
+            let across = other.distance(next);
+            if across != D::MAX {
+                meeting = meeting.min(candidate.into() + across.into());
+            }
+            if candidate < self.distance(next) {
+                self.reach(next, candidate);
+            }
+        }
+        meeting
+    }
+
+    /// Clears the pages this query used and makes them available again.
+    fn reset(&mut self) {
+        for (page, &block) in self.used_blocks.iter().enumerate() {
+            self.page_of_block[block as usize] = NO_PAGE;
+            self.pages[page * PAGE..(page + 1) * PAGE].fill(D::MAX);
+        }
+        self.used_blocks.clear();
+        self.heap.clear();
+    }
+}
+
+/// Bidirectional Dijkstra: forward from the source over `forward`, backward
+/// from the target over the reverse graph. Each step grows the side with the
+/// smaller queue, so a side that is about to run out (an island, a dead end)
+/// finishes first instead of letting the other side flood the graph.
+struct Search<D> {
+    forward: Side<D>,
+    backward: Side<D>,
     overflowed: bool,
 }
 
 impl<D: Distance> Search<D> {
     fn new(nodes: usize) -> Self {
         Self {
-            distances: vec![D::MAX; nodes],
-            touched: Vec::new(),
-            heap: BinaryHeap::new(),
+            forward: Side::new(nodes),
+            backward: Side::new(nodes),
             overflowed: false,
         }
     }
 
-    /// Dijkstra that skips relaxations whose sum does not fit `D`. A found
-    /// distance is exact: every prefix of a shorter path would also fit. `None`
-    /// with `overflowed` set means the answer needs a wider distance type.
-    fn run(&mut self, graph: &Graph, source: u32, target: u32) -> Option<u64> {
+    /// Stops when the two queue minima sum to at least the best path seen, or a
+    /// side runs out (then every path has been seen). A path shorter than
+    /// `D::MAX` is exact even if larger sums were skipped: all its prefixes and
+    /// suffixes fit. Otherwise `overflowed` tells the caller to widen.
+    fn run(&mut self, forward: &Graph, backward: &Graph, source: u32, target: u32) -> Option<u64> {
         self.overflowed = false;
-        let found = self.search(graph, source, target);
-        for &node in &self.touched {
-            self.distances[node as usize] = D::MAX;
+        self.forward.reach(source, D::ZERO);
+        self.backward.reach(target, D::ZERO);
+        let mut best = u64::MAX;
+        while let (Some(ahead), Some(behind)) = (self.forward.top(), self.backward.top()) {
+            if ahead + behind >= best {
+                break;
+            }
+            let meeting = if self.forward.heap.len() <= self.backward.heap.len() {
+                self.forward
+                    .settle_next(forward, &self.backward, &mut self.overflowed)
+            } else {
+                self.backward
+                    .settle_next(backward, &self.forward, &mut self.overflowed)
+            };
+            best = best.min(meeting);
         }
-        self.touched.clear();
-        self.heap.clear();
-        found
-    }
-
-    fn search(&mut self, graph: &Graph, source: u32, target: u32) -> Option<u64> {
-        self.distances[source as usize] = D::ZERO;
-        self.touched.push(source);
-        self.heap.push(Reverse((D::ZERO, source)));
-        while let Some(Reverse((distance, node))) = self.heap.pop() {
-            if distance > self.distances[node as usize] {
-                continue;
-            }
-            if node == target {
-                return Some(distance.into());
-            }
-            let range =
-                graph.offsets[node as usize] as usize..graph.offsets[node as usize + 1] as usize;
-            for &(next, weight) in &graph.edges[range] {
-                let Some(candidate) = distance.relax(weight) else {
-                    self.overflowed = true;
-                    continue;
-                };
-                let current = &mut self.distances[next as usize];
-                if candidate < *current {
-                    if *current == D::MAX {
-                        self.touched.push(next);
-                    }
-                    *current = candidate;
-                    self.heap.push(Reverse((candidate, next)));
-                }
-            }
-        }
-        None
+        self.forward.reset();
+        self.backward.reset();
+        (best != u64::MAX).then_some(best)
     }
 }
 
@@ -485,27 +593,33 @@ impl<'a> Searcher<'a> {
         }
     }
 
-    fn shortest_path(&mut self, graph: &Graph, source: usize, target: usize) -> Option<u64> {
+    fn shortest_path(
+        &mut self,
+        forward: &Graph,
+        backward: &Graph,
+        source: usize,
+        target: usize,
+    ) -> Option<u64> {
         if source == target {
             return Some(0);
         }
-        if graph.offsets[source] == graph.offsets[source + 1]
-            || graph.incoming[target / 64] & (1_u64 << (target % 64)) == 0
+        if forward.offsets[source] == forward.offsets[source + 1]
+            || backward.offsets[target] == backward.offsets[target + 1]
         {
             return None;
         }
         let (source, target) = (source as u32, target as u32);
-        let found = self.narrow.run(graph, source, target);
-        if found.is_some() || !self.narrow.overflowed {
+        let found = self.narrow.run(forward, backward, source, target);
+        if !self.narrow.overflowed || found.is_some_and(|distance| distance < u32::MAX.into()) {
             return found;
         }
-        let nodes = graph.offsets.len() - 1;
+        let nodes = forward.offsets.len() - 1;
         let mut wide = self
             .wide
             .lock()
             .unwrap_or_else(|poison| poison.into_inner());
         wide.get_or_insert_with(|| Search::new(nodes))
-            .run(graph, source, target)
+            .run(forward, backward, source, target)
     }
 }
 
@@ -513,13 +627,14 @@ fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> 
     if queries.is_empty() {
         return Vec::new();
     }
+    let backward = &transpose(graph, workers);
     let workers = workers.clamp(1, 12).min(queries.len());
     let wide = Mutex::new(None);
     if workers == 1 {
         let mut searcher = Searcher::new(graph.offsets.len() - 1, &wide);
         return queries
             .iter()
-            .map(|&(source, target)| searcher.shortest_path(graph, source, target))
+            .map(|&(source, target)| searcher.shortest_path(graph, backward, source, target))
             .collect();
     }
     let next = AtomicUsize::new(0);
@@ -533,7 +648,7 @@ fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> 
                     let Some(&(source, target)) = queries.get(index) else {
                         break;
                     };
-                    let distance = searcher.shortest_path(graph, source, target);
+                    let distance = searcher.shortest_path(graph, backward, source, target);
                     answers[index].store(distance.unwrap_or(u64::MAX), Ordering::Relaxed);
                 }
             });

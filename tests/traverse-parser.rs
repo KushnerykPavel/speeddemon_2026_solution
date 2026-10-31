@@ -3,7 +3,7 @@ mod traverse {
     include!("../track-d/src/main.rs");
 
     /// Reorders `bytes` with `workers`, then checks the vertex permutation, the
-    /// remapped edge multiset, incoming bits and every answer in `pairs`.
+    /// remapped edge multiset and every answer in `pairs`.
     fn check_reorder(bytes: &[u8], pairs: &[(usize, usize)], workers: usize) {
         let graph = build_graph(bytes, workers).unwrap();
         let nodes = graph.offsets.len() - 1;
@@ -13,7 +13,6 @@ mod traverse {
             .chain(pairs.iter().copied())
             .collect();
         let expected = answer_queries(&graph, &original, 1);
-        let incoming = graph.incoming.clone();
         let old_edges: Vec<_> = (0..nodes)
             .flat_map(|source| {
                 graph.edges[graph.offsets[source] as usize..graph.offsets[source + 1] as usize]
@@ -42,12 +41,6 @@ mod traverse {
         expected_edges.sort_unstable();
         actual_edges.sort_unstable();
         assert_eq!(actual_edges, expected_edges);
-        for (old, &new) in mapping.iter().enumerate() {
-            assert_eq!(
-                incoming[old / 64] >> (old % 64) & 1,
-                reordered.incoming[new / 64] >> (new % 64) & 1
-            );
-        }
         for search_workers in [1, 2, 6, 12] {
             assert_eq!(
                 answer_queries(&reordered, &queries, search_workers),
@@ -57,7 +50,7 @@ mod traverse {
     }
 
     #[test]
-    fn reordering_preserves_permutation_edges_incoming_and_all_distances() {
+    fn reordering_preserves_permutation_edges_and_all_distances() {
         let bytes = b"130 9\n5 64 0\n64 5 4294967295\n64 129 4294967295\n129 128 4294967295\n5 5 0\n66 67 1\n67 66 2\n5 64 7\n5 64 0\n";
         let pairs: Vec<_> = (0..130)
             .flat_map(|source| (0..130).map(move |target| (source, target)))
@@ -128,14 +121,14 @@ mod traverse {
                 edges.sort_unstable();
                 assert_eq!(&edges, expected);
             }
-            assert_eq!(graph.incoming, [0b1111]);
+            assert_eq!(transpose(&graph, workers).offsets, [0, 1, 4, 5, 7, 7]);
         }
         for nodes in [0, 5, 65] {
             fs::write(&path, format!("{nodes} 0\n")).unwrap();
             let graph = read_graph(&path, 6).unwrap();
             assert_eq!(graph.offsets, vec![0; nodes + 1]);
             assert!(graph.edges.is_empty());
-            assert!(graph.incoming.iter().all(|&word| word == 0));
+            assert!(transpose(&graph, 6).edges.is_empty());
         }
         fs::write(&path, b"").unwrap();
         let mapping = MappedFile::open(&path).unwrap();
@@ -192,8 +185,15 @@ mod traverse {
             writeln!(bytes, "{source} {target} {weight}").unwrap();
             expected[source].push((target as u32, weight));
         }
-        for edges in &mut expected {
+        let mut reversed = vec![Vec::new(); 130];
+        for (source, edges) in expected.iter_mut().enumerate() {
             edges.sort_unstable();
+            for &(target, weight) in edges.iter() {
+                reversed[target as usize].push((source as u32, weight));
+            }
+        }
+        for sources in &mut reversed {
+            sources.sort_unstable();
         }
         for workers in [1, 2, 4, 6, 12] {
             for _ in 0..3 {
@@ -205,7 +205,14 @@ mod traverse {
                     edges.sort_unstable();
                     assert_eq!(&edges, expected);
                 }
-                assert_eq!(graph.incoming, [u64::MAX, u64::MAX, 3]);
+                let reverse = transpose(&graph, workers);
+                for (node, sources) in reversed.iter().enumerate() {
+                    let mut edges = reverse.edges
+                        [reverse.offsets[node] as usize..reverse.offsets[node + 1] as usize]
+                        .to_vec();
+                    edges.sort_unstable();
+                    assert_eq!(&edges, sources);
+                }
             }
         }
     }
@@ -218,7 +225,6 @@ mod traverse {
         let graph = Graph {
             offsets,
             edges: (1..nodes as u32).map(|target| (target, u32::MAX)).collect(),
-            incoming: vec![u64::MAX - 1, u64::MAX, 3],
         };
         let queries: Vec<_> = (0..1000)
             .map(|index| match index % 5 {
@@ -229,11 +235,12 @@ mod traverse {
                 _ => (1, 64),
             })
             .collect();
+        let backward = transpose(&graph, 1);
         let wide = Mutex::new(None);
         let mut searcher = Searcher::new(nodes, &wide);
         let expected: Vec<_> = queries
             .iter()
-            .map(|&(source, target)| searcher.shortest_path(&graph, source, target))
+            .map(|&(source, target)| searcher.shortest_path(&graph, &backward, source, target))
             .collect();
         assert_eq!(expected[0], Some(129 * u64::from(u32::MAX)));
         for workers in [1, 2, 4, 6, 12, 99] {
@@ -257,8 +264,8 @@ mod traverse {
         let graph = Graph {
             offsets: vec![0, 1, 2, 2, 2],
             edges: vec![(1, 7), (2, 0)],
-            incoming: vec![0b0110],
         };
+        let backward = transpose(&graph, 1);
         let wide = Mutex::new(None);
         let mut searcher = Searcher::new(4, &wide);
         for (source, target, expected) in [
@@ -269,17 +276,101 @@ mod traverse {
             (2, 1, None),    // no-out source
             (0, 1, Some(7)), // reuse after both fast rejections
         ] {
-            assert_eq!(searcher.shortest_path(&graph, source, target), expected);
-            assert!(searcher.narrow.touched.is_empty());
-            assert!(searcher.narrow.heap.is_empty());
-            assert!(
-                searcher
-                    .narrow
-                    .distances
-                    .iter()
-                    .all(|&distance| distance == u32::MAX)
+            assert_eq!(
+                searcher.shortest_path(&graph, &backward, source, target),
+                expected
             );
+            assert_clean(&searcher.narrow);
             assert!(wide.lock().unwrap().is_none());
+        }
+    }
+
+    /// Both sides of a finished search are reset for reuse.
+    fn assert_clean<D: Distance + std::fmt::Debug>(search: &Search<D>) {
+        for side in [&search.forward, &search.backward] {
+            assert!(side.used_blocks.is_empty() && side.heap.is_empty());
+            assert!(side.page_of_block.iter().all(|&page| page == NO_PAGE));
+            assert!(side.pages.iter().all(|&distance| distance == D::MAX));
+        }
+    }
+
+    /// Plain forward Dijkstra in u64 over an edge list, independent of the CSR code.
+    fn reference_distance(
+        nodes: usize,
+        edges: &[(usize, usize, u32)],
+        source: usize,
+        target: usize,
+    ) -> Option<u64> {
+        let mut distances = vec![u64::MAX; nodes];
+        let mut heap = BinaryHeap::from([Reverse((0_u64, source))]);
+        distances[source] = 0;
+        while let Some(Reverse((distance, node))) = heap.pop() {
+            if distance > distances[node] {
+                continue;
+            }
+            if node == target {
+                return Some(distance);
+            }
+            for &(_, next, weight) in edges.iter().filter(|edge| edge.0 == node) {
+                let candidate = distance + u64::from(weight);
+                if candidate < distances[next] {
+                    distances[next] = candidate;
+                    heap.push(Reverse((candidate, next)));
+                }
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn bidirectional_matches_reference_across_u32_boundary() {
+        let mut state = 0x2545_F491_4F6C_DD1D_u64;
+        let mut next = |bound: u64| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state % bound
+        };
+        for round in 0..60 {
+            let nodes = 2 + next(40) as usize;
+            let count = next(4 * nodes as u64) as usize;
+            // Odd rounds spread vertex IDs over many distance pages.
+            let stride = if round % 2 == 1 { PAGE + 7 } else { 1 };
+            let label = |node: usize| node * stride;
+            let mut edges = Vec::new();
+            let mut text = format!("{} {count}\n", label(nodes - 1) + 1);
+            for _ in 0..count {
+                let (source, target) = (next(nodes as u64) as usize, next(nodes as u64) as usize);
+                // Mix zero, small, near-2^31 and near-2^32 weights so sums cross u32.
+                let weight = match next(5) {
+                    0 => 0,
+                    1 => next(10) as u32,
+                    2 => (1 << 31) + next(3) as u32 - 1,
+                    3 => u32::MAX - next(3) as u32,
+                    _ => next(1_000) as u32,
+                };
+                edges.push((source, target, weight));
+                text += &format!("{} {} {weight}\n", label(source), label(target));
+            }
+            let graph = build_graph(text.as_bytes(), 1 + round % 6).unwrap();
+            let pairs: Vec<_> = (0..nodes)
+                .flat_map(|source| (0..nodes).map(move |target| (source, target)))
+                .collect();
+            let expected: Vec<_> = pairs
+                .iter()
+                .map(|&(source, target)| reference_distance(nodes, &edges, source, target))
+                .collect();
+            let queries: Vec<_> = pairs
+                .iter()
+                .map(|&(source, target)| (label(source), label(target)))
+                .collect();
+            for workers in [1, 3, 12] {
+                assert_eq!(
+                    answer_queries(&graph, &queries, workers),
+                    expected,
+                    "round {round}"
+                );
+            }
         }
     }
 
@@ -304,16 +395,18 @@ mod traverse {
             ((0, 7), None),
             ((4, 1), None),
         ];
+        let backward = transpose(&graph, 1);
         let wide = Mutex::new(None);
         let mut searcher = Searcher::new(8, &wide);
         for _ in 0..2 {
             for &((source, target), expected) in &cases {
-                assert_eq!(searcher.shortest_path(&graph, source, target), expected);
-                assert!(searcher.narrow.touched.is_empty() && searcher.narrow.heap.is_empty());
-                assert!(searcher.narrow.distances.iter().all(|&d| d == u32::MAX));
+                assert_eq!(
+                    searcher.shortest_path(&graph, &backward, source, target),
+                    expected
+                );
+                assert_clean(&searcher.narrow);
                 if let Some(wide) = &*wide.lock().unwrap() {
-                    assert!(wide.touched.is_empty() && wide.heap.is_empty());
-                    assert!(wide.distances.iter().all(|&d| d == u64::MAX));
+                    assert_clean(wide);
                 }
             }
         }

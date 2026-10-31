@@ -4,17 +4,24 @@ The task, the input files and the exact output format are in the [spec](https://
 
 ## Approach
 
-Rust implementation of the organisers' forward Dijkstra algorithm. Load a CSR
-graph with `u32` offsets and `(u32 target, u32 weight)` edges, retaining every
-edge. Reuse a `u32` distance array and binary min-heap across queries, resetting
-only touched vertices. Stop when the target is popped, skipping stale entries.
-Relaxations that do not fit `u32` are skipped; a found distance is still exact.
-If the target is missed after such a skip, the query reruns in one `u64` search
-shared by all workers behind a mutex (4 of 2,000 seed-1 answers exceed `u32`).
+Rust implementation of exact point-to-point shortest paths with bidirectional
+Dijkstra. Load a CSR graph with `u32` offsets and `(u32 target, u32 weight)`
+edges, retaining every edge, and build its reverse CSR in parallel. Each query
+searches forward from the source and backward from the target, always growing
+the side with the smaller queue (choosing by smaller key would let one side
+flood the graph when the other side's first edge weighs close to 2^32). The
+best path length `μ` is updated whenever an edge reaches a vertex the other side
+has labelled; the search stops once the two queue minima sum to at least `μ` or
+a side is exhausted. Distances are `u32` in 1,024-vertex pages assigned on first
+write and recycled after each query, so worker memory follows the largest search
+rather than the vertex count. Relaxations that do not fit `u32` are skipped; a
+found distance below `u32::MAX` is still exact. Otherwise, if anything was
+skipped, the query reruns in one `u64` search shared by all workers behind a
+mutex (4 of 2,000 seed-1 answers exceed `u32`).
 Zero weights, parallel edges, duplicates and isolated nodes are supported.
 Before searching, return zero for identical endpoints and reject queries with
-no outgoing edge at the source or no incoming edge at the target. Incoming-edge
-presence uses one bit per vertex (217,568 bytes at 1,740,512 vertices).
+no outgoing edge at the source or no incoming edge at the target (an empty row
+of the reverse graph).
 Independent queries run on scoped standard-library threads sharing the immutable
 graph. Each worker reuses its own search state and claims its next query from an
 atomic counter; indexed answers preserve input order. No routing index or answer
@@ -27,7 +34,7 @@ container peak memory 139.7 to 140.8 MB. One-worker loading is slower; the
 improvement applies to parallel modes. Details and limitations are in `PERF.md`.
 
 The graph is mapped read-only with `mmap` and divided into newline-aligned chunks.
-Scoped workers make two passes: count degrees/incoming presence with relaxed
+Scoped workers make two passes: count out-degrees with relaxed
 atomics, prefix counts, then parse/scatter directly into CSR using unique atomic
 cursor positions. No temporary triple array is stored. The mapping is released
 after the loader's workers join. Within-source edge order may vary; every edge
@@ -67,7 +74,6 @@ None.
 
 ## With another 24 hours
 
-Bidirectional Dijkstra that expands the side with the smaller queue (reverse
-graph required), paged per-search distance storage instead of dense per-worker
-arrays, and a single-pass bucketed parser. Then compare 6 versus 12 workers on
-the competition machine using time and cgroup peak memory.
+A single-pass bucketed parser (graph loading is now the largest phase), packed
+32-bit edges with an exact overflow list to halve graph memory, then compare 6
+versus 12 workers on the competition machine using time and cgroup peak memory.

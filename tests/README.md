@@ -24,19 +24,26 @@ These cover parser boundaries and errors, 204 deterministic graph/query cases
 distances above `u32::MAX`, zero weights, duplicate edges, self-loops,
 unreachable vertices, empty queries, LF/CRLF and EOF tails are included. Degree
 rejection checks cover isolated self paths, no-in targets, no-out sources,
-self-loop-only components, bitset word boundaries and state reuse after rejection.
+self-loop-only components and state reuse after rejection.
 The Python comparison runs every case with default scheduling and explicit
-1/2/4/6/12 workers (1,224 comparisons), plus three invalid thread options. Eleven
+1/2/4/6/12 workers (1,224 comparisons), plus three invalid thread options. Fourteen
 Rust tests include repeated parallel-versus-serial comparisons with skewed work,
 duplicate queries, large distances, fewer queries than workers and empty input.
 The graph-loader test verifies exact CSR offsets and per-source edge multisets,
-incoming bits, max-u32 weights, CRLF/EOF, empty mappings and zero-edge graphs.
-Chunk tests check complete, nonoverlapping coverage at newline boundaries;
+reverse-graph offsets, max-u32 weights, CRLF/EOF, empty mappings and zero-edge
+graphs. Chunk tests check complete, nonoverlapping coverage at newline boundaries;
 contention tests repeatedly scatter 20,000 edges into three source rows using
-1/2/4/6/12 workers. Within-source edge order may vary; every edge must remain.
-The reordering test checks a complete vertex permutation, remapped edge multisets
-and incoming bits, and all 16,900 ordered pairs on a disconnected 130-node graph
-with islands, isolated vertices, loops, duplicates, zero/max weights and long sums.
+1/2/4/6/12 workers and check the reverse graph's per-target multisets. Within-row
+edge order may vary; every edge must remain.
+The reordering tests check a complete vertex permutation, remapped edge multisets
+and answers: all 16,900 ordered pairs on a disconnected 130-node graph with
+islands, isolated vertices, loops, duplicates, zero/max weights and long sums, and
+a 3,000-vertex random graph renumbered with 2/6/12 workers ten times each.
+Bidirectional search is compared with an independent `u64` reference Dijkstra on
+60 random graphs (all pairs, 1/3/12 workers, weights 0, small, near 2^31 and near
+2^32 so sums cross `u32`, vertex IDs spread over many distance pages). Narrow
+`u32` searches fall back to `u64` exactly at the `u32::MAX` boundary, and both
+search sides and all distance pages are reset for reuse.
 
 `reference/` preserves the organisers' MIT-licensed Python implementations
 unchanged, outside the independently scored track folders.

@@ -13,6 +13,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 8 | Read-only mmap + parallel two-pass CSR (`e5bad19`) | run-d07b2b8242d7 | 1.142983 | 228.335616 | 44.060351 |
 | 9 | D8: BFS vertex order + parallel row-slice CSR rebuild (`accbb64`) | run-c18ebeae7015 | 0.637161 | 234.110976 | 49.692323 |
 | 10 | D12: `u32` distances + shared exact `u64` fallback (`5bb06f2`) | run-e55665d62b35 | 0.587022 | 163.717120 | 51.755970 |
+| 11 | Parallel claimed-region renumbering (`974ec7e`) | run-f1a2f8d1a891 | 0.473104 | 160.182272 | 53.841416 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -429,5 +430,58 @@ Phase medians (separate instrumented builds, four runs each): renumbering
 All outputs match Python; thirteen Rust tests (new: 3,000-vertex random graph,
 2/6/12 workers, ten repetitions, checking permutation, edge multiset, incoming
 bits and answers) and 1,224 Python comparisons pass on macOS and VPS. A mutated
-ID translation fails both renumbering tests. No board run ID yet.
+ID translation fails both renumbering tests. Board result follows below.
 Evidence: [parallel renumbering](../tests/performance/2026-10-31-traverse-parallel-reorder/README.md).
+
+Step 11 official board result, feed 2026-10-31 18:54:45 UTC (19:54:45 Warsaw):
+`run-f1a2f8d1a891`, commit `974ec7e`, all gates passed. **0.473104 s,
+160.182272 MB, S=547, D=1, K=11.935162, 53.841416 points**. New team best;
+versus step 10: time −19.41% (1.2408x), memory −2.16%, +2.085446 points despite
+S 491 → 547. Derived Track D position: 53 of 88 scored teams. Single live-board
+run, not final hidden-seed scoring. Evidence:
+[official renumbering result](../tests/performance/2026-10-31-board-regions-results/README.md).
+
+
+## Step 12 — bidirectional Dijkstra with paged distances (VPS measurement)
+
+After step 11 the search phase was ~0.69 s of ~1.2 s on the VPS. Queries now
+run bidirectional Dijkstra over the forward CSR and a reverse CSR built in
+parallel (two passes with atomic cursors, ~0.045 s). Each step grows the side
+with the smaller queue (choosing by smaller key lets one side flood the graph
+when the other side's first edge weighs close to 2^32). `μ` is updated on every relaxation that reaches a
+vertex labelled by the other side; stop when `top_f + top_b ≥ μ` or a side is
+empty. Stale heap tops are valid lower bounds, so no cleanup is needed before
+the test. The `u32` narrow pass stays exact for answers below `u32::MAX`
+(all prefixes and suffixes fit); otherwise an overflowed query reruns in the
+shared `u64` search. The incoming bitset is gone: an empty reverse row means no
+incoming edge, which also removes one atomic `fetch_or` per edge from parsing.
+
+First attempt kept dense per-worker distance arrays: one per side, so 14 MB per
+worker plus the 47 MB reverse graph, and cgroup peak almost doubled. Kept
+version stores distances in 1,024-vertex (4 KB) pages assigned on first write
+and recycled after each query; worker memory follows the largest search.
+
+Same VPS protocol as step 11, baseline `974ec7e`:
+
+| Variant | Workers | T (s) | ΔT | cgroup peak (MB) | ΔM |
+|---|---:|---:|---:|---:|---:|
+| `974ec7e` forward search | 6 | 1.2398 | — | 113.1 | — |
+| bidirectional, dense | 6 | 0.7713 | −37.8% | 223.4 | +97.5% |
+| **bidirectional, paged** | 6 | **0.7652** | **−38.3%** | **128.8** | **+13.8%** |
+| `974ec7e` forward search | 12 | 1.2213 | — | 158.7 | — |
+| bidirectional, dense | 12 | 0.8244 | −32.5% | 309.1 | +94.8% |
+| **bidirectional, paged** | 12 | **0.7937** | **−35.0%** | **143.3** | **−9.7%** |
+
+Phase medians: search including the reverse graph 0.689 → 0.300 s (6 workers)
+and 0.721 → 0.306 s (12), of which transpose 0.043–0.045 s; paging costs no
+measurable search time versus dense arrays (0.328 s / 0.344 s in the first run).
+Graph loading (~0.37 s) is now the largest phase.
+
+All outputs match Python. Fourteen Rust tests pass on macOS and VPS, including
+a new comparison against an independent `u64` reference Dijkstra on 60 random
+graphs (all pairs, 1/3/12 workers, weights 0 / small / ~2^31 / ~2^32 so sums
+cross `u32`, vertex IDs spread over many pages in odd rounds) and a reverse-graph
+test under cursor contention. Mutations caught: stopping at the first meeting
+(3 tests fail), always accepting the narrow answer (4), not clearing pages on
+reset (6). 1,224 Python comparisons pass. No board run ID yet.
+Evidence: [bidirectional search](../tests/performance/2026-10-31-traverse-bidirectional/README.md).
