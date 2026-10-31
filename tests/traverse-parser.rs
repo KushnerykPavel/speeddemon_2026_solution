@@ -158,11 +158,18 @@ mod traverse {
                     assert_eq!(chunk.last(), Some(&b'\n'));
                 }
                 let seen = AtomicUsize::new(0);
-                let count = parse_chunks(&chunks, |_| {
-                    seen.fetch_add(1, Ordering::Relaxed);
-                    Ok(())
-                })
+                let (count, states) = parse_chunks(
+                    &chunks,
+                    || 0_usize,
+                    |records, _| {
+                        *records += 1;
+                        seen.fetch_add(1, Ordering::Relaxed);
+                        Ok(())
+                    },
+                )
                 .unwrap();
+                assert_eq!(states.len(), chunks.len());
+                assert_eq!(states.iter().sum::<usize>(), length + 1);
                 assert_eq!(count, length + 1);
                 assert_eq!(seen.into_inner(), length + 1);
             }
@@ -170,22 +177,28 @@ mod traverse {
         assert!(line_chunks(b"", 12).is_empty());
         for bytes in [&b"1 2 3\n\n"[..], &b"1 2 4294967296\n"[..], &b"1 2\n"[..]] {
             for workers in [1, 6, 12] {
-                assert!(parse_chunks(&line_chunks(bytes, workers), |_| Ok(())).is_err());
+                assert!(parse_chunks(&line_chunks(bytes, workers), || (), |_, _| Ok(())).is_err());
             }
         }
     }
 
     #[test]
     fn parallel_scatter_preserves_edges_under_cursor_contention() {
+        // Three hot source rows in different 1,024-vertex parts, plus one edge from
+        // every vertex, so rows in every part and part boundaries are exercised.
+        let (nodes, hot) = (5_000, [0, 1_023, 4_999]);
         let count = 20_000;
-        let mut bytes = format!("130 {count}\n").into_bytes();
-        let mut expected = vec![Vec::new(); 130];
-        for index in 0..count {
-            let (source, target, weight) = (index % 3, index % 130, index as u32);
+        let mut bytes = format!("{nodes} {}\n", count + nodes).into_bytes();
+        let mut expected = vec![Vec::new(); nodes];
+        let edges = (0..count)
+            .map(|index| (hot[index % 3], index % 130))
+            .chain((0..nodes).map(|source| (source, (source * 7) % nodes)));
+        for (index, (source, target)) in edges.enumerate() {
+            let weight = index as u32;
             writeln!(bytes, "{source} {target} {weight}").unwrap();
             expected[source].push((target as u32, weight));
         }
-        let mut reversed = vec![Vec::new(); 130];
+        let mut reversed = vec![Vec::new(); nodes];
         for (source, edges) in expected.iter_mut().enumerate() {
             edges.sort_unstable();
             for &(target, weight) in edges.iter() {

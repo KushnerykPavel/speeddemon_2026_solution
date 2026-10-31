@@ -32,9 +32,10 @@ duplicate queries, large distances, fewer queries than workers and empty input.
 The graph-loader test verifies exact CSR offsets and per-source edge multisets,
 reverse-graph offsets, max-u32 weights, CRLF/EOF, empty mappings and zero-edge
 graphs. Chunk tests check complete, nonoverlapping coverage at newline boundaries;
-contention tests repeatedly scatter 20,000 edges into three source rows using
-1/2/4/6/12 workers and check the reverse graph's per-target multisets. Within-row
-edge order may vary; every edge must remain.
+loader tests repeatedly place 25,000 edges (three hot rows in different 1,024-vertex
+parts plus one edge per vertex, 5,000 vertices) using 1/2/4/6/12 workers and check
+forward and reverse per-row multisets. Within-row edge order may vary in the
+reverse graph; every edge must remain.
 The reordering tests check a complete vertex permutation, remapped edge multisets
 and answers: all 16,900 ordered pairs on a disconnected 130-node graph with
 islands, isolated vertices, loops, duplicates, zero/max weights and long sums, and

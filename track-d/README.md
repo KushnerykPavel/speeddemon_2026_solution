@@ -34,10 +34,12 @@ container peak memory 139.7 to 140.8 MB. One-worker loading is slower; the
 improvement applies to parallel modes. Details and limitations are in `PERF.md`.
 
 The graph is mapped read-only with `mmap` and divided into newline-aligned chunks.
-Scoped workers make two passes: count out-degrees with relaxed
-atomics, prefix counts, then parse/scatter directly into CSR using unique atomic
-cursor positions. No temporary triple array is stored. The mapping is released
-after the loader's workers join. Within-source edge order may vary; every edge
+Each scoped worker parses its chunk once and buckets every edge by the part that
+owns its source (a power-of-two block of vertex IDs, about eight per worker).
+Each part then counts and places its own edges into its own `split_at_mut` slices
+of the CSR: a cache-sized region, plain writes, no atomics. The temporary
+buckets hold one `(u, v, w)` triple per edge and are freed after placement, below
+the search-phase memory peak. The mapping is released after loading. Every edge
 is retained. Loading uses the same worker limit as query processing.
 
 Graph fields are parsed directly from borrowed ASCII byte slices; queries retain
@@ -74,6 +76,5 @@ None.
 
 ## With another 24 hours
 
-A single-pass bucketed parser (graph loading is now the largest phase), packed
-32-bit edges with an exact overflow list to halve graph memory, then compare 6
+Packed 32-bit edges with an exact overflow list to halve graph memory, then compare 6
 versus 12 workers on the competition machine using time and cgroup peak memory.

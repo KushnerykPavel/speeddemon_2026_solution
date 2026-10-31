@@ -144,36 +144,50 @@ fn line_chunks(bytes: &[u8], workers: usize) -> Vec<&[u8]> {
     chunks
 }
 
-fn parse_chunks(
+/// Parses every chunk's records on its own scoped worker. Each worker owns a
+/// state from `init` that `visit` updates; returns the record count and states.
+fn parse_chunks<S: Send>(
     chunks: &[&[u8]],
-    visit: impl Fn([u32; 3]) -> io::Result<()> + Sync,
-) -> io::Result<usize> {
+    init: impl Fn() -> S + Sync,
+    visit: impl Fn(&mut S, [u32; 3]) -> io::Result<()> + Sync,
+) -> io::Result<(usize, Vec<S>)> {
     thread::scope(|scope| {
         let handles: Vec<_> = chunks
             .iter()
             .map(|&chunk| {
-                let visit = &visit;
+                let (init, visit) = (&init, &visit);
                 scope.spawn(move || {
+                    let mut state = init();
                     let mut count = 0;
                     for line in chunk.split_inclusive(|&byte| byte == b'\n') {
-                        visit(parse_fields(line)?)?;
+                        visit(&mut state, parse_fields(line)?)?;
                         count += 1;
                     }
-                    Ok::<_, io::Error>(count)
+                    Ok::<_, io::Error>((count, state))
                 })
             })
             .collect();
-        handles
-            .into_iter()
-            .map(|handle| {
-                handle
-                    .join()
-                    .map_err(|_| io::Error::other("graph worker panicked"))?
-            })
-            .sum()
+        let mut total = 0;
+        let mut states = Vec::with_capacity(handles.len());
+        for handle in handles {
+            let (count, state) = handle
+                .join()
+                .map_err(|_| io::Error::other("graph worker panicked"))??;
+            total += count;
+            states.push(state);
+        }
+        Ok((total, states))
     })
 }
 
+/// Edges parsed by one chunk worker, bucketed by the part that owns their source.
+type Buckets = Vec<Vec<(u32, u32, u32)>>;
+
+/// Parses the graph in one pass. Workers bucket each edge by its source's part
+/// (a power-of-two block of IDs, about eight per worker); then each part counts
+/// and places its own edges into its own disjoint slices of the CSR, a region
+/// small enough to stay in cache, with no atomics. Within a row, edges keep
+/// chunk order and then line order.
 fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
     let invalid = |message| io::Error::new(io::ErrorKind::InvalidData, message);
     if bytes.is_empty() {
@@ -185,45 +199,79 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
         .map_or(bytes.len(), |i| i + 1);
     let [n, m] = parse_fields(&bytes[..header_end])?;
     let (n, m) = (n as usize, m as usize);
+    let workers = workers.clamp(1, 12);
+    let part_bits = n
+        .div_ceil(8 * workers)
+        .next_power_of_two()
+        .trailing_zeros()
+        .max(10);
+    let parts = n.div_ceil(1 << part_bits);
     let chunks = line_chunks(&bytes[header_end..], workers);
-    let degrees: Vec<_> = (0..n).map(|_| AtomicU32::new(0)).collect();
-    let count = parse_chunks(&chunks, |[u, v, _]| {
-        if u as usize >= n || v as usize >= n {
-            return Err(invalid("edge vertex outside graph"));
-        }
-        degrees[u as usize].fetch_add(1, Ordering::Relaxed);
-        Ok(())
-    })?;
+    let (count, buckets) = parse_chunks(
+        &chunks,
+        || vec![Vec::new(); parts],
+        |buckets: &mut Buckets, [u, v, w]| {
+            if u as usize >= n || v as usize >= n {
+                return Err(invalid("edge vertex outside graph"));
+            }
+            buckets[(u >> part_bits) as usize].push((u, v, w));
+            Ok(())
+        },
+    )?;
     if count != m {
         return Err(invalid("edge count differs from header"));
     }
-    let mut offsets = vec![0_u32; n + 1];
-    for (i, degree) in degrees.into_iter().enumerate() {
-        offsets[i + 1] = offsets[i] + degree.into_inner();
-    }
-    let cursor: Vec<_> = offsets[..n]
-        .iter()
-        .map(|&offset| AtomicU32::new(offset))
+    let part_sizes: Vec<usize> = (0..parts)
+        .map(|part| buckets.iter().map(|bucket| bucket[part].len()).sum())
         .collect();
+    let mut offsets = vec![0_u32; n + 1];
     let mut edges = vec![(0, 0); m];
-    let slots = AtomicPtr::new(edges.as_mut_ptr());
-    parse_chunks(&chunks, |[u, v, w]| {
-        if u as usize >= n || v as usize >= n {
-            return Err(invalid("edge vertex outside graph"));
+    thread::scope(|scope| {
+        let (mut offset_rest, mut edge_rest) = (&mut offsets[..n], edges.as_mut_slice());
+        let mut base = 0;
+        let parts_per_worker = parts.div_ceil(workers).max(1);
+        for first in (0..parts).step_by(parts_per_worker) {
+            let last = (first + parts_per_worker).min(parts);
+            let nodes_here = (last << part_bits).min(n) - (first << part_bits);
+            let edges_here: usize = part_sizes[first..last].iter().sum();
+            let (mut row_starts, rest) = offset_rest.split_at_mut(nodes_here);
+            offset_rest = rest;
+            let (mut slots, rest) = edge_rest.split_at_mut(edges_here);
+            edge_rest = rest;
+            let (buckets, part_sizes, worker_base) = (&buckets, &part_sizes, base);
+            scope.spawn(move || {
+                let mut base = worker_base;
+                for part in first..last {
+                    let start = part << part_bits;
+                    let (part_starts, rest) =
+                        row_starts.split_at_mut((n - start).min(1 << part_bits));
+                    row_starts = rest;
+                    let (part_slots, rest) = slots.split_at_mut(part_sizes[part]);
+                    slots = rest;
+                    let records = || buckets.iter().flat_map(|bucket| &bucket[part]);
+                    for &(u, _, _) in records() {
+                        part_starts[u as usize - start] += 1;
+                    }
+                    let mut total = 0;
+                    for row in part_starts.iter_mut() {
+                        (*row, total) = (total, total + *row);
+                    }
+                    let mut cursor = part_starts.to_vec();
+                    for &(u, v, w) in records() {
+                        let next = &mut cursor[u as usize - start];
+                        part_slots[*next as usize] = (v, w);
+                        *next += 1;
+                    }
+                    for row in part_starts.iter_mut() {
+                        *row += base;
+                    }
+                    base += part_sizes[part] as u32;
+                }
+            });
+            base += edges_here as u32;
         }
-        let index = cursor[u as usize].fetch_add(1, Ordering::Relaxed) as usize;
-        if index >= offsets[u as usize + 1] as usize {
-            return Err(invalid("edge count changed"));
-        }
-        // Each record belongs to exactly one newline-aligned chunk. Atomic
-        // cursors assign unique, in-bounds slots. The Vec never moves or reallocates,
-        // and no edge is read until every scoped writer has joined. Adjacent slots
-        // are disjoint objects. Only edge order within a vertex is nondeterministic.
-        unsafe {
-            slots.load(Ordering::Relaxed).add(index).write((v, w));
-        }
-        Ok(())
-    })?;
+    });
+    offsets[n] = m as u32;
     Ok(Graph { offsets, edges })
 }
 

@@ -14,6 +14,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 9 | D8: BFS vertex order + parallel row-slice CSR rebuild (`accbb64`) | run-c18ebeae7015 | 0.637161 | 234.110976 | 49.692323 |
 | 10 | D12: `u32` distances + shared exact `u64` fallback (`5bb06f2`) | run-e55665d62b35 | 0.587022 | 163.717120 | 51.755970 |
 | 11 | Parallel claimed-region renumbering (`974ec7e`) | run-f1a2f8d1a891 | 0.473104 | 160.182272 | 53.841416 |
+| 12 | Bidirectional Dijkstra + paged `u32` distances (`b938156`) | run-9ace8f534287 | 0.309259 | 159.694848 | 58.000036 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -483,5 +484,48 @@ graphs (all pairs, 1/3/12 workers, weights 0 / small / ~2^31 / ~2^32 so sums
 cross `u32`, vertex IDs spread over many pages in odd rounds) and a reverse-graph
 test under cursor contention. Mutations caught: stopping at the first meeting
 (3 tests fail), always accepting the narrow answer (4), not clearing pages on
-reset (6). 1,224 Python comparisons pass. No board run ID yet.
+reset (6). 1,224 Python comparisons pass. Board result follows below.
 Evidence: [bidirectional search](../tests/performance/2026-10-31-traverse-bidirectional/README.md).
+
+Step 12 official board result, feed 2026-10-31 19:37:32 UTC (20:37:32 Warsaw):
+`run-9ace8f534287`, commit `b938156`, all gates passed. **0.309259 s,
+159.694848 MB, S=632, D=1, K=14.454421, 58.000036 points**. New team best;
+versus step 11: time −34.63% (1.5298x), memory −0.30%, +4.158620 points despite
+S 547 → 632. Board memory did not fall as on the 12-worker VPS run (143.3 MB);
+the VPS has six vCPUs, so the board's 12 workers likely run more searches at
+once. Derived Track D position: 51 of 90 scored teams. Single live-board run,
+not final hidden-seed scoring. Evidence:
+[official bidirectional result](../tests/performance/2026-10-31-board-bidirectional-results/README.md).
+
+
+## Step 13 — single-pass bucketed graph build (VPS measurement)
+
+Phase profile before this step put graph loading at ~0.36 s of ~0.80 s on the
+VPS, the largest phase. Loading now parses the file once: chunk workers bucket
+each edge by its source's part (power-of-two ID block, about eight per worker),
+then each part counts and places its own edges into disjoint `split_at_mut`
+slices of the CSR, a cache-sized region with plain writes. No atomics or unsafe
+remain in loading; within-row edge order is deterministic. Idea credit: Team7's
+public Track D build (MIT).
+
+Same VPS protocol as step 12, baseline `b938156`:
+
+| Workers | `b938156` T (s) | bucketed T (s) | ΔT | `b938156` peak (MB) | bucketed peak (MB) | ΔM |
+|---|---:|---:|---:|---:|---:|---:|
+| 6 | 0.7903 | 0.5793 | -26.7% | 128.1 | 122.0 | -4.7% |
+| 12 | 0.8050 | 0.5959 | -26.0% | 144.0 | 136.0 | -5.6% |
+
+Graph-load phase medians: 0.379 → 0.172 s (6 workers) and
+0.350 → 0.158 s (12); renumbering and search unchanged.
+Run spreads were 17–22% on the shared host, below the measured change.
+
+A separate instrumented run of `b938156` located the cgroup peak: it occurs
+during search (about 112 MB of forward plus reverse graph and 17–31 MB of search
+state), not in loading or renumbering, so the bucket transient stays below it:
+[memory phases](../tests/performance/2026-10-31-traverse-memory-phases/README.md).
+
+All outputs match Python; fourteen Rust tests (loader test now spans five
+parts) and 1,224 Python comparisons pass on macOS and VPS. Mutation caught:
+dropping the per-part edge base (3 tests fail). No board run ID yet.
+Evidence: [bucketed build](../tests/performance/2026-10-31-traverse-bucketed-parse/README.md).
+
