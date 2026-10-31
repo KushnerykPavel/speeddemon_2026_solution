@@ -1,0 +1,20 @@
+
+running 15 tests
+test traverse::empty_input_is_eof ... ok
+test traverse::long_records_reuse_buffer ... ok
+test traverse::degree_checks_preserve_self_paths_and_reusable_state ... ok
+test traverse::packing_sizes_heads_and_escapes_weights ... ok
+test traverse::narrow_distances_fall_back_to_u64_exactly ... ok
+test traverse::graph_loader_preserves_every_edge ... ok
+test traverse::propagates_read_failure_after_partial_record ... ok
+test traverse::records_across_every_buffer_boundary ... ok
+test traverse::rejects_malformed_or_overflowing_fields ... ok
+test traverse::reordering_preserves_permutation_edges_and_all_distances ... ok
+test traverse::parallel_scatter_preserves_edges_under_cursor_contention ... ok
+test traverse::parallel_answers_match_serial_with_skewed_work_and_duplicates ... ok
+test traverse::bidirectional_matches_reference_across_u32_boundary ... ok
+test traverse::chunks_cover_input_without_splitting_lines ... ok
+test traverse::concurrent_region_claims_cover_every_vertex_exactly_once ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.53s
+

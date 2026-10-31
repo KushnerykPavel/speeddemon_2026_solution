@@ -15,6 +15,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 10 | D12: `u32` distances + shared exact `u64` fallback (`5bb06f2`) | run-e55665d62b35 | 0.587022 | 163.717120 | 51.755970 |
 | 11 | Parallel claimed-region renumbering (`974ec7e`) | run-f1a2f8d1a891 | 0.473104 | 160.182272 | 53.841416 |
 | 12 | Bidirectional Dijkstra + paged `u32` distances (`b938156`) | run-9ace8f534287 | 0.309259 | 159.694848 | 58.000036 |
+| 13 | Single-pass bucketed graph build (`853ae88`) | run-07992c342c3a | 0.238915 | 141.635584 | 61.108794 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -526,6 +527,42 @@ state), not in loading or renumbering, so the bucket transient stays below it:
 
 All outputs match Python; fourteen Rust tests (loader test now spans five
 parts) and 1,224 Python comparisons pass on macOS and VPS. Mutation caught:
-dropping the per-part edge base (3 tests fail). No board run ID yet.
+dropping the per-part edge base (3 tests fail). Board result follows below.
 Evidence: [bucketed build](../tests/performance/2026-10-31-traverse-bucketed-parse/README.md).
+
+Step 13 official board result, feed 2026-10-31 19:51:31 UTC (20:51:31 Warsaw):
+`run-07992c342c3a`, commit `853ae88`, all gates passed. **0.238915 s,
+141.635584 MB, S=675, D=1, K=16.679225, 61.108794 points**. New team best;
+versus step 12: time −22.75% (1.2944x), memory −11.31%, +3.108758 points despite
+S 632 → 675. Derived Track D position: 36 of 90 scored teams (tenth place at
+68.37 points in this feed). Single live-board run, not final hidden-seed
+scoring. Evidence:
+[official bucketed-build result](../tests/performance/2026-10-31-board-bucketed-results/README.md).
+
+
+## Step 14 — packed 32-bit edges (VPS measurement)
+
+The step-12 memory profile put ~112 MB of the peak in the forward and reverse
+graphs. Every edge is now one `u32`: the other endpoint in the low `head_bits`
+(21 for the public graph, derived from `n`), the weight above it. Weights that do
+not fit below the all-ones escape code are stored as that code with the exact
+value in an `(edge index, weight)` list, sorted after each parallel build and
+binary-searched on read (3,496 of 5,000,000 seed-1 weights). Applied to the
+loaded, renumbered and reverse graphs; correct for any input.
+
+Same VPS protocol, baseline `853ae88`:
+
+| Workers | `853ae88` T (s) | packed T (s) | ΔT | `853ae88` peak (MB) | packed peak (MB) | ΔM |
+|---|---:|---:|---:|---:|---:|---:|
+| 6 | 0.6011 | 0.5956 | -0.9% | 121.4 | 96.5 | -20.5% |
+| 12 | 0.6014 | 0.5735 | -4.6% | 136.2 | 101.4 | -25.6% |
+
+Time is unchanged within run spread (10–28%); the step buys memory only. The
+6- and 12-worker peaks now differ by ~5 MB; an instrumented run confirms the
+peak moved to loading (bucketed triples plus the placed CSR: 96.2 / 101.2 MB at
+6 / 12 workers), with renumbering at ~93 MB just below it. All outputs match Python; fifteen Rust tests (new:
+packing widths and escapes, full-range weights in the loader test) and 1,224
+Python comparisons pass on macOS and VPS. Mutation caught: decoding escaped
+edges without the heavy list (6 tests fail). No board run ID yet.
+Evidence: [packed edges](../tests/performance/2026-10-31-traverse-packed-edges/README.md).
 

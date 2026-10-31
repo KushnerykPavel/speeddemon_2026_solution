@@ -5,8 +5,11 @@ The task, the input files and the exact output format are in the [spec](https://
 ## Approach
 
 Rust implementation of exact point-to-point shortest paths with bidirectional
-Dijkstra. Load a CSR graph with `u32` offsets and `(u32 target, u32 weight)`
-edges, retaining every edge, and build its reverse CSR in parallel. Each query
+Dijkstra. Load a CSR graph with `u32` offsets, retaining every input edge
+(duplicates included), and build its reverse CSR in parallel. Each edge is
+packed into one `u32` (endpoint in the low bits needed for `n - 1`, weight above);
+weights too large for the remaining bits keep an escape code and their exact value
+in a sorted `(edge index, weight)` list. Each query
 searches forward from the source and backward from the target, always growing
 the side with the smaller queue (choosing by smaller key would let one side
 flood the graph when the other side's first edge weighs close to 2^32). The
@@ -76,5 +79,6 @@ None.
 
 ## With another 24 hours
 
-Packed 32-bit edges with an exact overflow list to halve graph memory, then compare 6
-versus 12 workers on the competition machine using time and cgroup peak memory.
+Locate the new memory peak (loading or renumbering) and shrink its transient
+buffers, then compare 6 versus 12 workers on the competition machine using time
+and cgroup peak memory.

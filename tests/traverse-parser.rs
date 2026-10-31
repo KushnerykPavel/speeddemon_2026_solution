@@ -15,9 +15,9 @@ mod traverse {
         let expected = answer_queries(&graph, &original, 1);
         let old_edges: Vec<_> = (0..nodes)
             .flat_map(|source| {
-                graph.edges[graph.offsets[source] as usize..graph.offsets[source + 1] as usize]
-                    .iter()
-                    .map(move |&(target, weight)| (source, target as usize, weight))
+                graph
+                    .row(source)
+                    .map(move |(target, weight)| (source, target as usize, weight))
             })
             .collect();
         let mut queries = original;
@@ -32,10 +32,9 @@ mod traverse {
             .collect();
         let mut actual_edges: Vec<_> = (0..nodes)
             .flat_map(|source| {
-                reordered.edges
-                    [reordered.offsets[source] as usize..reordered.offsets[source + 1] as usize]
-                    .iter()
-                    .map(move |&(target, weight)| (source, target as usize, weight))
+                reordered
+                    .row(source)
+                    .map(move |(target, weight)| (source, target as usize, weight))
             })
             .collect();
         expected_edges.sort_unstable();
@@ -115,9 +114,7 @@ mod traverse {
             let graph = read_graph(&path, workers).unwrap();
             assert_eq!(graph.offsets, [0, 3, 4, 6, 7, 7]);
             for (node, expected) in expected.iter().enumerate() {
-                let mut edges = graph.edges
-                    [graph.offsets[node] as usize..graph.offsets[node + 1] as usize]
-                    .to_vec();
+                let mut edges: Vec<_> = graph.row(node).collect();
                 edges.sort_unstable();
                 assert_eq!(&edges, expected);
             }
@@ -194,7 +191,13 @@ mod traverse {
             .map(|index| (hot[index % 3], index % 130))
             .chain((0..nodes).map(|source| (source, (source * 7) % nodes)));
         for (index, (source, target)) in edges.enumerate() {
-            let weight = index as u32;
+            // Odd edges get weights spread over all of u32, so many need the
+            // heavy list (escape code) in both the forward and reverse graph.
+            let weight = if index % 2 == 1 {
+                (index as u32).wrapping_mul(2_654_435_761)
+            } else {
+                index as u32
+            };
             writeln!(bytes, "{source} {target} {weight}").unwrap();
             expected[source].push((target as u32, weight));
         }
@@ -212,17 +215,13 @@ mod traverse {
             for _ in 0..3 {
                 let graph = build_graph(&bytes, workers).unwrap();
                 for (node, expected) in expected.iter().enumerate() {
-                    let mut edges = graph.edges
-                        [graph.offsets[node] as usize..graph.offsets[node + 1] as usize]
-                        .to_vec();
+                    let mut edges: Vec<_> = graph.row(node).collect();
                     edges.sort_unstable();
                     assert_eq!(&edges, expected);
                 }
                 let reverse = transpose(&graph, workers);
                 for (node, sources) in reversed.iter().enumerate() {
-                    let mut edges = reverse.edges
-                        [reverse.offsets[node] as usize..reverse.offsets[node + 1] as usize]
-                        .to_vec();
+                    let mut edges: Vec<_> = reverse.row(node).collect();
                     edges.sort_unstable();
                     assert_eq!(&edges, sources);
                 }
@@ -233,12 +232,11 @@ mod traverse {
     #[test]
     fn parallel_answers_match_serial_with_skewed_work_and_duplicates() {
         let nodes = 130;
-        let mut offsets: Vec<u32> = (0..nodes as u32).collect();
-        offsets.push(nodes as u32 - 1);
-        let graph = Graph {
-            offsets,
-            edges: (1..nodes as u32).map(|target| (target, u32::MAX)).collect(),
-        };
+        let mut text = format!("{nodes} {}\n", nodes - 1);
+        for source in 0..nodes - 1 {
+            text += &format!("{source} {} {}\n", source + 1, u32::MAX);
+        }
+        let graph = build_graph(text.as_bytes(), 3).unwrap();
         let queries: Vec<_> = (0..1000)
             .map(|index| match index % 5 {
                 0 => (0, 129),
@@ -274,10 +272,7 @@ mod traverse {
 
     #[test]
     fn degree_checks_preserve_self_paths_and_reusable_state() {
-        let graph = Graph {
-            offsets: vec![0, 1, 2, 2, 2],
-            edges: vec![(1, 7), (2, 0)],
-        };
+        let graph = build_graph(b"4 2\n0 1 7\n1 2 0\n", 1).unwrap();
         let backward = transpose(&graph, 1);
         let wide = Mutex::new(None);
         let mut searcher = Searcher::new(4, &wide);
@@ -385,6 +380,32 @@ mod traverse {
                 );
             }
         }
+    }
+
+    #[test]
+    fn packing_sizes_heads_and_escapes_weights() {
+        for (nodes, head_bits) in [
+            (0, 1),
+            (1, 1),
+            (2, 1),
+            (3, 2),
+            (1 << 21, 21),
+            ((1 << 21) + 1, 22),
+        ] {
+            let packing = Packing::for_nodes(nodes).unwrap();
+            assert_eq!(packing.head_bits, head_bits, "{nodes} vertices");
+            let escape = packing.escape();
+            let heavy = Mutex::new(Vec::new());
+            let head = (nodes.max(1) - 1) as u32;
+            for (index, weight) in [0, 1, escape - 1, escape, u32::MAX].into_iter().enumerate() {
+                let packed = packing.pack(index, head, weight, &heavy);
+                assert_eq!(packed & ((1 << head_bits) - 1), head);
+                assert_eq!(packed >> head_bits, weight.min(escape));
+            }
+            assert_eq!(heavy.into_inner().unwrap(), [(3, escape), (4, u32::MAX)]);
+        }
+        assert!(Packing::for_nodes(1 << 31).is_ok());
+        assert!(Packing::for_nodes((1 << 31) + 1).is_err());
     }
 
     #[test]

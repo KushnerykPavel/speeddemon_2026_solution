@@ -1,0 +1,374 @@
+[
+  {
+    "workers": 6,
+    "round": 0,
+    "measurement": {
+      "seconds": 0.596876701,
+      "max_rss_kib": 183440,
+      "cgroup_peak_bytes": 96174080,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1425408,
+        "peak": 5173248
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 69181440,
+        "peak": 69181440
+      },
+      {
+        "label": "csr_placed",
+        "current": 96174080,
+        "peak": 96174080
+      },
+      {
+        "label": "graph_loaded",
+        "current": 31698944,
+        "peak": 96174080
+      },
+      {
+        "label": "queries_parsed",
+        "current": 31694848,
+        "peak": 96174080
+      },
+      {
+        "label": "regions_built",
+        "current": 92471296,
+        "peak": 96174080
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 65503232,
+        "peak": 96174080
+      },
+      {
+        "label": "reordered",
+        "current": 31825920,
+        "peak": 96174080
+      },
+      {
+        "label": "transposed",
+        "current": 65089536,
+        "peak": 96174080
+      },
+      {
+        "label": "searched",
+        "current": 78548992,
+        "peak": 96174080
+      }
+    ]
+  },
+  {
+    "workers": 12,
+    "round": 0,
+    "measurement": {
+      "seconds": 0.561565318,
+      "max_rss_kib": 188292,
+      "cgroup_peak_bytes": 101154816,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1585152,
+        "peak": 5038080
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 72597504,
+        "peak": 72597504
+      },
+      {
+        "label": "csr_placed",
+        "current": 101154816,
+        "peak": 101154816
+      },
+      {
+        "label": "graph_loaded",
+        "current": 33378304,
+        "peak": 101154816
+      },
+      {
+        "label": "queries_parsed",
+        "current": 33378304,
+        "peak": 101154816
+      },
+      {
+        "label": "regions_built",
+        "current": 94134272,
+        "peak": 101154816
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 67170304,
+        "peak": 101154816
+      },
+      {
+        "label": "reordered",
+        "current": 33193984,
+        "peak": 101154816
+      },
+      {
+        "label": "transposed",
+        "current": 66973696,
+        "peak": 101154816
+      },
+      {
+        "label": "searched",
+        "current": 93708288,
+        "peak": 101154816
+      }
+    ]
+  },
+  {
+    "workers": 6,
+    "round": 1,
+    "measurement": {
+      "seconds": 0.571364644,
+      "max_rss_kib": 182908,
+      "cgroup_peak_bytes": 96055296,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 2109440,
+        "peak": 5406720
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 69074944,
+        "peak": 69341184
+      },
+      {
+        "label": "csr_placed",
+        "current": 96055296,
+        "peak": 96055296
+      },
+      {
+        "label": "graph_loaded",
+        "current": 31465472,
+        "peak": 96055296
+      },
+      {
+        "label": "queries_parsed",
+        "current": 31465472,
+        "peak": 96055296
+      },
+      {
+        "label": "regions_built",
+        "current": 92250112,
+        "peak": 96055296
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 65286144,
+        "peak": 96055296
+      },
+      {
+        "label": "reordered",
+        "current": 31358976,
+        "peak": 96055296
+      },
+      {
+        "label": "transposed",
+        "current": 65404928,
+        "peak": 96055296
+      },
+      {
+        "label": "searched",
+        "current": 80084992,
+        "peak": 96055296
+      }
+    ]
+  },
+  {
+    "workers": 12,
+    "round": 1,
+    "measurement": {
+      "seconds": 0.606897547,
+      "max_rss_kib": 188184,
+      "cgroup_peak_bytes": 101191680,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1761280,
+        "peak": 4878336
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 72527872,
+        "peak": 72527872
+      },
+      {
+        "label": "csr_placed",
+        "current": 101191680,
+        "peak": 101191680
+      },
+      {
+        "label": "graph_loaded",
+        "current": 31735808,
+        "peak": 101191680
+      },
+      {
+        "label": "queries_parsed",
+        "current": 31735808,
+        "peak": 101191680
+      },
+      {
+        "label": "regions_built",
+        "current": 92794880,
+        "peak": 101191680
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 65830912,
+        "peak": 101191680
+      },
+      {
+        "label": "reordered",
+        "current": 31322112,
+        "peak": 101191680
+      },
+      {
+        "label": "transposed",
+        "current": 65634304,
+        "peak": 101191680
+      },
+      {
+        "label": "searched",
+        "current": 94441472,
+        "peak": 101191680
+      }
+    ]
+  },
+  {
+    "workers": 6,
+    "round": 2,
+    "measurement": {
+      "seconds": 0.590767264,
+      "max_rss_kib": 183256,
+      "cgroup_peak_bytes": 96112640,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1417216,
+        "peak": 4882432
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 69120000,
+        "peak": 69120000
+      },
+      {
+        "label": "csr_placed",
+        "current": 95846400,
+        "peak": 96112640
+      },
+      {
+        "label": "graph_loaded",
+        "current": 30257152,
+        "peak": 96112640
+      },
+      {
+        "label": "queries_parsed",
+        "current": 30257152,
+        "peak": 96112640
+      },
+      {
+        "label": "regions_built",
+        "current": 91541504,
+        "peak": 96112640
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 64577536,
+        "peak": 96112640
+      },
+      {
+        "label": "reordered",
+        "current": 30388224,
+        "peak": 96112640
+      },
+      {
+        "label": "transposed",
+        "current": 64200704,
+        "peak": 96112640
+      },
+      {
+        "label": "searched",
+        "current": 80003072,
+        "peak": 96112640
+      }
+    ]
+  },
+  {
+    "workers": 12,
+    "round": 2,
+    "measurement": {
+      "seconds": 0.580408129,
+      "max_rss_kib": 187932,
+      "cgroup_peak_bytes": 101208064,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1683456,
+        "peak": 5136384
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 72667136,
+        "peak": 72667136
+      },
+      {
+        "label": "csr_placed",
+        "current": 101208064,
+        "peak": 101208064
+      },
+      {
+        "label": "graph_loaded",
+        "current": 32006144,
+        "peak": 101208064
+      },
+      {
+        "label": "queries_parsed",
+        "current": 32006144,
+        "peak": 101208064
+      },
+      {
+        "label": "regions_built",
+        "current": 93032448,
+        "peak": 101208064
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 66068480,
+        "peak": 101208064
+      },
+      {
+        "label": "reordered",
+        "current": 32108544,
+        "peak": 101208064
+      },
+      {
+        "label": "transposed",
+        "current": 65626112,
+        "peak": 101208064
+      },
+      {
+        "label": "searched",
+        "current": 95768576,
+        "peak": 101208064
+      }
+    ]
+  }
+]
