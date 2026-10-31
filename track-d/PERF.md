@@ -21,6 +21,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 16 | Single-`u64` heap keys for the `u32` search (`b9a93cd`) | run-3a1c4950924c | 0.221692 | 101.761024 | 62.975003 |
 | 17 | Software prefetch: top-of-heap row and BFS rows ahead (`7d0e8ab`) | run-79245fc6bd21 | 0.205766 | 101.924864 | 63.676026 |
 | 18 | SWAR record parsing (`d6954e2`) | run-39656346ac0a | 0.210076 | 101.093376 | 63.332170 |
+| 19 | Memory diet: 8-byte buckets, order-then-copy renumbering, `mallopt` (`3b648eb`) | run-b507a889127d | 0.195022 | 79.945728 | **64.951278** |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -710,3 +711,25 @@ the renumbering copy next (74.7 MB). Without `mallopt` the peak stays at
 98 MB. All outputs match Python; sixteen Rust tests and 1,224 Python
 comparisons pass. Board result below.
 Evidence: [memory diet](../tests/performance/2026-10-31-traverse-memory-diet/README.md).
+
+Step 19 official board result, feed 2026-10-31 21:01:34 UTC (22:01:34 Warsaw):
+`run-b507a889127d`, commit `3b648eb`, all gates passed. **0.195022 s,
+79.945728 MB, S=875, D=1, K=19.907905, 64.951278 points**, new team best.
+Versus step 17: time −5.22%, memory −21.56%, **+1.275252 points** despite
+S 783 → 875. The board run got faster rather than the +3.6% seen on the VPS.
+Rank 25 of 91. Evidence:
+[official memory-diet result](../tests/performance/2026-10-31-board-memory-diet-results/README.md).
+
+## Step 20 — code-size pass (VPS measurement)
+
+S is now the main lever left after the memory diet: `3b648eb` scored S=875.
+Code lines drop from 866 to 713 (S ≈ 722 with the Dockerfile) without
+changing behaviour: the mapped file keeps its mapping for the run (no `Drop`),
+queries are parsed from the mapped file with the same strict field parser,
+the serial search path and the `Searcher` wrapper are gone, renumbering notes
+degrees during the breadth-first pass instead of a separate parallel pass, and
+several helpers are shorter. Same VPS protocol: 0.4847 → 0.4561 s at 6 workers
+and 0.4816 → 0.4681 s at 12, peak memory within ±0.5%. All outputs match
+Python; thirteen Rust tests and 1,224 Python comparisons pass. Expected board
+gain from S alone: 50·0.15·log10(875/722) ≈ +0.63 points. Board result below.
+Evidence: [code-size pass](../tests/performance/2026-10-31-traverse-code-size/README.md).

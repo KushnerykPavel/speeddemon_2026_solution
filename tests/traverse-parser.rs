@@ -111,7 +111,7 @@ mod traverse {
             vec![],
         ];
         for workers in [1, 2, 3, 6, 12, 99] {
-            let graph = read_graph(&path, workers).unwrap();
+            let graph = build_graph(map_file(&path).unwrap(), workers).unwrap();
             assert_eq!(graph.offsets, [0, 3, 4, 6, 7, 7]);
             for (node, expected) in expected.iter().enumerate() {
                 let mut edges: Vec<_> = graph.row(node).collect();
@@ -122,16 +122,15 @@ mod traverse {
         }
         for nodes in [0, 5, 65] {
             fs::write(&path, format!("{nodes} 0\n")).unwrap();
-            let graph = read_graph(&path, 6).unwrap();
+            let graph = build_graph(map_file(&path).unwrap(), 6).unwrap();
             assert_eq!(graph.offsets, vec![0; nodes + 1]);
             assert!(graph.edges.is_empty());
             assert!(transpose(&graph, 6).edges.is_empty());
         }
         fs::write(&path, b"").unwrap();
-        let mapping = MappedFile::open(&path).unwrap();
-        assert!(mapping.bytes().is_empty());
-        assert!(build_graph(mapping.bytes(), 6).is_err());
-        drop(mapping);
+        let mapping = map_file(&path).unwrap();
+        assert!(mapping.is_empty());
+        assert!(build_graph(mapping, 6).is_err());
         fs::remove_file(path).unwrap();
         fs::remove_dir(directory).unwrap();
     }
@@ -160,7 +159,7 @@ mod traverse {
                     || 0_usize,
                     |records, _| {
                         *records += 1;
-                        seen.fetch_add(1, Ordering::Relaxed);
+                        seen.fetch_add(1, Relaxed);
                         Ok(())
                     },
                 )
@@ -248,10 +247,12 @@ mod traverse {
             .collect();
         let backward = transpose(&graph, 1);
         let wide = Mutex::new(None);
-        let mut searcher = Searcher::new(nodes, &wide);
+        let mut searcher = Search::new(nodes);
         let expected: Vec<_> = queries
             .iter()
-            .map(|&(source, target)| searcher.shortest_path(&graph, &backward, source, target))
+            .map(|&(source, target)| {
+                searcher.shortest_path(&wide, [&graph, &backward], source, target)
+            })
             .collect();
         assert_eq!(expected[0], Some(129 * u64::from(u32::MAX)));
         for workers in [1, 2, 4, 6, 12, 99] {
@@ -275,7 +276,7 @@ mod traverse {
         let graph = build_graph(b"4 2\n0 1 7\n1 2 0\n", 1).unwrap();
         let backward = transpose(&graph, 1);
         let wide = Mutex::new(None);
-        let mut searcher = Searcher::new(4, &wide);
+        let mut searcher = Search::new(4);
         for (source, target, expected) in [
             (3, 3, Some(0)), // isolated self path wins over both degree checks
             (0, 0, Some(0)), // no-in self path
@@ -285,10 +286,10 @@ mod traverse {
             (0, 1, Some(7)), // reuse after both fast rejections
         ] {
             assert_eq!(
-                searcher.shortest_path(&graph, &backward, source, target),
+                searcher.shortest_path(&wide, [&graph, &backward], source, target),
                 expected
             );
-            assert_clean(&searcher.narrow);
+            assert_clean(&searcher);
             assert!(wide.lock().unwrap().is_none());
         }
     }
@@ -497,14 +498,14 @@ mod traverse {
         ];
         let backward = transpose(&graph, 1);
         let wide = Mutex::new(None);
-        let mut searcher = Searcher::new(8, &wide);
+        let mut searcher = Search::new(8);
         for _ in 0..2 {
             for &((source, target), expected) in &cases {
                 assert_eq!(
-                    searcher.shortest_path(&graph, &backward, source, target),
+                    searcher.shortest_path(&wide, [&graph, &backward], source, target),
                     expected
                 );
-                assert_clean(&searcher.narrow);
+                assert_clean(&searcher);
                 if let Some(wide) = &*wide.lock().unwrap() {
                     assert_clean(wide);
                 }
@@ -519,30 +520,19 @@ mod traverse {
     }
 
     #[test]
-    fn records_across_every_buffer_boundary() {
+    fn parses_lines_with_any_ascii_whitespace() {
         let bytes = b" \t0 4294967295 00042\r\n1\t2 3\n4 5 6";
-        for capacity in 1..=bytes.len() {
-            let mut reader = BufReader::with_capacity(capacity, &bytes[..]);
-            let mut buffer = Vec::new();
-            assert_eq!(
-                read_record(&mut reader, &mut buffer).unwrap(),
-                Some([0, u32::MAX, 42])
-            );
-            assert_eq!(
-                read_record(&mut reader, &mut buffer).unwrap(),
-                Some([1, 2, 3])
-            );
-            assert_eq!(
-                read_record(&mut reader, &mut buffer).unwrap(),
-                Some([4, 5, 6])
-            );
-            assert_eq!(read_record::<3>(&mut reader, &mut buffer).unwrap(), None);
-        }
+        let records: Vec<_> = bytes
+            .split_inclusive(|&byte| byte == b'\n')
+            .map(|line| parse_fields::<3>(line).unwrap())
+            .collect();
+        assert_eq!(records, [[0, u32::MAX, 42], [1, 2, 3], [4, 5, 6]]);
     }
 
     #[test]
     fn rejects_malformed_or_overflowing_fields() {
         for bytes in [
+            &b""[..],
             &b"\n"[..],
             &b" \t\r\n"[..],
             &b"1"[..],
@@ -556,40 +546,8 @@ mod traverse {
             &b"1.0 2"[..],
             &b"1\x002"[..],
         ] {
-            let error = read_record::<2>(&mut &bytes[..], &mut Vec::new()).unwrap_err();
+            let error = parse_fields::<2>(bytes).unwrap_err();
             assert_eq!(error.kind(), io::ErrorKind::InvalidData, "{bytes:?}");
         }
-    }
-
-    #[test]
-    fn empty_input_is_eof() {
-        assert_eq!(
-            read_record::<2>(&mut &b""[..], &mut Vec::new()).unwrap(),
-            None
-        );
-    }
-
-    #[test]
-    fn long_records_reuse_buffer() {
-        let bytes = format!("{}1 2\n3 4\n", " ".repeat(32_768));
-        let mut reader = BufReader::with_capacity(7, bytes.as_bytes());
-        let mut buffer = Vec::new();
-        assert_eq!(read_record(&mut reader, &mut buffer).unwrap(), Some([1, 2]));
-        let capacity = buffer.capacity();
-        assert_eq!(read_record(&mut reader, &mut buffer).unwrap(), Some([3, 4]));
-        assert_eq!(buffer.capacity(), capacity);
-    }
-
-    #[test]
-    fn propagates_read_failure_after_partial_record() {
-        struct Fails;
-        impl io::Read for Fails {
-            fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
-                Err(io::Error::other("injected failure"))
-            }
-        }
-        let mut reader = BufReader::new(io::Read::chain(&b"1 "[..], Fails));
-        let error = read_record::<2>(&mut reader, &mut Vec::new()).unwrap_err();
-        assert_eq!(error.kind(), io::ErrorKind::Other);
     }
 }

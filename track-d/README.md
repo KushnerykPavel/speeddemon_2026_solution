@@ -30,7 +30,7 @@ graph. Each worker reuses its own search state and claims its next query from an
 atomic counter; indexed answers preserve input order. No routing index or answer
 cache is used. The default uses available parallelism capped at 12 workers and
 the query count; `--threads N` overrides it (positive integer, capped at 12).
-One worker follows the serial path; empty queries allocate no search state.
+Empty query files start no search workers.
 On the six-vCPU Linux VPS, full seed 1 matches Python. Adding mmap/parallel CSR
 to D7 reduced time from 3.77 s to 2.38 s at six workers (36.8% less time), with
 container peak memory 139.7 to 140.8 MB. One-worker loading is slower; the
