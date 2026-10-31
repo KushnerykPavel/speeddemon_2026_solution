@@ -250,6 +250,44 @@ fn line_chunks(bytes: &[u8], workers: usize) -> Vec<&[u8]> {
     chunks
 }
 
+/// Reads a field of one to seven ASCII digits ending in `separator`, using one
+/// 8-byte load: bytes with bit 4 clear end the number, every byte before must be
+/// a digit, and pairs, quads and octets of digits are combined with three
+/// multiplies. Returns the value and the bytes used, separator included.
+fn fast_field(bytes: &[u8], separator: u8) -> Option<(u32, usize)> {
+    const LANES: u64 = 0x0101_0101_0101_0101;
+    const BIT4: u64 = 0x10 * LANES;
+    const ZEROS: u64 = 0x30 * LANES;
+    const HIGH: u64 = 0xF0 * LANES;
+    const SIX: u64 = 6 * LANES;
+    let word = u64::from_le_bytes(bytes.get(..8)?.try_into().ok()?);
+    let length = (!word & BIT4).trailing_zeros() as usize / 8;
+    if length == 0 || length == 8 || bytes[length] != separator {
+        return None;
+    }
+    let keep = (1_u64 << (8 * length)) - 1;
+    let digits = (word & keep).wrapping_sub(ZEROS & keep);
+    // Every kept byte must be 0x30..=0x39: high nibble 3, low nibble below 10.
+    if (word & keep & HIGH) != (ZEROS & keep) || ((digits + SIX) & keep & HIGH) != 0 {
+        return None;
+    }
+    let mut value = digits << (64 - 8 * length);
+    value = (value * 10 + (value >> 8)) & 0x00FF_00FF_00FF_00FF;
+    value = (value * 100 + (value >> 16)) & 0x0000_FFFF_0000_FFFF;
+    value = (value * 10_000 + (value >> 32)) & 0xFFFF_FFFF;
+    Some((value as u32, length + 1))
+}
+
+/// Parses a plain `u v w\n` record without a per-digit loop, or returns `None`
+/// so the caller falls back to the strict line parser (CRLF, tabs, repeated
+/// spaces, numbers over seven digits, the chunk tail, invalid bytes).
+fn fast_record(bytes: &[u8]) -> Option<([u32; 3], usize)> {
+    let (source, first) = fast_field(bytes, b' ')?;
+    let (target, second) = fast_field(&bytes[first..], b' ')?;
+    let (weight, third) = fast_field(&bytes[first + second..], b'\n')?;
+    Some(([source, target, weight], first + second + third))
+}
+
 /// Parses every chunk's records on its own scoped worker. Each worker owns a
 /// state from `init` that `visit` updates; returns the record count and states.
 fn parse_chunks<S: Send>(
@@ -264,10 +302,20 @@ fn parse_chunks<S: Send>(
                 let (init, visit) = (&init, &visit);
                 scope.spawn(move || {
                     let mut state = init();
-                    let mut count = 0;
-                    for line in chunk.split_inclusive(|&byte| byte == b'\n') {
-                        visit(&mut state, parse_fields(line)?)?;
-                        count += 1;
+                    let (mut count, mut rest) = (0, chunk);
+                    while !rest.is_empty() {
+                        let (record, used) = match fast_record(rest) {
+                            Some(parsed) => parsed,
+                            None => {
+                                let end = rest
+                                    .iter()
+                                    .position(|&byte| byte == b'\n')
+                                    .map_or(rest.len(), |i| i + 1);
+                                (parse_fields(&rest[..end])?, end)
+                            }
+                        };
+                        visit(&mut state, record)?;
+                        (count, rest) = (count + 1, &rest[used..]);
                     }
                     Ok::<_, io::Error>((count, state))
                 })

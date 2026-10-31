@@ -19,6 +19,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 14 | Packed 32-bit edges + exact heavy-weight list (`1767ec0`) | run-f3b44d092f5b | 0.242579 | 132.395008 | 60.976955 |
 | 15 | 4 KB pages: `prctl(PR_SET_THP_DISABLE)` (`a37144d`) | run-b5ad6625b248 | 0.253390 | 101.629952 | 61.599011 |
 | 16 | Single-`u64` heap keys for the `u32` search (`b9a93cd`) | run-3a1c4950924c | 0.221692 | 101.761024 | 62.975003 |
+| 17 | Software prefetch: top-of-heap row and BFS rows ahead (`7d0e8ab`) | run-79245fc6bd21 | 0.205766 | 101.924864 | 63.676026 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -646,6 +647,31 @@ Same VPS protocol, baseline `b9a93cd`: total 0.5409 → 0.4818 s (-10.9%) at
 Phase medians: renumbering 0.110 → 0.083 s / 0.112 → 0.088 s; search
 0.270 → 0.252 s / 0.272 → 0.236 s (6 / 12 workers). Run spreads were 14–25%;
 both phases moved the same way at both worker counts. All outputs match
-Python; fifteen Rust tests and 1,224 Python comparisons pass. No board run ID yet.
+Python; fifteen Rust tests and 1,224 Python comparisons pass. Board result below.
 Evidence: [prefetch](../tests/performance/2026-10-31-traverse-prefetch/README.md).
+
+Step 17 official board result, feed 2026-10-31 20:29:58 UTC (21:29:58 Warsaw):
+`run-79245fc6bd21`, commit `7d0e8ab`, all gates passed. **0.205766 s,
+101.924864 MB, S=783, D=1, K=18.772431, 63.676026 points**. New team best;
+versus step 16: time −7.18% (1.0774x), memory +0.16%, +0.701023 points despite
+S 759 → 783. Derived Track D position: 29 of 91 (tenth place 68.45). Evidence:
+[official prefetch result](../tests/performance/2026-10-31-board-prefetch-results/README.md).
+
+
+## Step 18 — SWAR record parsing (VPS measurement)
+
+Graph records `u v w\n` are parsed with one 8-byte load per number: the first
+byte with bit 4 clear gives the length, a nibble check rejects any non-digit
+before it, and three multiplies combine the digits. Any other record shape
+falls back to the unchanged strict parser, so accepted input and errors match.
+Idea credit: Team7's public parser (MIT).
+
+Same VPS protocol, baseline `7d0e8ab`: total 0.4966 → 0.4218 s (-15.0%)
+at 6 workers and 0.4951 → 0.4428 s (-10.6%) at 12, peak unchanged.
+Graph-load medians 0.163 → 0.116 s and 0.137 → 0.106 s; other phases
+unchanged. All outputs match Python; sixteen Rust tests (new: 200,000 random
+records, fast path always equal to the strict parser) and 1,224 Python
+comparisons pass. Mutations caught: no digit check (1 test), wrong combine
+multiplier (3). No board run ID yet.
+Evidence: [SWAR parsing](../tests/performance/2026-10-31-traverse-swar-parse/README.md).
 

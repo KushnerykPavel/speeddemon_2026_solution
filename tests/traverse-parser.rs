@@ -383,6 +383,72 @@ mod traverse {
     }
 
     #[test]
+    fn swar_records_match_the_strict_parser() {
+        let mut state = 0x853C_49E6_748F_EA9B_u64;
+        let mut next = |bound: u64| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state % bound
+        };
+        // Bytes next to the digit range, separators and bytes with bit 4 clear.
+        let noise = [
+            b'/', b':', b'@', b'p', 0x10, 0xB5, b'\t', b'\r', b' ', b'0', b'9',
+        ];
+        let mut fast = 0;
+        for _ in 0..200_000 {
+            let mut text = Vec::new();
+            for field in 0..3 {
+                let digits = 1 + next(10) as usize;
+                let mut number: String = (0..digits)
+                    .map(|_| char::from(b'0' + next(10) as u8))
+                    .collect();
+                match next(20) {
+                    0 => number = "4294967296".into(),
+                    1 => number = "4294967295".into(),
+                    2 => number.insert(
+                        next(digits as u64) as usize,
+                        char::from(noise[next(11) as usize]),
+                    ),
+                    _ => {}
+                }
+                text.extend_from_slice(number.as_bytes());
+                text.extend_from_slice(match (field, next(25)) {
+                    (2, 0) => b"\r\n",
+                    (2, _) => b"\n",
+                    (_, 0) => b"\t",
+                    (_, 1) => b"  ",
+                    _ => b" ",
+                });
+            }
+            // A following record keeps the 8-byte loads inside the slice.
+            text.extend_from_slice(b"1 2 3\n");
+            let line = &text[..text.iter().position(|&byte| byte == b'\n').unwrap() + 1];
+            match fast_record(&text) {
+                Some((record, used)) => {
+                    fast += 1;
+                    assert_eq!(used, line.len());
+                    assert_eq!(parse_fields::<3>(line).unwrap(), record, "{:?}", line);
+                }
+                None => {}
+            }
+        }
+        assert!(fast > 20_000, "fast path taken {fast} times");
+        for (text, expected) in [
+            (&b"0 0 0\n1 2 3\n"[..], Some(([0, 0, 0], 6))),
+            (
+                b"9999999 1 0000042\n1 2 3\n",
+                Some(([9_999_999, 1, 42], 18)),
+            ),
+            (b"12345678 1 2\n1 2 3\n", None),
+            (b"1 2 3", None),
+            (b"1 2 3\r\n1 2 3\n", None),
+        ] {
+            assert_eq!(fast_record(text), expected);
+        }
+    }
+
+    #[test]
     fn packing_sizes_heads_and_escapes_weights() {
         for (nodes, head_bits) in [
             (0, 1),

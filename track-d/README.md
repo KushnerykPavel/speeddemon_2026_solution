@@ -45,7 +45,10 @@ buckets hold one `(u, v, w)` triple per edge and are freed after placement, belo
 the search-phase memory peak. The mapping is released after loading. Every edge
 is retained. Loading uses the same worker limit as query processing.
 
-Graph fields are parsed directly from borrowed ASCII byte slices; queries retain
+Plain `u v w` records are parsed with one 8-byte load per number (SWAR: length
+from the first byte with bit 4 clear, a nibble check for digits, three
+multiplies); any other shape falls back to the strict parser. Graph fields are
+parsed directly from borrowed ASCII byte slices; queries retain
 a reusable line buffer and share the checked `u32` parser. No temporary strings
 or field vectors. Overflow, field counts, vertex bounds, LF/CRLF and final lines
 without a newline are handled. The std-only mapping wrapper targets 64-bit Unix
