@@ -1,0 +1,175 @@
+{
+  "platform": "macOS-14.5-arm64-arm-64bit",
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "seed": 20261031,
+  "nodes": 90003,
+  "edges": 358802,
+  "graph_sha256": "9e9e92531dc1cb0856b99ead1564624fba83d1cb01c6ceeb2902212c903d70dc",
+  "method": "warm cache; one warmup, five alternating runs; discard min/max, average remaining three",
+  "results": {
+    "normal_only": {
+      "queries": 1950,
+      "rows": [
+        {
+          "round": 0,
+          "variant": "before",
+          "seconds": 0.3815853751730174,
+          "python_byte_equal": true
+        },
+        {
+          "round": 0,
+          "variant": "after",
+          "seconds": 0.09089245810173452,
+          "python_byte_equal": true
+        },
+        {
+          "round": 1,
+          "variant": "after",
+          "seconds": 0.07202445808798075,
+          "python_byte_equal": true
+        },
+        {
+          "round": 1,
+          "variant": "before",
+          "seconds": 0.07068962510675192,
+          "python_byte_equal": true
+        },
+        {
+          "round": 2,
+          "variant": "before",
+          "seconds": 0.08975408296100795,
+          "python_byte_equal": true
+        },
+        {
+          "round": 2,
+          "variant": "after",
+          "seconds": 0.08336562500335276,
+          "python_byte_equal": true
+        },
+        {
+          "round": 3,
+          "variant": "after",
+          "seconds": 0.08419508300721645,
+          "python_byte_equal": true
+        },
+        {
+          "round": 3,
+          "variant": "before",
+          "seconds": 0.0780417500063777,
+          "python_byte_equal": true
+        },
+        {
+          "round": 4,
+          "variant": "before",
+          "seconds": 0.0768436249345541,
+          "python_byte_equal": true
+        },
+        {
+          "round": 4,
+          "variant": "after",
+          "seconds": 0.11831470881588757,
+          "python_byte_equal": true
+        },
+        {
+          "round": 5,
+          "variant": "after",
+          "seconds": 0.08732937509194016,
+          "python_byte_equal": true
+        },
+        {
+          "round": 5,
+          "variant": "before",
+          "seconds": 0.06882804096676409,
+          "python_byte_equal": true
+        }
+      ],
+      "trimmed_mean_seconds": {
+        "before": 0.07519166668256123,
+        "after": 0.0849633610341698
+      },
+      "time_reduction_percent": -12.995714528927781
+    },
+    "mixed": {
+      "queries": 2000,
+      "rows": [
+        {
+          "round": 0,
+          "variant": "before",
+          "seconds": 0.08759633405134082,
+          "python_byte_equal": true
+        },
+        {
+          "round": 0,
+          "variant": "after",
+          "seconds": 0.08598087495192885,
+          "python_byte_equal": true
+        },
+        {
+          "round": 1,
+          "variant": "after",
+          "seconds": 0.0741628329269588,
+          "python_byte_equal": true
+        },
+        {
+          "round": 1,
+          "variant": "before",
+          "seconds": 0.08330950001254678,
+          "python_byte_equal": true
+        },
+        {
+          "round": 2,
+          "variant": "before",
+          "seconds": 0.08171633281745017,
+          "python_byte_equal": true
+        },
+        {
+          "round": 2,
+          "variant": "after",
+          "seconds": 0.0733725419268012,
+          "python_byte_equal": true
+        },
+        {
+          "round": 3,
+          "variant": "after",
+          "seconds": 0.07240341580472887,
+          "python_byte_equal": true
+        },
+        {
+          "round": 3,
+          "variant": "before",
+          "seconds": 0.08247495791874826,
+          "python_byte_equal": true
+        },
+        {
+          "round": 4,
+          "variant": "before",
+          "seconds": 0.08493508398532867,
+          "python_byte_equal": true
+        },
+        {
+          "round": 4,
+          "variant": "after",
+          "seconds": 0.08169445907697082,
+          "python_byte_equal": true
+        },
+        {
+          "round": 5,
+          "variant": "after",
+          "seconds": 0.0825520830694586,
+          "python_byte_equal": true
+        },
+        {
+          "round": 5,
+          "variant": "before",
+          "seconds": 0.08234320906922221,
+          "python_byte_equal": true
+        }
+      ],
+      "trimmed_mean_seconds": {
+        "before": 0.08270922233350575,
+        "after": 0.07640994464357694
+      },
+      "time_reduction_percent": 7.616173278148397
+    }
+  }
+}

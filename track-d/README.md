@@ -9,6 +9,9 @@ graph with `u32` offsets and `(u32 target, u32 weight)` edges, retaining every
 edge. Reuse a `u64` distance array and binary min-heap across queries, resetting
 only touched vertices. Stop when the target is popped, skipping stale entries.
 Zero weights, parallel edges, duplicates and isolated nodes are supported.
+Before searching, return zero for identical endpoints and reject queries with
+no outgoing edge at the source or no incoming edge at the target. Incoming-edge
+presence uses one bit per vertex (217,568 bytes at 1,740,512 vertices).
 Queries run sequentially; no routing index or answer cache is used.
 
 Graph headers, edges and queries are parsed directly from ASCII bytes into
@@ -30,5 +33,5 @@ None.
 
 ## With another 24 hours
 
-Measure loading and query work separately, add degree-based query rejection,
-then compare parallel independent queries.
+Validate degree rejection on the full x86-64 workload, measure loading and query
+work separately, then compare parallel independent queries (D7 in the plan).

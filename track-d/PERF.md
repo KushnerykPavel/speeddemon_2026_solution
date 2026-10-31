@@ -9,6 +9,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 2 | CSR graph (`u32` offsets, packed edges) + reusable array distances with touched-list reset, replacing per-query HashMap | | | | |
 | 3 | Release build: fat LTO, one codegen unit, abort on panic; native CPU in Docker build | | | | |
 | 4 | Direct checked `u32` byte parser with reusable line buffers for graph and queries | | | | |
+| 5 | D5: self-query shortcut and degree rejection using an incoming-edge bitset; provisional pending x86-64 measurement | | | | |
 
 The Rust baseline preserves adjacency lists and one fresh Dijkstra search per
 query, with a hash map and binary heap. No external dependencies.
@@ -49,3 +50,22 @@ numeric limits, malformed records and read failures. 203 graph/query cases
 matched Python byte-for-byte; eight invalid-input cases failed cleanly.
 Release build, rustfmt and release Clippy passed. Reproduction and raw timings:
 `../tests/performance/2026-10-31-traverse-byte-parser/README.md`.
+
+Step 5: identical endpoints return zero first (including isolated vertices).
+Different endpoints return unreachable without Dijkstra when the source has no
+outgoing edges or the target has no incoming edges. Out-degree comes from CSR
+offsets; incoming presence uses a `u64` bitset built during input parsing, adding
+217,568 bytes at the documented full vertex count. This is a necessary-condition
+filter: other unreachable queries still use ordinary Dijkstra.
+Six regression tests passed; 204 deterministic cases matched Python byte-for-byte
+and eight invalid inputs failed cleanly. Release build, rustfmt and Clippy passed.
+Local Mac diagnostic on a shuffled/relabelled 90,003-node grid: mixed workload
+(1,950 local queries, two no-in targets, no-out/isolated/self cases) trimmed means
+82.71 → 76.41 ms in the first experiment and 82.65 → 70.50 ms on repeat (7.62%
+and 14.70% less time). Normal-only control: 75.19 → 84.96 ms first, 69.70 →
+70.90 ms on repeat. Short timings are noisy and the control does not show a
+speedup; this does not establish a full-track or x86-64 improvement. Retained
+provisionally pending the plan's x86-64/full-workload validation; no board run,
+measured memory/points result for this step yet.
+Raw runs, workload generator and exact source patch:
+`../tests/performance/2026-10-31-traverse-degree-rejection/README.md`.

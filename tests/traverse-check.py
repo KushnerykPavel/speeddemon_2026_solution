@@ -19,6 +19,10 @@ def main():
         ("1 0\n", ""),
         ("3 0\r\n", "0 0\r\n0 2"),
         ("4 5\n0 1 4294967295\n1 2 4294967295\n0 1 4294967295\n2 2 0\n2 0 0", "0 2\n2 1\n0 3\n3 3\n"),
+        # Incoming-edge bits across 64-bit words; isolated, no-in, no-out,
+        # self-loop-only and disconnected targets mixed with ordinary searches.
+        ("130 8\n0 1 5\n1 64 0\n64 65 4294967295\n65 129 4294967295\n63 0 1\n66 66 0\n2 3 0\n3 2 0\n",
+         "0 129\n0 63\n129 0\n67 67\n0 66\n66 66\n0 2\n2 3\n0 127\n0 128\n63 129\n0 64\n"),
     ]
     for seed in range(200):
         rng = random.Random(seed)

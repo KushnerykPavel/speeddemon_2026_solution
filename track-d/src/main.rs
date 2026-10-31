@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 struct Graph {
     offsets: Vec<u32>,
     edges: Vec<(u32, u32)>,
+    incoming: Vec<u64>,
 }
 
 fn read_record<const N: usize>(
@@ -54,11 +55,13 @@ fn read_graph(path: &Path) -> Result<Graph, Box<dyn Error>> {
     let (n, m) = (n as usize, m as usize);
     let mut list = Vec::with_capacity(m);
     let mut offsets = vec![0_u32; n + 1];
+    let mut incoming = vec![0_u64; n.div_ceil(64)];
     while let Some([u, v, w]) = read_record(&mut reader, &mut buffer)? {
         if u as usize >= n || v as usize >= n {
             return Err("edge vertex outside graph".into());
         }
         offsets[u as usize + 1] += 1;
+        incoming[v as usize / 64] |= 1_u64 << (v % 64);
         list.push((u, v, w));
     }
     if list.len() != m {
@@ -73,7 +76,11 @@ fn read_graph(path: &Path) -> Result<Graph, Box<dyn Error>> {
         edges[cursor[u as usize] as usize] = (v, w);
         cursor[u as usize] += 1;
     }
-    Ok(Graph { offsets, edges })
+    Ok(Graph {
+        offsets,
+        edges,
+        incoming,
+    })
 }
 
 struct Searcher {
@@ -92,6 +99,14 @@ impl Searcher {
     }
 
     fn shortest_path(&mut self, graph: &Graph, source: usize, target: usize) -> Option<u64> {
+        if source == target {
+            return Some(0);
+        }
+        if graph.offsets[source] == graph.offsets[source + 1]
+            || graph.incoming[target / 64] & (1_u64 << (target % 64)) == 0
+        {
+            return None;
+        }
         let found = self.search(graph, source as u32, target as u32);
         for &node in &self.touched {
             self.distances[node as usize] = u64::MAX;

@@ -19,10 +19,12 @@ cargo build --manifest-path track-d/Cargo.toml --release --offline --locked
 python3 tests/traverse-check.py track-d/target/release/traverse-baseline
 ```
 
-These cover parser boundaries and errors, 203 deterministic graph/query cases
+These cover parser boundaries and errors, 204 deterministic graph/query cases
 (including 200 random graphs), and eight invalid inputs. Full-width weights,
 distances above `u32::MAX`, zero weights, duplicate edges, self-loops,
-unreachable vertices, empty queries, LF/CRLF and EOF tails are included.
+unreachable vertices, empty queries, LF/CRLF and EOF tails are included. Degree
+rejection checks cover isolated self paths, no-in targets, no-out sources,
+self-loop-only components, bitset word boundaries and state reuse after rejection.
 
 `reference/` preserves the organisers' MIT-licensed Python implementations
 unchanged, outside the independently scored track folders.
