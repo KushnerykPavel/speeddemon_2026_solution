@@ -48,6 +48,13 @@ impl Packing {
         u32::MAX >> self.head_bits
     }
 
+    fn unpack(self, packed: u32) -> (u32, u32) {
+        (
+            packed & ((1 << self.head_bits) - 1),
+            packed >> self.head_bits,
+        )
+    }
+
     fn pack(self, index: usize, head: u32, weight: u32, heavy: &Heavy) -> u32 {
         if weight >= self.escape() {
             let mut heavy = heavy.lock().unwrap_or_else(|poison| poison.into_inner());
@@ -90,12 +97,11 @@ impl Graph {
 
     fn row(&self, node: usize) -> impl Iterator<Item = (u32, u32)> + '_ {
         let start = self.offsets[node] as usize;
-        let Packing { head_bits } = self.packing;
         self.edges[start..self.offsets[node + 1] as usize]
             .iter()
             .enumerate()
             .map(move |(offset, &packed)| {
-                let (head, code) = (packed & ((1 << head_bits) - 1), packed >> head_bits);
+                let (head, code) = self.packing.unpack(packed);
                 if code != self.packing.escape() {
                     return (head, code);
                 }
@@ -163,16 +169,22 @@ unsafe extern "C" {
 #[cfg(target_os = "linux")]
 unsafe extern "C" {
     fn prctl(option: i32, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i32;
+    fn mallopt(parameter: i32, value: i32) -> i32;
 }
 
-/// Asks Linux for 4 KB pages instead of transparent huge pages. Buffers here
-/// are reserved large and touched sparsely; with 2 MB pages one touched byte
-/// commits 2 MB. Failure only costs memory, so the result is ignored.
-fn prefer_small_pages() {
+/// Keeps memory that is no longer used out of the cgroup peak. Asks Linux for
+/// 4 KB pages instead of transparent huge pages (buffers here are touched
+/// sparsely; with 2 MB pages one touched byte commits 2 MB), and fixes glibc's
+/// mmap threshold at 256 KB so large freed blocks go back to the kernel instead
+/// of the threshold growing to the largest block freed. Failures only cost
+/// memory, so results are ignored.
+fn tune_memory() {
     #[cfg(target_os = "linux")]
     unsafe {
         const PR_SET_THP_DISABLE: i32 = 41;
+        const M_MMAP_THRESHOLD: i32 = -3;
         prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0);
+        mallopt(M_MMAP_THRESHOLD, 256 << 10);
     }
 }
 
@@ -335,7 +347,9 @@ fn parse_chunks<S: Send>(
 }
 
 /// Edges parsed by one chunk worker, bucketed by the part that owns their source.
-type Buckets = Vec<Vec<(u32, u32, u32)>>;
+/// Per part: `(source, packed target and weight)` records, plus the exact
+/// weights of escaped records in record order.
+type Buckets = Vec<(Vec<(u32, u32)>, Vec<u32>)>;
 
 /// Parses the graph in one pass. Workers bucket each edge by its source's part
 /// (a power-of-two block of IDs, about eight per worker); then each part counts
@@ -364,12 +378,16 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
     let chunks = line_chunks(&bytes[header_end..], workers);
     let (count, buckets) = parse_chunks(
         &chunks,
-        || vec![Vec::new(); parts],
+        || vec![(Vec::new(), Vec::new()); parts],
         |buckets: &mut Buckets, [u, v, w]| {
             if u as usize >= n || v as usize >= n {
                 return Err(invalid("edge vertex outside graph"));
             }
-            buckets[(u >> part_bits) as usize].push((u, v, w));
+            let (records, weights) = &mut buckets[(u >> part_bits) as usize];
+            if w >= packing.escape() {
+                weights.push(w);
+            }
+            records.push((u, v | w.min(packing.escape()) << packing.head_bits));
             Ok(())
         },
     )?;
@@ -377,7 +395,7 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
         return Err(invalid("edge count differs from header"));
     }
     let part_sizes: Vec<usize> = (0..parts)
-        .map(|part| buckets.iter().map(|bucket| bucket[part].len()).sum())
+        .map(|part| buckets.iter().map(|bucket| bucket[part].0.len()).sum())
         .collect();
     let mut offsets = vec![0_u32; n + 1];
     let mut edges = vec![0; m];
@@ -404,8 +422,26 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
                     row_starts = rest;
                     let (part_slots, rest) = slots.split_at_mut(part_sizes[part]);
                     slots = rest;
-                    let records = || buckets.iter().flat_map(|bucket| &bucket[part]);
-                    for &(u, _, _) in records() {
+                    let records = || {
+                        buckets.iter().flat_map(|bucket| {
+                            let (records, weights) = &bucket[part];
+                            let mut weights = weights.iter();
+                            records.iter().map(move |&(u, packed)| {
+                                let (v, code) = packing.unpack(packed);
+                                let heavy = code == packing.escape();
+                                (
+                                    u,
+                                    v,
+                                    if heavy {
+                                        *weights.next().unwrap()
+                                    } else {
+                                        code
+                                    },
+                                )
+                            })
+                        })
+                    };
+                    for (u, _, _) in records() {
                         part_starts[u as usize - start] += 1;
                     }
                     let mut total = 0;
@@ -413,7 +449,7 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
                         (*row, total) = (total, total + *row);
                     }
                     let mut cursor = part_starts.to_vec();
-                    for &(u, v, w) in records() {
+                    for (u, v, w) in records() {
                         let next = &mut cursor[u as usize - start];
                         let index = (base + *next) as usize;
                         part_slots[*next as usize] = packing.pack(index, v, w, heavy);
@@ -437,20 +473,13 @@ fn read_graph(path: &Path, workers: usize) -> io::Result<Graph> {
     build_graph(mapping.bytes(), workers)
 }
 
-/// One worker's share of the renumbering: the old IDs it claimed in visiting
-/// order, each claimed vertex's edge end, and its edges with provisional heads.
-struct Region {
-    order: Vec<u32>,
-    ends: Vec<u32>,
-    edges: Vec<(u32, u32)>,
-}
-
 /// Renumbers vertices so searches touch nearby memory. Every worker grows
 /// breadth-first regions from unclaimed roots in its own slice of old IDs and
 /// claims each vertex with a compare-and-swap on `worker << bits | position + 1`
-/// (0 = free). Workers write their edges with those provisional heads while
-/// visiting, so the old graph is read once; a parallel pass then concatenates
-/// the regions into the new CSR, translating provisional IDs to final ones.
+/// (0 = free). The regions, one after another, are the new order. Parallel
+/// passes over equal pieces of that order then size and copy the rows from the
+/// old graph into the new CSR, translating heads through the claims, so only
+/// the two packed graphs, the claims and the orders are ever held at once.
 fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -> Graph {
     let nodes = graph.offsets.len() - 1;
     // Provisional IDs need worker bits above the position bits within a u32.
@@ -460,21 +489,15 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
     let workers = workers.clamp(1, 12);
     let bits = usize::BITS - nodes.leading_zeros();
     let claims: Vec<_> = (0..nodes).map(|_| AtomicU32::new(0)).collect();
-    let regions: Vec<Region> = thread::scope(|scope| {
+    let regions: Vec<Vec<u32>> = thread::scope(|scope| {
         let handles: Vec<_> = (0..workers)
             .map(|worker| {
                 let (graph, claims) = (&graph, &claims);
                 scope.spawn(move || {
                     let provisional = |position: usize| (worker << bits | (position + 1)) as u32;
-                    // Reserve for the whole graph: only pages actually written are
-                    // charged, and the buffers never reallocate or copy.
-                    let mut region = Region {
-                        order: Vec::with_capacity(nodes),
-                        ends: Vec::with_capacity(nodes),
-                        edges: Vec::with_capacity(graph.edges.len()),
-                    };
+                    let mut region = Vec::new();
                     for root in nodes * worker / workers..nodes * (worker + 1) / workers {
-                        let claim = provisional(region.order.len());
+                        let claim = provisional(region.len());
                         if claims[root].load(Ordering::Relaxed) != 0
                             || claims[root]
                                 .compare_exchange(0, claim, Ordering::Relaxed, Ordering::Relaxed)
@@ -482,39 +505,34 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
                         {
                             continue;
                         }
-                        let mut head = region.order.len();
-                        region.order.push(root as u32);
-                        while head < region.order.len() {
+                        let mut head = region.len();
+                        region.push(root as u32);
+                        while head < region.len() {
                             // Breadth-first reads are random: ask for rows ahead.
-                            if let Some(&ahead) = region.order.get(head + 8) {
+                            if let Some(&ahead) = region.get(head + 8) {
                                 prefetch(&graph.offsets[ahead as usize]);
                             }
-                            if let Some(&ahead) = region.order.get(head + 4) {
+                            if let Some(&ahead) = region.get(head + 4) {
                                 graph.prefetch_row(ahead as usize);
                             }
-                            let node = region.order[head] as usize;
+                            let node = region[head] as usize;
                             head += 1;
-                            for (target, weight) in graph.row(node) {
+                            for (target, _) in graph.row(node) {
                                 let slot = &claims[target as usize];
-                                let mut id = slot.load(Ordering::Relaxed);
-                                if id == 0 {
-                                    let claim = provisional(region.order.len());
-                                    id = match slot.compare_exchange(
-                                        0,
-                                        claim,
-                                        Ordering::Relaxed,
-                                        Ordering::Relaxed,
-                                    ) {
-                                        Ok(_) => {
-                                            region.order.push(target);
-                                            claim
-                                        }
-                                        Err(owner) => owner,
-                                    };
+                                let claim = provisional(region.len());
+                                if slot.load(Ordering::Relaxed) == 0
+                                    && slot
+                                        .compare_exchange(
+                                            0,
+                                            claim,
+                                            Ordering::Relaxed,
+                                            Ordering::Relaxed,
+                                        )
+                                        .is_ok()
+                                {
+                                    region.push(target);
                                 }
-                                region.edges.push((id, weight));
                             }
-                            region.ends.push(region.edges.len() as u32);
                         }
                     }
                     region
@@ -526,46 +544,85 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
             .map(|handle| handle.join().expect("reorder worker panicked"))
             .collect()
     });
-    let packing = graph.packing;
-    drop(graph);
     let mut node_base = Vec::with_capacity(workers);
-    let mut edge_base = Vec::with_capacity(workers);
-    let (mut node_total, mut edge_total) = (0_u32, 0_u32);
+    let mut node_total = 0_u32;
     for region in &regions {
         node_base.push(node_total);
-        edge_base.push(edge_total);
-        node_total += region.order.len() as u32;
-        edge_total += region.edges.len() as u32;
+        node_total += region.len() as u32;
     }
     let mask = (1_u32 << bits) - 1;
-    let final_id = |id: u32| node_base[(id >> bits) as usize] + (id & mask) - 1;
+    let final_id = |slot: &AtomicU32| {
+        let id = slot.load(Ordering::Relaxed);
+        node_base[(id >> bits) as usize] + (id & mask) - 1
+    };
+    // Regions can differ widely in size, so work is dealt out in equal pieces.
+    let piece = nodes.div_ceil(workers * 8);
+    let pieces: Vec<&[u32]> = regions
+        .iter()
+        .flat_map(|region| region.chunks(piece))
+        .collect();
     let mut new_offsets = vec![0_u32; nodes + 1];
-    let mut new_edges = vec![0; edge_total as usize];
-    let heavy = Mutex::new(Vec::new());
     thread::scope(|scope| {
-        let mut offset_rest = &mut new_offsets[1..];
-        let mut edge_rest = new_edges.as_mut_slice();
-        for (region, &base) in regions.iter().zip(&edge_base) {
-            let (offset_slots, rest) = offset_rest.split_at_mut(region.order.len());
-            offset_rest = rest;
-            let (edge_slots, rest) = edge_rest.split_at_mut(region.edges.len());
-            edge_rest = rest;
-            let (final_id, heavy) = (&final_id, &heavy);
+        let mut jobs: Vec<Vec<_>> = (0..workers).map(|_| Vec::new()).collect();
+        let mut rest = &mut new_offsets[1..];
+        for (index, &order) in pieces.iter().enumerate() {
+            let (degrees, tail) = rest.split_at_mut(order.len());
+            rest = tail;
+            jobs[index % workers].push((order, degrees));
+        }
+        for job in jobs {
+            let graph = &graph;
             scope.spawn(move || {
-                for (slot, &end) in offset_slots.iter_mut().zip(&region.ends) {
-                    *slot = base + end;
-                }
-                for (index, (slot, &(id, weight))) in
-                    edge_slots.iter_mut().zip(&region.edges).enumerate()
-                {
-                    *slot = packing.pack(base as usize + index, final_id(id), weight, heavy);
+                for (order, degrees) in job {
+                    for (degree, &old) in degrees.iter_mut().zip(order) {
+                        let old = old as usize;
+                        *degree = graph.offsets[old + 1] - graph.offsets[old];
+                    }
                 }
             });
         }
     });
+    for node in 0..nodes {
+        new_offsets[node + 1] += new_offsets[node];
+    }
+    let mut new_edges = vec![0; new_offsets[nodes] as usize];
+    let heavy = Mutex::new(Vec::new());
+    thread::scope(|scope| {
+        let mut jobs: Vec<Vec<_>> = (0..workers).map(|_| Vec::new()).collect();
+        let mut rest = new_edges.as_mut_slice();
+        let mut first = 0;
+        for (index, &order) in pieces.iter().enumerate() {
+            let base = new_offsets[first] as usize;
+            first += order.len();
+            let (slots, tail) = rest.split_at_mut(new_offsets[first] as usize - base);
+            rest = tail;
+            jobs[index % workers].push((order, base, slots));
+        }
+        for job in jobs {
+            let (graph, claims, final_id, heavy) = (&graph, &claims, &final_id, &heavy);
+            scope.spawn(move || {
+                for (order, base, slots) in job {
+                    let mut written = 0;
+                    for (position, &old) in order.iter().enumerate() {
+                        if let Some(&ahead) = order.get(position + 4) {
+                            graph.prefetch_row(ahead as usize);
+                        }
+                        for (target, weight) in graph.row(old as usize) {
+                            let head = final_id(&claims[target as usize]);
+                            slots[written] =
+                                graph.packing.pack(base + written, head, weight, heavy);
+                            written += 1;
+                        }
+                    }
+                }
+            });
+        }
+    });
+    let packing = graph.packing;
+    drop(graph);
     for (source, target) in queries {
-        *source = final_id(claims[*source].load(Ordering::Relaxed)) as usize;
-        *target = final_id(claims[*target].load(Ordering::Relaxed)) as usize;
+        *source = final_id(&claims[*source]) as usize;
+        *target = final_id(&claims[*target]) as usize;
     }
     Graph::new(new_offsets, new_edges, heavy, packing)
 }
@@ -892,7 +949,7 @@ fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> 
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    prefer_small_pages();
+    tune_memory();
     let mut data = PathBuf::from("/data");
     let mut out = PathBuf::from("/out");
     let mut workers = thread::available_parallelism()

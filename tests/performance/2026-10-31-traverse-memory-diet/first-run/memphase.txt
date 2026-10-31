@@ -1,0 +1,10 @@
+   Compiling traverse-baseline v0.1.0 (/work/memphase)
+    Finished `release` profile [optimized] target(s) in 7.37s
+   Compiling traverse-baseline v0.1.0 (/work/before)
+    Finished `release` profile [optimized] target(s) in 7.77s
+   Compiling traverse-baseline v0.1.0 (/work/diet)
+    Finished `release` profile [optimized] target(s) in 7.51s
+   Compiling traverse-baseline v0.1.0 (/work/profile-before)
+    Finished `release` profile [optimized] target(s) in 7.82s
+   Compiling traverse-baseline v0.1.0 (/work/profile-diet)
+    Finished `release` profile [optimized] target(s) in 7.88s

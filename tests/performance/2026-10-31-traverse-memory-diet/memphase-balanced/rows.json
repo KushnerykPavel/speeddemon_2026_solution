@@ -1,0 +1,404 @@
+[
+  {
+    "workers": 6,
+    "round": 0,
+    "measurement": {
+      "seconds": 0.524197358,
+      "max_rss_kib": 165064,
+      "cgroup_peak_bytes": 77279232,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 2142208,
+        "peak": 5431296
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 49582080,
+        "peak": 49582080
+      },
+      {
+        "label": "csr_placed",
+        "current": 76746752,
+        "peak": 77279232
+      },
+      {
+        "label": "graph_loaded",
+        "current": 30482432,
+        "peak": 77279232
+      },
+      {
+        "label": "queries_parsed",
+        "current": 30482432,
+        "peak": 77279232
+      },
+      {
+        "label": "order_built",
+        "current": 44732416,
+        "peak": 77279232
+      },
+      {
+        "label": "copied",
+        "current": 70959104,
+        "peak": 77279232
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 43913216,
+        "peak": 77279232
+      },
+      {
+        "label": "reordered",
+        "current": 29970432,
+        "peak": 77279232
+      },
+      {
+        "label": "transposed",
+        "current": 57438208,
+        "peak": 77279232
+      },
+      {
+        "label": "searched",
+        "current": 29626368,
+        "peak": 77279232
+      }
+    ]
+  },
+  {
+    "workers": 12,
+    "round": 0,
+    "measurement": {
+      "seconds": 0.493311365,
+      "max_rss_kib": 166252,
+      "cgroup_peak_bytes": 78761984,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1970176,
+        "peak": 5165056
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 50450432,
+        "peak": 50716672
+      },
+      {
+        "label": "csr_placed",
+        "current": 78761984,
+        "peak": 78761984
+      },
+      {
+        "label": "graph_loaded",
+        "current": 33484800,
+        "peak": 78761984
+      },
+      {
+        "label": "queries_parsed",
+        "current": 33484800,
+        "peak": 78761984
+      },
+      {
+        "label": "order_built",
+        "current": 48009216,
+        "peak": 78761984
+      },
+      {
+        "label": "copied",
+        "current": 74727424,
+        "peak": 78761984
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 45690880,
+        "peak": 78761984
+      },
+      {
+        "label": "reordered",
+        "current": 31739904,
+        "peak": 78761984
+      },
+      {
+        "label": "transposed",
+        "current": 58687488,
+        "peak": 78761984
+      },
+      {
+        "label": "searched",
+        "current": 31756288,
+        "peak": 78761984
+      }
+    ]
+  },
+  {
+    "workers": 6,
+    "round": 1,
+    "measurement": {
+      "seconds": 0.475491873,
+      "max_rss_kib": 165116,
+      "cgroup_peak_bytes": 77623296,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1953792,
+        "peak": 4894720
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 49385472,
+        "peak": 49651712
+      },
+      {
+        "label": "csr_placed",
+        "current": 76558336,
+        "peak": 77623296
+      },
+      {
+        "label": "graph_loaded",
+        "current": 31752192,
+        "peak": 77623296
+      },
+      {
+        "label": "queries_parsed",
+        "current": 31752192,
+        "peak": 77623296
+      },
+      {
+        "label": "order_built",
+        "current": 45420544,
+        "peak": 77623296
+      },
+      {
+        "label": "copied",
+        "current": 73170944,
+        "peak": 77623296
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 44011520,
+        "peak": 77623296
+      },
+      {
+        "label": "reordered",
+        "current": 30081024,
+        "peak": 77623296
+      },
+      {
+        "label": "transposed",
+        "current": 56762368,
+        "peak": 77623296
+      },
+      {
+        "label": "searched",
+        "current": 30810112,
+        "peak": 77623296
+      }
+    ]
+  },
+  {
+    "workers": 12,
+    "round": 1,
+    "measurement": {
+      "seconds": 0.494027677,
+      "max_rss_kib": 166308,
+      "cgroup_peak_bytes": 79134720,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1417216,
+        "peak": 4665344
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 50167808,
+        "peak": 50167808
+      },
+      {
+        "label": "csr_placed",
+        "current": 79134720,
+        "peak": 79134720
+      },
+      {
+        "label": "graph_loaded",
+        "current": 32866304,
+        "peak": 79134720
+      },
+      {
+        "label": "queries_parsed",
+        "current": 32866304,
+        "peak": 79134720
+      },
+      {
+        "label": "order_built",
+        "current": 46972928,
+        "peak": 79134720
+      },
+      {
+        "label": "copied",
+        "current": 73498624,
+        "peak": 79134720
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 45428736,
+        "peak": 79134720
+      },
+      {
+        "label": "reordered",
+        "current": 31477760,
+        "peak": 79134720
+      },
+      {
+        "label": "transposed",
+        "current": 58961920,
+        "peak": 79134720
+      },
+      {
+        "label": "searched",
+        "current": 31969280,
+        "peak": 79134720
+      }
+    ]
+  },
+  {
+    "workers": 6,
+    "round": 2,
+    "measurement": {
+      "seconds": 0.500497878,
+      "max_rss_kib": 165204,
+      "cgroup_peak_bytes": 77885440,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1683456,
+        "peak": 4911104
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 49643520,
+        "peak": 49643520
+      },
+      {
+        "label": "csr_placed",
+        "current": 76820480,
+        "peak": 77885440
+      },
+      {
+        "label": "graph_loaded",
+        "current": 30474240,
+        "peak": 77885440
+      },
+      {
+        "label": "queries_parsed",
+        "current": 30474240,
+        "peak": 77885440
+      },
+      {
+        "label": "order_built",
+        "current": 44584960,
+        "peak": 77885440
+      },
+      {
+        "label": "copied",
+        "current": 71319552,
+        "peak": 77885440
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 44322816,
+        "peak": 77885440
+      },
+      {
+        "label": "reordered",
+        "current": 30384128,
+        "peak": 77885440
+      },
+      {
+        "label": "transposed",
+        "current": 57593856,
+        "peak": 77885440
+      },
+      {
+        "label": "searched",
+        "current": 30277632,
+        "peak": 77885440
+      }
+    ]
+  },
+  {
+    "workers": 12,
+    "round": 2,
+    "measurement": {
+      "seconds": 0.473629712,
+      "max_rss_kib": 166372,
+      "cgroup_peak_bytes": 78536704,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "marks": [
+      {
+        "label": "start",
+        "current": 1486848,
+        "peak": 5017600
+      },
+      {
+        "label": "buckets_parsed",
+        "current": 50229248,
+        "peak": 50241536
+      },
+      {
+        "label": "csr_placed",
+        "current": 78536704,
+        "peak": 78536704
+      },
+      {
+        "label": "graph_loaded",
+        "current": 32616448,
+        "peak": 78536704
+      },
+      {
+        "label": "queries_parsed",
+        "current": 32616448,
+        "peak": 78536704
+      },
+      {
+        "label": "order_built",
+        "current": 47177728,
+        "peak": 78536704
+      },
+      {
+        "label": "copied",
+        "current": 73895936,
+        "peak": 78536704
+      },
+      {
+        "label": "old_graph_dropped",
+        "current": 45527040,
+        "peak": 78536704
+      },
+      {
+        "label": "reordered",
+        "current": 31576064,
+        "peak": 78536704
+      },
+      {
+        "label": "transposed",
+        "current": 58511360,
+        "peak": 78536704
+      },
+      {
+        "label": "searched",
+        "current": 31309824,
+        "peak": 78536704
+      }
+    ]
+  }
+]

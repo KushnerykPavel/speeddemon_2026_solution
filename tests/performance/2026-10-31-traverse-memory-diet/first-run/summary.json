@@ -1,0 +1,46 @@
+{
+  "cpuset": "0-5",
+  "memory_limit": "8g",
+  "method": "one warmup, five rotating-order runs; trimmed mean of middle three",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "variants": {
+    "before-6": {
+      "trimmed_mean_seconds": 0.436260696,
+      "median_seconds": 0.437245487,
+      "spread_percent": 15.023564758063035,
+      "max_rss_kib": 183252,
+      "max_cgroup_peak_bytes": 96415744
+    },
+    "before-12": {
+      "trimmed_mean_seconds": 0.46311414166666665,
+      "median_seconds": 0.459221234,
+      "spread_percent": 13.978334229437372,
+      "max_rss_kib": 188176,
+      "max_cgroup_peak_bytes": 101412864
+    },
+    "diet-6": {
+      "trimmed_mean_seconds": 0.5171302633333333,
+      "median_seconds": 0.514987781,
+      "spread_percent": 19.304760360194106,
+      "max_rss_kib": 165104,
+      "max_cgroup_peak_bytes": 77803520
+    },
+    "diet-12": {
+      "trimmed_mean_seconds": 0.5139273056666667,
+      "median_seconds": 0.509332897,
+      "spread_percent": 6.9615835334058795,
+      "max_rss_kib": 166704,
+      "max_cgroup_peak_bytes": 79265792
+    }
+  },
+  "comparison": {
+    "diet-6": {
+      "time_change_percent": 18.536982147329017,
+      "memory_change_percent": -19.304133565572034
+    },
+    "diet-12": {
+      "time_change_percent": 10.972060541518424,
+      "memory_change_percent": -21.838523365240924
+    }
+  }
+}

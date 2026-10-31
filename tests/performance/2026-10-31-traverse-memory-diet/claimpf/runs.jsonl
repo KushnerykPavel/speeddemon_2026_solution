@@ -1,0 +1,16 @@
+{"seconds": 0.569984431, "max_rss_kib": 166428, "cgroup_peak_bytes": 78569472, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 0, "python_byte_equal": true}
+{"seconds": 0.500545481, "max_rss_kib": 166440, "cgroup_peak_bytes": 78729216, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 0, "python_byte_equal": true}
+{"seconds": 0.455426191, "max_rss_kib": 166608, "cgroup_peak_bytes": 79237120, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 1, "python_byte_equal": true}
+{"seconds": 0.475104251, "max_rss_kib": 166444, "cgroup_peak_bytes": 78471168, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 1, "python_byte_equal": true}
+{"seconds": 0.496189492, "max_rss_kib": 166532, "cgroup_peak_bytes": 78999552, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 2, "python_byte_equal": true}
+{"seconds": 0.586462648, "max_rss_kib": 166280, "cgroup_peak_bytes": 79290368, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 2, "python_byte_equal": true}
+{"seconds": 0.455335541, "max_rss_kib": 166332, "cgroup_peak_bytes": 79097856, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 3, "python_byte_equal": true}
+{"seconds": 0.48035874, "max_rss_kib": 166500, "cgroup_peak_bytes": 78991360, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 3, "python_byte_equal": true}
+{"seconds": 0.437403921, "max_rss_kib": 166568, "cgroup_peak_bytes": 78565376, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 4, "python_byte_equal": true}
+{"seconds": 0.478446294, "max_rss_kib": 166452, "cgroup_peak_bytes": 78905344, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 4, "python_byte_equal": true}
+{"seconds": 0.447668496, "max_rss_kib": 166508, "cgroup_peak_bytes": 78979072, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 5, "python_byte_equal": true}
+{"seconds": 0.471859484, "max_rss_kib": 166368, "cgroup_peak_bytes": 78954496, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 5, "python_byte_equal": true}
+{"seconds": 0.479842231, "max_rss_kib": 166448, "cgroup_peak_bytes": 78721024, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 6, "python_byte_equal": true}
+{"seconds": 0.489108534, "max_rss_kib": 166244, "cgroup_peak_bytes": 78954496, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 6, "python_byte_equal": true}
+{"seconds": 0.479445591, "max_rss_kib": 166288, "cgroup_peak_bytes": 79085568, "cgroup_metric": "v2 memory.peak", "variant": "claimpf-12", "round": 7, "python_byte_equal": true}
+{"seconds": 0.530669646, "max_rss_kib": 166788, "cgroup_peak_bytes": 78647296, "cgroup_metric": "v2 memory.peak", "variant": "balanced-12", "round": 7, "python_byte_equal": true}

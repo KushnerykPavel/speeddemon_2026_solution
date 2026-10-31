@@ -20,6 +20,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 15 | 4 KB pages: `prctl(PR_SET_THP_DISABLE)` (`a37144d`) | run-b5ad6625b248 | 0.253390 | 101.629952 | 61.599011 |
 | 16 | Single-`u64` heap keys for the `u32` search (`b9a93cd`) | run-3a1c4950924c | 0.221692 | 101.761024 | 62.975003 |
 | 17 | Software prefetch: top-of-heap row and BFS rows ahead (`7d0e8ab`) | run-79245fc6bd21 | 0.205766 | 101.924864 | 63.676026 |
+| 18 | SWAR record parsing (`d6954e2`) | run-39656346ac0a | 0.210076 | 101.093376 | 63.332170 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -672,6 +673,40 @@ Graph-load medians 0.163 → 0.116 s and 0.137 → 0.106 s; other phases
 unchanged. All outputs match Python; sixteen Rust tests (new: 200,000 random
 records, fast path always equal to the strict parser) and 1,224 Python
 comparisons pass. Mutations caught: no digit check (1 test), wrong combine
-multiplier (3). No board run ID yet.
+multiplier (3). Board result below.
 Evidence: [SWAR parsing](../tests/performance/2026-10-31-traverse-swar-parse/README.md).
 
+Step 18 official board result, feed 2026-10-31 20:39:03 UTC (21:39:03 Warsaw):
+`run-39656346ac0a`, commit `d6954e2`, all gates passed. **0.210076 s,
+101.093376 MB, S=821, D=1, K=18.477508, 63.332170 points**. Versus step 17:
+time +2.09%, memory −0.82%, **−0.343856 points** (S 783 → 821). The VPS
+load-phase gain (−23 to −29%) did not show on the board; with twelve real
+cores parsing is likely a small share of the board run, so its saving is
+within single-run noise while the added lines are certain. Step 17 remains the
+team best. The parser is kept for now and will be re-judged on the next board
+run; if time does not follow, it is a candidate for removal in the code-size
+pass. Evidence:
+[official SWAR result](../tests/performance/2026-10-31-board-swar-results/README.md).
+
+
+## Step 19 — memory diet (VPS measurement)
+
+The peak is the maximum over phases, and at `d6954e2` load (101 MB),
+renumbering (94 MB) and search (94 MB) were all close, so all three were cut
+together. Load buckets now hold 8-byte `(source, packed target|weight)`
+records with escaped weights in a side list. Renumbering only builds the
+visiting order during the breadth-first pass, then copies rows from the old
+graph into the new CSR in equal pieces (8 per worker), so no region edge
+buffers exist. `mallopt(M_MMAP_THRESHOLD, 256 KB)` makes freed large buffers
+return to the kernel. Trimming search state after long queries, freeing bucket
+parts during placement, and prefetching claims in the copy were tried and
+dropped (no peak gain or slower).
+
+Same VPS protocol at 12 workers, baseline `d6954e2`: 0.4642 → 0.4807 s
+(+3.6%), cgroup peak 101.2 → 79.0 MB (−22.0%). Phase medians: load
+0.102 → 0.091 s, renumbering 0.087 → 0.114 s, search 0.248 → 0.268 s (noise
+range). Phase marks put the new peak at the end of placement (78.8 MB), with
+the renumbering copy next (74.7 MB). Without `mallopt` the peak stays at
+98 MB. All outputs match Python; sixteen Rust tests and 1,224 Python
+comparisons pass. Board result below.
+Evidence: [memory diet](../tests/performance/2026-10-31-traverse-memory-diet/README.md).
