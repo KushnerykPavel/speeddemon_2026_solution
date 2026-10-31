@@ -779,3 +779,12 @@ buffers was 7.6% slower at 12 workers with an 85 MB peak, because the atomic
 increments contended and the old graph lived longer. Both were rejected.
 Evidence: [search tail](../tests/performance/2026-11-01-traverse-search-tail/README.md),
 [transpose](../tests/performance/2026-11-01-traverse-transpose/README.md).
+
+## Step 23 — chained BFS blobs (VPS neutral, board test pending)
+
+Cache Me and FlyHigh publish gains from replacing one ring-by-ring BFS region
+per worker with chained balls of 512 (or 64) vertices. On the VPS the search
+phase is unchanged with 512 (258.5 vs 259.5 ms) and slower with 128 and 64
+(295 and 310 ms, peaks 91.5 and 104.5 MB). The VPS cache is larger than the
+board's, so blob 512 is queued as a board-only experiment (+~10 lines).
+Evidence: [blobs](../tests/performance/2026-11-01-traverse-blobs/README.md).
