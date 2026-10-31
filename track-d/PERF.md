@@ -24,6 +24,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 19 | Memory diet: 8-byte buckets, order-then-copy renumbering, `mallopt` (`3b648eb`) | run-b507a889127d | 0.195022 | 79.945728 | **64.951278** |
 | 20 | Code-size pass, 866 → 713 code lines (`1851b13`) | run-49484fa644ae | 0.211929 | 79.613952 | 64.692701 |
 | 20 (re-sample) | Same track code, record-only commit (`2012f4e`) | run-abe73b97cc7d | 0.203360 | 79.261696 | **65.160080** |
+| 21 | `Graph::row` back on `enumerate()`, Dial rejected (`21df4fd`) | run-711cf3f5f6f1 | 0.206146 | 79.745024 | 64.981435 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -764,3 +765,17 @@ Not adopted; the code is archived with the measurements. `Graph::row` goes
 back to `enumerate()` (the slim pass had switched to `zip(start..)`, which
 loses the slice-zip specialization on the hottest loop; same line count).
 Evidence: [Dial queue](../tests/performance/2026-11-01-traverse-dial-queue/README.md).
+
+## Step 22 — search tail and transpose (VPS diagnostics, rejected changes)
+
+A per-query timing build showed the search makespan within 1–4% of perfect
+balance (the 100 longest queries are half of all search work, but the atomic
+counter already spreads them), so query ordering cannot help. Transpose
+takes 51–62 ms (about 11%): about 15 ms counting in-degrees, 16 ms prefix and
+allocation, and 25 ms scatter. First-touch page faults cost about 20 ms per
+28 MB on one thread. Counting from the raw edge array saved about 2 ms
+(noise). Counting in the renumbering copy and reusing the old graph's
+buffers was 7.6% slower at 12 workers with an 85 MB peak, because the atomic
+increments contended and the old graph lived longer. Both were rejected.
+Evidence: [search tail](../tests/performance/2026-11-01-traverse-search-tail/README.md),
+[transpose](../tests/performance/2026-11-01-traverse-transpose/README.md).

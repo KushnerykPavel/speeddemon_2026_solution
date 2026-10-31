@@ -1,0 +1,34 @@
+{
+  "before-12": {
+    "graph_s": 0.0920859,
+    "reorder_s": 0.1152293375,
+    "search_s": 0.25596387649999996,
+    "transpose_count_s": 0.014715652,
+    "transpose_prefix_s": 0.030581182999999998,
+    "transpose_total_s": 0.055756129
+  },
+  "before-6": {
+    "graph_s": 0.11272972049999999,
+    "reorder_s": 0.12363376400000001,
+    "search_s": 0.2560313955,
+    "transpose_count_s": 0.014253895999999999,
+    "transpose_prefix_s": 0.0305477845,
+    "transpose_total_s": 0.0564414135
+  },
+  "edgescan-12": {
+    "graph_s": 0.099248419,
+    "reorder_s": 0.12982367350000001,
+    "search_s": 0.257574513,
+    "transpose_count_s": 0.0128211445,
+    "transpose_prefix_s": 0.0288271975,
+    "transpose_total_s": 0.0567641205
+  },
+  "edgescan-6": {
+    "graph_s": 0.112080647,
+    "reorder_s": 0.138188156,
+    "search_s": 0.253070658,
+    "transpose_count_s": 0.011556849000000001,
+    "transpose_prefix_s": 0.028748524499999997,
+    "transpose_total_s": 0.055871472000000005
+  }
+}
