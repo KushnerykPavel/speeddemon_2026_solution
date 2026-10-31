@@ -6,8 +6,11 @@ The task, the input files and the exact output format are in the [spec](https://
 
 Rust implementation of the organisers' forward Dijkstra algorithm. Load a CSR
 graph with `u32` offsets and `(u32 target, u32 weight)` edges, retaining every
-edge. Reuse a `u64` distance array and binary min-heap across queries, resetting
+edge. Reuse a `u32` distance array and binary min-heap across queries, resetting
 only touched vertices. Stop when the target is popped, skipping stale entries.
+Relaxations that do not fit `u32` are skipped; a found distance is still exact.
+If the target is missed after such a skip, the query reruns in one `u64` search
+shared by all workers behind a mutex (4 of 2,000 seed-1 answers exceed `u32`).
 Zero weights, parallel edges, duplicates and isolated nodes are supported.
 Before searching, return zero for identical endpoints and reject queries with
 no outgoing edge at the source or no incoming edge at the target. Incoming-edge

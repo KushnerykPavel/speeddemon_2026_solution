@@ -188,7 +188,8 @@ mod traverse {
                 _ => (1, 64),
             })
             .collect();
-        let mut searcher = Searcher::new(nodes);
+        let wide = Mutex::new(None);
+        let mut searcher = Searcher::new(nodes, &wide);
         let expected: Vec<_> = queries
             .iter()
             .map(|&(source, target)| searcher.shortest_path(&graph, source, target))
@@ -217,7 +218,8 @@ mod traverse {
             edges: vec![(1, 7), (2, 0)],
             incoming: vec![0b0110],
         };
-        let mut searcher = Searcher::new(4);
+        let wide = Mutex::new(None);
+        let mut searcher = Searcher::new(4, &wide);
         for (source, target, expected) in [
             (3, 3, Some(0)), // isolated self path wins over both degree checks
             (0, 0, Some(0)), // no-in self path
@@ -227,14 +229,58 @@ mod traverse {
             (0, 1, Some(7)), // reuse after both fast rejections
         ] {
             assert_eq!(searcher.shortest_path(&graph, source, target), expected);
-            assert!(searcher.touched.is_empty());
-            assert!(searcher.heap.is_empty());
+            assert!(searcher.narrow.touched.is_empty());
+            assert!(searcher.narrow.heap.is_empty());
             assert!(
                 searcher
+                    .narrow
                     .distances
                     .iter()
-                    .all(|&distance| distance == u64::MAX)
+                    .all(|&distance| distance == u32::MAX)
             );
+            assert!(wide.lock().unwrap().is_none());
+        }
+    }
+
+    #[test]
+    fn narrow_distances_fall_back_to_u64_exactly() {
+        let max = u32::MAX;
+        // 0 -> 1 costs MAX - 1 (largest narrow answer); 0 -> 2 costs MAX (sentinel,
+        // needs u64); 0 -> 3 is cheap via 4 although the direct edge overflows;
+        // 0 -> 5 needs MAX + 2; unreachable searches that overflowed retry in u64.
+        let bytes = format!(
+            "8 9\n0 1 {}\n0 2 {max}\n0 4 1\n4 3 1\n0 3 {max}\n3 5 {max}\n5 5 0\n1 6 {max}\n4 6 5\n",
+            max - 1
+        );
+        let graph = build_graph(bytes.as_bytes(), 3).unwrap();
+        let cases = [
+            ((0, 1), Some(u64::from(max - 1))),
+            ((0, 2), Some(u64::from(max))),
+            ((0, 3), Some(2)),
+            ((0, 5), Some(u64::from(max) + 2)),
+            ((0, 6), Some(6)),
+            ((1, 2), None),
+            ((0, 7), None),
+            ((4, 1), None),
+        ];
+        let wide = Mutex::new(None);
+        let mut searcher = Searcher::new(8, &wide);
+        for _ in 0..2 {
+            for &((source, target), expected) in &cases {
+                assert_eq!(searcher.shortest_path(&graph, source, target), expected);
+                assert!(searcher.narrow.touched.is_empty() && searcher.narrow.heap.is_empty());
+                assert!(searcher.narrow.distances.iter().all(|&d| d == u32::MAX));
+                if let Some(wide) = &*wide.lock().unwrap() {
+                    assert!(wide.touched.is_empty() && wide.heap.is_empty());
+                    assert!(wide.distances.iter().all(|&d| d == u64::MAX));
+                }
+            }
+        }
+        assert!(wide.lock().unwrap().is_some());
+        let queries: Vec<_> = cases.iter().map(|&(query, _)| query).collect();
+        let expected: Vec<_> = cases.iter().map(|&(_, answer)| answer).collect();
+        for workers in [1, 2, 6, 12] {
+            assert_eq!(answer_queries(&graph, &queries, workers), expected);
         }
     }
 

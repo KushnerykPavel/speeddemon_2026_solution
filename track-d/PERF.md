@@ -11,9 +11,11 @@ Every step from the reference to your final version, each with the live-board ru
 | 5 | D5: self-query shortcut and degree rejection (`292002c`) | Not in public history | 6.927519 | 115.212288 | 29.716415 |
 | 6 | D7: dynamically scheduled independent queries, up to 12 workers (`b8e5bc1`) | run-cffe0163d7c1 | 1.626762 | 228.868096 | 41.704470 |
 | 8 | Read-only mmap + parallel two-pass CSR (`e5bad19`) | run-d07b2b8242d7 | 1.142983 | 228.335616 | 44.060351 |
+| 9 | D8: BFS vertex order + parallel row-slice CSR rebuild (`accbb64`) | run-c18ebeae7015 | 0.637161 | 234.110976 | 49.692323 |
 
-Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
-snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
+Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
+snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
+Rows 8 and 9 were appended from later official feeds; their evidence is linked below.
 The table uses the first board measurement of each implementation, not a VPS
 or synthetic result. MB means decimal 1,000,000 bytes. These are single live-board
 runs; they do not isolate noise or replace final holdout scoring.
@@ -342,6 +344,44 @@ graph, remapped edge multisets, incoming bits, self paths, zero/max weights and
 sums above u32. Local release build, Clippy and formatting pass.
 
 Decision: retain BFS order and parallel row-slice reconstruction. DFS and serial
-BFS remain experiment snapshots. No board submission/run ID for step 9 yet.
+BFS remain experiment snapshots. The subsequent official board result follows below.
 Exact sources, scripts, test/manifest snapshots, all logs, source hashes and
 multi-seed checks: [D8 evidence](../tests/performance/2026-10-31-traverse-reorder/README.md).
+
+
+Step 9 official board result, feed 2026-10-31 18:03:56 UTC (19:03:56 Warsaw):
+`run-c18ebeae7015`, commit `accbb64`, all gates passed. **0.637161 s,
+234.110976 MB, S=437, D=1, K=9.859309, 49.692323 points**. New team best;
+44.25% less time (1.7939x) and +5.631972 points versus step 8, with 2.53% more
+memory. Derived Track D position: 64 of 88 scored teams. Leader in this snapshot:
+Cause Of Death, 73.008704 points / 0.121536 s. This is a single live-board run,
+not final hidden-seed scoring. Evidence:
+[official D8 result](../tests/performance/2026-10-31-board-reorder-results/README.md).
+
+
+## Step 10 — D12: `u32` distances with shared exact `u64` fallback (VPS measurement)
+
+Workers search with `u32` distances (7 MB instead of 14 MB per worker) and 8-byte
+heap entries. A relaxation that does not fit below the `u32::MAX` sentinel is
+skipped and flags the search; a found distance is exact because every prefix of
+a shorter path also fits. A missed target after a skip reruns in `u64`.
+First attempt: a lazily allocated `u64` search per worker. On full seed 1, at
+least the 4 of 2,000 queries whose answers exceed `u32` retry in `u64`, plus
+unreachable queries whose narrow pass overflowed. Peak arithmetic implies about
+six (6 workers) and seven (12 workers) 14 MB fallback arrays, so VPS cgroup peak
+rose 28.4% / 5.4%. Kept version: one lock-protected `u64` search shared by all
+workers.
+
+Same VPS protocol as step 9 (CPU set 0-5, one warmup + five rotating runs,
+trimmed mean of middle three, cgroup v2 `memory.peak`), baseline `accbb64`:
+
+| Workers | `accbb64` T (s) | D12 T (s) | ΔT | `accbb64` peak (MB) | D12 peak (MB) | ΔM |
+|---|---:|---:|---:|---:|---:|---:|
+| 6 | 1.6469 | 1.5429 | −6.3% | 147.5 | 119.7 | −18.8% |
+| 12 | 1.6163 | 1.5737 | −2.6% | 234.0 | 163.2 | −30.3% |
+
+Time change is within run spread (8–18%); the memory cut matches −84 MB of
+distance arrays plus one shared 14 MB array at twelve workers. All 36 outputs
+match Python; twelve Rust tests (new fallback test at the `u32::MAX` boundary)
+and 1,224 Python comparisons pass on macOS and VPS. No board run ID yet.
+Evidence: [D12 evidence](../tests/performance/2026-10-31-traverse-u32-distances/README.md).

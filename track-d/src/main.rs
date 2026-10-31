@@ -5,6 +5,7 @@ use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::os::fd::AsRawFd;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicPtr, AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use std::thread;
 
@@ -310,18 +311,109 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
     }
 }
 
-struct Searcher {
-    distances: Vec<u64>,
-    touched: Vec<u32>,
-    heap: BinaryHeap<Reverse<(u64, u32)>>,
+/// Distance width used by one Dijkstra run; `MAX` marks unvisited vertices.
+trait Distance: Copy + Ord + Into<u64> {
+    const MAX: Self;
+    const ZERO: Self;
+    /// Adds an edge weight, or returns `None` if the sum does not fit below `MAX`.
+    fn relax(self, weight: u32) -> Option<Self>;
 }
 
-impl Searcher {
+impl Distance for u32 {
+    const MAX: Self = u32::MAX;
+    const ZERO: Self = 0;
+    fn relax(self, weight: u32) -> Option<Self> {
+        self.checked_add(weight).filter(|&sum| sum != u32::MAX)
+    }
+}
+
+impl Distance for u64 {
+    const MAX: Self = u64::MAX;
+    const ZERO: Self = 0;
+    fn relax(self, weight: u32) -> Option<Self> {
+        // Paths have at most n - 1 < 2^21 edges, so sums stay far below 2^63.
+        Some(self + u64::from(weight))
+    }
+}
+
+struct Search<D> {
+    distances: Vec<D>,
+    touched: Vec<u32>,
+    heap: BinaryHeap<Reverse<(D, u32)>>,
+    overflowed: bool,
+}
+
+impl<D: Distance> Search<D> {
     fn new(nodes: usize) -> Self {
         Self {
-            distances: vec![u64::MAX; nodes],
+            distances: vec![D::MAX; nodes],
             touched: Vec::new(),
             heap: BinaryHeap::new(),
+            overflowed: false,
+        }
+    }
+
+    /// Dijkstra that skips relaxations whose sum does not fit `D`. A found
+    /// distance is exact: every prefix of a shorter path would also fit. `None`
+    /// with `overflowed` set means the answer needs a wider distance type.
+    fn run(&mut self, graph: &Graph, source: u32, target: u32) -> Option<u64> {
+        self.overflowed = false;
+        let found = self.search(graph, source, target);
+        for &node in &self.touched {
+            self.distances[node as usize] = D::MAX;
+        }
+        self.touched.clear();
+        self.heap.clear();
+        found
+    }
+
+    fn search(&mut self, graph: &Graph, source: u32, target: u32) -> Option<u64> {
+        self.distances[source as usize] = D::ZERO;
+        self.touched.push(source);
+        self.heap.push(Reverse((D::ZERO, source)));
+        while let Some(Reverse((distance, node))) = self.heap.pop() {
+            if distance > self.distances[node as usize] {
+                continue;
+            }
+            if node == target {
+                return Some(distance.into());
+            }
+            let range =
+                graph.offsets[node as usize] as usize..graph.offsets[node as usize + 1] as usize;
+            for &(next, weight) in &graph.edges[range] {
+                let Some(candidate) = distance.relax(weight) else {
+                    self.overflowed = true;
+                    continue;
+                };
+                let current = &mut self.distances[next as usize];
+                if candidate < *current {
+                    if *current == D::MAX {
+                        self.touched.push(next);
+                    }
+                    *current = candidate;
+                    self.heap.push(Reverse((candidate, next)));
+                }
+            }
+        }
+        None
+    }
+}
+
+/// `u64` search shared by all workers, allocated on the first query whose answer
+/// may not fit in `u32`. One lock-protected instance keeps memory at one array.
+type WideSearch = Mutex<Option<Search<u64>>>;
+
+/// Per-worker query state: a compact `u32` search plus the shared fallback.
+struct Searcher<'a> {
+    narrow: Search<u32>,
+    wide: &'a WideSearch,
+}
+
+impl<'a> Searcher<'a> {
+    fn new(nodes: usize, wide: &'a WideSearch) -> Self {
+        Self {
+            narrow: Search::new(nodes),
+            wide,
         }
     }
 
@@ -334,41 +426,18 @@ impl Searcher {
         {
             return None;
         }
-        let found = self.search(graph, source as u32, target as u32);
-        for &node in &self.touched {
-            self.distances[node as usize] = u64::MAX;
+        let (source, target) = (source as u32, target as u32);
+        let found = self.narrow.run(graph, source, target);
+        if found.is_some() || !self.narrow.overflowed {
+            return found;
         }
-        self.touched.clear();
-        self.heap.clear();
-        found
-    }
-
-    fn search(&mut self, graph: &Graph, source: u32, target: u32) -> Option<u64> {
-        self.distances[source as usize] = 0;
-        self.touched.push(source);
-        self.heap.push(Reverse((0, source)));
-        while let Some(Reverse((distance, node))) = self.heap.pop() {
-            if distance > self.distances[node as usize] {
-                continue;
-            }
-            if node == target {
-                return Some(distance);
-            }
-            let range =
-                graph.offsets[node as usize] as usize..graph.offsets[node as usize + 1] as usize;
-            for &(next, weight) in &graph.edges[range] {
-                let candidate = distance + u64::from(weight);
-                let current = &mut self.distances[next as usize];
-                if candidate < *current {
-                    if *current == u64::MAX {
-                        self.touched.push(next);
-                    }
-                    *current = candidate;
-                    self.heap.push(Reverse((candidate, next)));
-                }
-            }
-        }
-        None
+        let nodes = graph.offsets.len() - 1;
+        let mut wide = self
+            .wide
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        wide.get_or_insert_with(|| Search::new(nodes))
+            .run(graph, source, target)
     }
 }
 
@@ -377,8 +446,9 @@ fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> 
         return Vec::new();
     }
     let workers = workers.clamp(1, 12).min(queries.len());
+    let wide = Mutex::new(None);
     if workers == 1 {
-        let mut searcher = Searcher::new(graph.offsets.len() - 1);
+        let mut searcher = Searcher::new(graph.offsets.len() - 1, &wide);
         return queries
             .iter()
             .map(|&(source, target)| searcher.shortest_path(graph, source, target))
@@ -389,7 +459,7 @@ fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> 
     thread::scope(|scope| {
         for _ in 0..workers {
             scope.spawn(|| {
-                let mut searcher = Searcher::new(graph.offsets.len() - 1);
+                let mut searcher = Searcher::new(graph.offsets.len() - 1, &wide);
                 loop {
                     let index = next.fetch_add(1, Ordering::Relaxed);
                     let Some(&(source, target)) = queries.get(index) else {
