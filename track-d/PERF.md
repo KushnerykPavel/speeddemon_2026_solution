@@ -22,6 +22,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 17 | Software prefetch: top-of-heap row and BFS rows ahead (`7d0e8ab`) | run-79245fc6bd21 | 0.205766 | 101.924864 | 63.676026 |
 | 18 | SWAR record parsing (`d6954e2`) | run-39656346ac0a | 0.210076 | 101.093376 | 63.332170 |
 | 19 | Memory diet: 8-byte buckets, order-then-copy renumbering, `mallopt` (`3b648eb`) | run-b507a889127d | 0.195022 | 79.945728 | **64.951278** |
+| 20 | Code-size pass, 866 → 713 code lines (`1851b13`) | run-49484fa644ae | 0.211929 | 79.613952 | 64.692701 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -733,3 +734,12 @@ and 0.4816 → 0.4681 s at 12, peak memory within ±0.5%. All outputs match
 Python; thirteen Rust tests and 1,224 Python comparisons pass. Expected board
 gain from S alone: 50·0.15·log10(875/722) ≈ +0.63 points. Board result below.
 Evidence: [code-size pass](../tests/performance/2026-10-31-traverse-code-size/README.md).
+
+Step 20 official board result, feed 2026-10-31 21:19:47 UTC (22:19:47 Warsaw):
+`run-49484fa644ae`, commit `1851b13`, all gates passed. **0.211929 s,
+79.613952 MB, S=722, D=1, K=19.672249, 64.692701 points**. Versus step 19:
+S 875 → 722 (+0.63 points alone), but time +8.67%, so **−0.258577 points**;
+step 19 stays the team best. The VPS A/B had the slim build faster, and board
+times for steps 17–20 span 0.195–0.212 s, so this is not yet evidence of a
+regression. Evidence:
+[official code-size result](../tests/performance/2026-10-31-board-code-size-results/README.md).
