@@ -1,0 +1,22 @@
+{
+  "before-6": {
+    "trimmed_mean_seconds": 0.556563583,
+    "spread_percent": 16.378533420257924,
+    "max_cgroup_peak_bytes": 96452608
+  },
+  "before-12": {
+    "trimmed_mean_seconds": 0.5719789703333333,
+    "spread_percent": 20.48865923298191,
+    "max_cgroup_peak_bytes": 101384192
+  },
+  "thp-6": {
+    "trimmed_mean_seconds": 0.54736492,
+    "spread_percent": 15.61071434613195,
+    "max_cgroup_peak_bytes": 96579584
+  },
+  "thp-12": {
+    "trimmed_mean_seconds": 0.5632499883333333,
+    "spread_percent": 10.105151357790309,
+    "max_cgroup_peak_bytes": 101371904
+  }
+}

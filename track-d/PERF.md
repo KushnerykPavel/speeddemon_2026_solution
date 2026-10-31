@@ -16,6 +16,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 11 | Parallel claimed-region renumbering (`974ec7e`) | run-f1a2f8d1a891 | 0.473104 | 160.182272 | 53.841416 |
 | 12 | Bidirectional Dijkstra + paged `u32` distances (`b938156`) | run-9ace8f534287 | 0.309259 | 159.694848 | 58.000036 |
 | 13 | Single-pass bucketed graph build (`853ae88`) | run-07992c342c3a | 0.238915 | 141.635584 | 61.108794 |
+| 14 | Packed 32-bit edges + exact heavy-weight list (`1767ec0`) | run-f3b44d092f5b | 0.242579 | 132.395008 | 60.976955 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -563,6 +564,32 @@ peak moved to loading (bucketed triples plus the placed CSR: 96.2 / 101.2 MB at
 6 / 12 workers), with renumbering at ~93 MB just below it. All outputs match Python; fifteen Rust tests (new:
 packing widths and escapes, full-range weights in the loader test) and 1,224
 Python comparisons pass on macOS and VPS. Mutation caught: decoding escaped
-edges without the heavy list (6 tests fail). No board run ID yet.
+edges without the heavy list (6 tests fail). Board result follows below.
 Evidence: [packed edges](../tests/performance/2026-10-31-traverse-packed-edges/README.md).
+
+Step 14 official board result, feed 2026-10-31 19:58:32 UTC (20:58:32 Warsaw):
+`run-f3b44d092f5b`, commit `1767ec0`, all gates passed. **0.242579 s,
+132.395008 MB, S=731, D=1, K=16.578266, 60.976955 points**. Versus step 13:
+memory −6.52%, time +1.53% (single runs, within board noise), **−0.131839
+points**: the memory gain did not cover S 675 → 731. Step 13 remains the team
+best. The board saved far less memory than the VPS (−25.6%). The VPS kernel
+uses transparent huge pages only on `madvise`; public board logs from other
+teams (Cache Me, FlyHigh) report that the scoring box backs anonymous memory
+with 2 MB pages, so touching any byte of a reserved region buffer or distance
+page commits 2 MB. That undoes this design's reliance on lazily touched 4 KB
+pages and motivates step 15. Evidence:
+[official packed-edge result](../tests/performance/2026-10-31-board-packed-results/README.md).
+
+
+## Step 15 — 4 KB pages for the process (board experiment)
+
+`main` first calls `prctl(PR_SET_THP_DISABLE, 1)` on Linux (four lines plus the
+declaration; failure is ignored). Hypothesis from step 14: the box backs memory
+with 2 MB transparent huge pages, so the sparsely touched reserved buffers and
+distance pages commit far more than on the VPS. The VPS uses THP only on
+`madvise`, so it cannot show the effect: there the candidate matches `1767ec0`
+within noise (0.547 / 0.563 s vs 0.557 / 0.572 s at 6 / 12 workers, peak
+unchanged at 96.6 / 101.4 MB) and all outputs match Python. Fifteen Rust tests
+and 1,224 Python comparisons pass on macOS. The board run decides.
+Evidence: [THP check](../tests/performance/2026-10-31-traverse-thp-disable/README.md).
 

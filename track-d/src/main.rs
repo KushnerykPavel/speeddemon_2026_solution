@@ -141,6 +141,22 @@ unsafe extern "C" {
     fn munmap(address: *mut std::ffi::c_void, length: usize) -> i32;
 }
 
+#[cfg(target_os = "linux")]
+unsafe extern "C" {
+    fn prctl(option: i32, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i32;
+}
+
+/// Asks Linux for 4 KB pages instead of transparent huge pages. Buffers here
+/// are reserved large and touched sparsely; with 2 MB pages one touched byte
+/// commits 2 MB. Failure only costs memory, so the result is ignored.
+fn prefer_small_pages() {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        const PR_SET_THP_DISABLE: i32 = 41;
+        prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0);
+    }
+}
+
 struct MappedFile {
     address: *mut std::ffi::c_void,
     length: usize,
@@ -781,6 +797,7 @@ fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> 
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    prefer_small_pages();
     let mut data = PathBuf::from("/data");
     let mut out = PathBuf::from("/out");
     let mut workers = thread::available_parallelism()

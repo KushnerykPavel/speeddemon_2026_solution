@@ -1,0 +1,218 @@
+[
+  {
+    "seconds": 0.595092812,
+    "max_rss_kib": 183268,
+    "cgroup_peak_bytes": 96161792,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-6",
+    "round": 0,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.611572507,
+    "max_rss_kib": 188212,
+    "cgroup_peak_bytes": 101216256,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-12",
+    "round": 0,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.577134073,
+    "max_rss_kib": 183120,
+    "cgroup_peak_bytes": 96317440,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-6",
+    "round": 0,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.589584463,
+    "max_rss_kib": 188016,
+    "cgroup_peak_bytes": 100974592,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-12",
+    "round": 0,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.645384982,
+    "max_rss_kib": 188040,
+    "cgroup_peak_bytes": 101351424,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-12",
+    "round": 1,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.614856616,
+    "max_rss_kib": 183252,
+    "cgroup_peak_bytes": 96161792,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-6",
+    "round": 1,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.605653444,
+    "max_rss_kib": 188088,
+    "cgroup_peak_bytes": 101195776,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-12",
+    "round": 1,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.603370976,
+    "max_rss_kib": 183136,
+    "cgroup_peak_bytes": 96452608,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-6",
+    "round": 1,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.548018265,
+    "max_rss_kib": 183344,
+    "cgroup_peak_bytes": 96579584,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-6",
+    "round": 2,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.557093933,
+    "max_rss_kib": 188112,
+    "cgroup_peak_bytes": 101195776,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-12",
+    "round": 2,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.541945651,
+    "max_rss_kib": 183116,
+    "cgroup_peak_bytes": 95936512,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-6",
+    "round": 2,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.535639608,
+    "max_rss_kib": 188136,
+    "cgroup_peak_bytes": 101384192,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-12",
+    "round": 2,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.565828945,
+    "max_rss_kib": 187956,
+    "cgroup_peak_bytes": 101007360,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-12",
+    "round": 3,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.526234182,
+    "max_rss_kib": 183088,
+    "cgroup_peak_bytes": 96366592,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-6",
+    "round": 3,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.565895223,
+    "max_rss_kib": 188296,
+    "cgroup_peak_bytes": 100601856,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-12",
+    "round": 3,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.547604608,
+    "max_rss_kib": 183192,
+    "cgroup_peak_bytes": 96161792,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-6",
+    "round": 3,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.601510916,
+    "max_rss_kib": 183356,
+    "cgroup_peak_bytes": 96051200,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-6",
+    "round": 4,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.589777449,
+    "max_rss_kib": 188160,
+    "cgroup_peak_bytes": 101134336,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-12",
+    "round": 4,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.531833593,
+    "max_rss_kib": 182984,
+    "cgroup_peak_bytes": 96124928,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-6",
+    "round": 4,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.566827087,
+    "max_rss_kib": 188296,
+    "cgroup_peak_bytes": 101371904,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-12",
+    "round": 4,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.560264239,
+    "max_rss_kib": 188072,
+    "cgroup_peak_bytes": 101208064,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-12",
+    "round": 5,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.546471887,
+    "max_rss_kib": 183216,
+    "cgroup_peak_bytes": 96157696,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-6",
+    "round": 5,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.550068218,
+    "max_rss_kib": 188252,
+    "cgroup_peak_bytes": 101195776,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "thp-12",
+    "round": 5,
+    "python_byte_equal": true
+  },
+  {
+    "seconds": 0.518455559,
+    "max_rss_kib": 183356,
+    "cgroup_peak_bytes": 96108544,
+    "cgroup_metric": "v2 memory.peak",
+    "variant": "before-6",
+    "round": 5,
+    "python_byte_equal": true
+  }
+]
