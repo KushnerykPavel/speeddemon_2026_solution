@@ -1,0 +1,32 @@
+{
+    "run_id": "run-81554f49a3d1",
+    "commit": "cae88c9a7ea812abc5036a4d38a1e5eb648afaaa",
+    "pushed_at": "2026-10-31T22:09:28Z",
+    "dispatched_at": "2026-10-31T22:09:45Z",
+    "started_at": "2026-10-31T22:10:24Z",
+    "ended_at": "2026-10-31T22:10:25Z",
+    "queue_latency_s": 55.8,
+    "ok": true,
+    "stage": "scored",
+    "gates": {
+        "check": true,
+        "build": true,
+        "correctness": true,
+        "timeout": true,
+        "sandbox": true
+    },
+    "T_s": 0.198285,
+    "M_bytes": 79855616,
+    "S": 736,
+    "D": 1,
+    "K": 20.267022,
+    "points": 65.339497,
+    "static_axes": "measured",
+    "timeout_s": 218.078,
+    "build_s": 10.773,
+    "image_bytes": 118267419,
+    "failure": null,
+    "lang": [
+        "Rust"
+    ]
+}

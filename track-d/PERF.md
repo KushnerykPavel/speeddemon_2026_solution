@@ -25,6 +25,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 20 | Code-size pass, 866 → 713 code lines (`1851b13`) | run-49484fa644ae | 0.211929 | 79.613952 | 64.692701 |
 | 20 (re-sample) | Same track code, record-only commit (`2012f4e`) | run-abe73b97cc7d | 0.203360 | 79.261696 | **65.160080** |
 | 21 | `Graph::row` back on `enumerate()`, Dial rejected (`21df4fd`) | run-711cf3f5f6f1 | 0.206146 | 79.745024 | 64.981435 |
+| 23 | Chained BFS blobs of 512 (`cae88c9`) | run-81554f49a3d1 | 0.198285 | 79.855616 | 65.339497 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -780,7 +781,7 @@ increments contended and the old graph lived longer. Both were rejected.
 Evidence: [search tail](../tests/performance/2026-11-01-traverse-search-tail/README.md),
 [transpose](../tests/performance/2026-11-01-traverse-transpose/README.md).
 
-## Step 23 — chained BFS blobs (VPS neutral, board test pending)
+## Step 23 — chained BFS blobs (VPS neutral, board +0.18)
 
 Cache Me and FlyHigh publish gains from replacing one ring-by-ring BFS region
 per worker with chained balls of 512 (or 64) vertices. On the VPS the search
@@ -788,3 +789,9 @@ phase is unchanged with 512 (258.5 vs 259.5 ms) and slower with 128 and 64
 (295 and 310 ms, peaks 91.5 and 104.5 MB). The VPS cache is larger than the
 board's, so blob 512 is queued as a board-only experiment (+~10 lines).
 Evidence: [blobs](../tests/performance/2026-11-01-traverse-blobs/README.md).
+
+Step 23 board result: `run-81554f49a3d1`, commit `cae88c9`, all gates passed.
+**0.198285 s, 79.855616 MB, S=736, 65.339497 points**, +0.18 over the step 20
+best sample, inside the ±4% single-run spread (S +13 included). A record-only
+commit gives the second sample. Evidence:
+[official blobs result](../tests/performance/2026-11-01-board-blobs-results/README.md).
