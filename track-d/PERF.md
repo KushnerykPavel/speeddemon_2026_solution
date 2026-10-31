@@ -17,6 +17,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 12 | Bidirectional Dijkstra + paged `u32` distances (`b938156`) | run-9ace8f534287 | 0.309259 | 159.694848 | 58.000036 |
 | 13 | Single-pass bucketed graph build (`853ae88`) | run-07992c342c3a | 0.238915 | 141.635584 | 61.108794 |
 | 14 | Packed 32-bit edges + exact heavy-weight list (`1767ec0`) | run-f3b44d092f5b | 0.242579 | 132.395008 | 60.976955 |
+| 15 | 4 KB pages: `prctl(PR_SET_THP_DISABLE)` (`a37144d`) | run-b5ad6625b248 | 0.253390 | 101.629952 | 61.599011 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -590,6 +591,35 @@ distance pages commit far more than on the VPS. The VPS uses THP only on
 `madvise`, so it cannot show the effect: there the candidate matches `1767ec0`
 within noise (0.547 / 0.563 s vs 0.557 / 0.572 s at 6 / 12 workers, peak
 unchanged at 96.6 / 101.4 MB) and all outputs match Python. Fifteen Rust tests
-and 1,224 Python comparisons pass on macOS. The board run decides.
+and 1,224 Python comparisons pass on macOS. The board run decides; see below.
 Evidence: [THP check](../tests/performance/2026-10-31-traverse-thp-disable/README.md).
+
+Step 15 official board result, feed 2026-10-31 20:12:15 UTC (21:12:15 Warsaw):
+`run-b5ad6625b248`, commit `a37144d`, all gates passed. **0.253390 s,
+101.629952 MB, S=743, D=1, K=17.060047, 61.599011 points**. New team best.
+Versus step 14: memory −23.24% (132.40 → 101.63 MB), time +4.46%, +0.622056
+points; versus step 13 (previous best) +0.490217. The board peak now matches
+the VPS (101.4 MB), confirming the huge-page explanation: from here VPS memory
+measurements transfer to the board. The time rise may be 4 KB-page TLB cost or
+board noise; it is a single run. Derived Track D position: 36 of 90 (tenth
+place 68.45). Evidence:
+[official THP result](../tests/performance/2026-10-31-board-thp-results/README.md).
+
+
+## Step 16 — single-u64 heap keys (VPS measurement)
+
+The `u32` search now pushes `distance << 32 | node` as one `u64` heap key
+(ordered exactly like the `(distance, node)` tuple, one comparison per sift);
+the `u64` fallback keeps tuple keys through an associated `Distance::Key` type.
+Idea credit: Team7's public PERF.md.
+
+Same VPS protocol, baseline `a37144d`: total 0.5917 → 0.5627 s
+(-4.9%) at 6 workers and 0.5835 → 0.5587 s (-4.2%) at
+12, peak unchanged (96.4 / 101.4 MB). Search-phase medians
+0.293 → 0.262 s and 0.304 → 0.283 s. Run spreads were
+14–19%, so the total change is not cleanly resolved; both search phases moved
+the same way. All outputs match Python; fifteen Rust tests and 1,224 Python
+comparisons pass. Mutation caught: swapped key halves (2 tests fail). No board
+run ID yet.
+Evidence: [heap key](../tests/performance/2026-10-31-traverse-heap-key/README.md).
 

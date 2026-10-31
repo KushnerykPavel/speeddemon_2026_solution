@@ -546,24 +546,43 @@ fn transpose(graph: &Graph, workers: usize) -> Graph {
 trait Distance: Copy + Ord + Into<u64> {
     const MAX: Self;
     const ZERO: Self;
+    /// Heap key ordered like `(distance, node)`.
+    type Key: Copy + Ord;
     /// Adds an edge weight, or returns `None` if the sum does not fit below `MAX`.
     fn relax(self, weight: u32) -> Option<Self>;
+    fn key(self, node: u32) -> Self::Key;
+    fn unkey(key: Self::Key) -> (Self, u32);
 }
 
 impl Distance for u32 {
     const MAX: Self = u32::MAX;
     const ZERO: Self = 0;
+    /// Distance in the high half, node in the low half: one comparison per sift.
+    type Key = u64;
     fn relax(self, weight: u32) -> Option<Self> {
         self.checked_add(weight).filter(|&sum| sum != u32::MAX)
+    }
+    fn key(self, node: u32) -> u64 {
+        u64::from(self) << 32 | u64::from(node)
+    }
+    fn unkey(key: u64) -> (Self, u32) {
+        ((key >> 32) as u32, key as u32)
     }
 }
 
 impl Distance for u64 {
     const MAX: Self = u64::MAX;
     const ZERO: Self = 0;
+    type Key = (u64, u32);
     fn relax(self, weight: u32) -> Option<Self> {
         // Paths have at most n - 1 < 2^21 edges, so sums stay far below 2^63.
         Some(self + u64::from(weight))
+    }
+    fn key(self, node: u32) -> (u64, u32) {
+        (self, node)
+    }
+    fn unkey(key: (u64, u32)) -> (Self, u32) {
+        key
     }
 }
 
@@ -575,11 +594,11 @@ const NO_PAGE: u32 = u32::MAX;
 /// One direction of a bidirectional search. Distances live in pages that are
 /// assigned on first write and returned after each query, so memory follows
 /// the largest search instead of the vertex count.
-struct Side<D> {
+struct Side<D: Distance> {
     page_of_block: Vec<u32>,
     pages: Vec<D>,
     used_blocks: Vec<u32>,
-    heap: BinaryHeap<Reverse<(D, u32)>>,
+    heap: BinaryHeap<Reverse<D::Key>>,
 }
 
 impl<D: Distance> Side<D> {
@@ -612,23 +631,22 @@ impl<D: Distance> Side<D> {
             }
         }
         self.pages[page as usize * PAGE + node as usize % PAGE] = distance;
-        self.heap.push(Reverse((distance, node)));
+        self.heap.push(Reverse(distance.key(node)));
     }
 
     /// Smallest queued key; a stale key is still a valid lower bound.
     fn top(&self) -> Option<u64> {
-        self.heap
-            .peek()
-            .map(|&Reverse((distance, _))| distance.into())
+        self.heap.peek().map(|&Reverse(key)| D::unkey(key).0.into())
     }
 
     /// Settles the next vertex and relaxes its edges in `graph`. Returns the
     /// shortest path length through any edge that reaches a vertex `other` has
     /// already labelled. Sums that do not fit `D` are skipped and flagged.
     fn settle_next(&mut self, graph: &Graph, other: &Self, overflowed: &mut bool) -> u64 {
-        let Some(Reverse((distance, node))) = self.heap.pop() else {
+        let Some(Reverse(key)) = self.heap.pop() else {
             return u64::MAX;
         };
+        let (distance, node) = D::unkey(key);
         if distance > self.distance(node) {
             return u64::MAX;
         }
@@ -664,7 +682,7 @@ impl<D: Distance> Side<D> {
 /// from the target over the reverse graph. Each step grows the side with the
 /// smaller queue, so a side that is about to run out (an island, a dead end)
 /// finishes first instead of letting the other side flood the graph.
-struct Search<D> {
+struct Search<D: Distance> {
     forward: Side<D>,
     backward: Side<D>,
     overflowed: bool,

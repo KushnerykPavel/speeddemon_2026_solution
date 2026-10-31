@@ -1,0 +1,46 @@
+{
+  "cpuset": "0-5",
+  "memory_limit": "8g",
+  "method": "one warmup, five rotating-order runs; trimmed mean of middle three",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "variants": {
+    "before-6": {
+      "trimmed_mean_seconds": 0.5916936353333333,
+      "median_seconds": 0.581395301,
+      "spread_percent": 14.786172689303845,
+      "max_rss_kib": 183308,
+      "max_cgroup_peak_bytes": 96423936
+    },
+    "before-12": {
+      "trimmed_mean_seconds": 0.583472608,
+      "median_seconds": 0.576486958,
+      "spread_percent": 8.06704230993487,
+      "max_rss_kib": 188060,
+      "max_cgroup_peak_bytes": 101236736
+    },
+    "heapkey-6": {
+      "trimmed_mean_seconds": 0.562677513,
+      "median_seconds": 0.566199349,
+      "spread_percent": 19.027175898704396,
+      "max_rss_kib": 183368,
+      "max_cgroup_peak_bytes": 96428032
+    },
+    "heapkey-12": {
+      "trimmed_mean_seconds": 0.5586919226666667,
+      "median_seconds": 0.547766533,
+      "spread_percent": 18.73776347670606,
+      "max_rss_kib": 188236,
+      "max_cgroup_peak_bytes": 101404672
+    }
+  },
+  "comparison": {
+    "heapkey-6": {
+      "time_change_percent": -4.903909827758568,
+      "memory_change_percent": 0.004247907905363668
+    },
+    "heapkey-12": {
+      "time_change_percent": -4.24710346185323,
+      "memory_change_percent": 0.1658844473215737
+    }
+  }
+}

@@ -1,0 +1,861 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::error::Error;
+use std::fs::{self, File};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
+use std::os::fd::AsRawFd;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicPtr, AtomicU32, AtomicU64, AtomicUsize, Ordering};
+use std::thread;
+
+/// Exact weights of edges whose packed weight is the escape code, keyed by edge
+/// index; filled by parallel builders and sorted when the graph is finished.
+type Heavy = Mutex<Vec<(u32, u32)>>;
+
+/// Packs an edge into one `u32`: the other endpoint in the low `head_bits`, the
+/// weight above it. A weight that does not fit is stored as the all-ones escape
+/// code with its exact value in the graph's `heavy` list.
+#[derive(Clone, Copy)]
+struct Packing {
+    head_bits: u32,
+}
+
+impl Packing {
+    fn for_nodes(nodes: usize) -> io::Result<Self> {
+        let head_bits = (usize::BITS - nodes.saturating_sub(1).leading_zeros()).max(1);
+        if head_bits >= 32 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "too many vertices",
+            ));
+        }
+        Ok(Self { head_bits })
+    }
+
+    fn escape(self) -> u32 {
+        u32::MAX >> self.head_bits
+    }
+
+    fn pack(self, index: usize, head: u32, weight: u32, heavy: &Heavy) -> u32 {
+        if weight >= self.escape() {
+            let mut heavy = heavy.lock().unwrap_or_else(|poison| poison.into_inner());
+            heavy.push((index as u32, weight));
+        }
+        head | weight.min(self.escape()) << self.head_bits
+    }
+}
+
+/// Compressed sparse rows: the packed edges of vertex `v` are
+/// `edges[offsets[v]..offsets[v + 1]]`; `row(v)` yields `(other endpoint, weight)`.
+struct Graph {
+    offsets: Vec<u32>,
+    edges: Vec<u32>,
+    heavy: Vec<(u32, u32)>,
+    packing: Packing,
+}
+
+impl Graph {
+    fn new(offsets: Vec<u32>, edges: Vec<u32>, heavy: Heavy, packing: Packing) -> Self {
+        let mut heavy = heavy
+            .into_inner()
+            .unwrap_or_else(|poison| poison.into_inner());
+        heavy.sort_unstable();
+        Self {
+            offsets,
+            edges,
+            heavy,
+            packing,
+        }
+    }
+
+    fn row(&self, node: usize) -> impl Iterator<Item = (u32, u32)> + '_ {
+        let start = self.offsets[node] as usize;
+        let Packing { head_bits } = self.packing;
+        self.edges[start..self.offsets[node + 1] as usize]
+            .iter()
+            .enumerate()
+            .map(move |(offset, &packed)| {
+                let (head, code) = (packed & ((1 << head_bits) - 1), packed >> head_bits);
+                if code != self.packing.escape() {
+                    return (head, code);
+                }
+                let index = (start + offset) as u32;
+                let at = self.heavy.partition_point(|&(heavy, _)| heavy < index);
+                (head, self.heavy[at].1)
+            })
+    }
+}
+
+fn read_record<const N: usize>(
+    reader: &mut impl BufRead,
+    buffer: &mut Vec<u8>,
+) -> io::Result<Option<[u32; N]>> {
+    buffer.clear();
+    if reader.read_until(b'\n', buffer)? == 0 {
+        return Ok(None);
+    }
+    parse_fields(buffer).map(Some)
+}
+
+fn parse_fields<const N: usize>(buffer: &[u8]) -> io::Result<[u32; N]> {
+    let invalid = || io::Error::new(io::ErrorKind::InvalidData, "expected uint32 fields");
+    let mut fields = [0_u32; N];
+    let mut position = 0;
+    for field in &mut fields {
+        while position < buffer.len() && buffer[position].is_ascii_whitespace() {
+            position += 1;
+        }
+        let start = position;
+        while position < buffer.len() && buffer[position].is_ascii_digit() {
+            *field = field
+                .checked_mul(10)
+                .and_then(|value| value.checked_add(u32::from(buffer[position] - b'0')))
+                .ok_or_else(invalid)?;
+            position += 1;
+        }
+        if position == start || (position < buffer.len() && !buffer[position].is_ascii_whitespace())
+        {
+            return Err(invalid());
+        }
+    }
+    if buffer[position..]
+        .iter()
+        .any(|byte| !byte.is_ascii_whitespace())
+    {
+        return Err(invalid());
+    }
+    Ok(fields)
+}
+
+// The competition target and local development hosts use 64-bit Unix off_t.
+unsafe extern "C" {
+    fn mmap(
+        address: *mut std::ffi::c_void,
+        length: usize,
+        protection: i32,
+        flags: i32,
+        fd: i32,
+        offset: i64,
+    ) -> *mut std::ffi::c_void;
+    fn munmap(address: *mut std::ffi::c_void, length: usize) -> i32;
+}
+
+#[cfg(target_os = "linux")]
+unsafe extern "C" {
+    fn prctl(option: i32, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i32;
+}
+
+/// Asks Linux for 4 KB pages instead of transparent huge pages. Buffers here
+/// are reserved large and touched sparsely; with 2 MB pages one touched byte
+/// commits 2 MB. Failure only costs memory, so the result is ignored.
+fn prefer_small_pages() {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        const PR_SET_THP_DISABLE: i32 = 41;
+        prctl(PR_SET_THP_DISABLE, 1, 0, 0, 0);
+    }
+}
+
+struct MappedFile {
+    address: *mut std::ffi::c_void,
+    length: usize,
+}
+
+impl MappedFile {
+    fn open(path: &Path) -> io::Result<Self> {
+        let file = File::open(path)?;
+        let length = usize::try_from(file.metadata()?.len()).map_err(io::Error::other)?;
+        if length > isize::MAX as usize {
+            return Err(io::Error::other("input is too large to map"));
+        }
+        let mut mapping = Self {
+            address: std::ptr::null_mut(),
+            length: 0,
+        };
+        if length != 0 {
+            // Read-only MAP_PRIVATE mapping. Inputs must not be modified/truncated
+            // during loading, as guaranteed by the read-only competition data mount.
+            let address = unsafe { mmap(std::ptr::null_mut(), length, 1, 2, file.as_raw_fd(), 0) };
+            if address as isize == -1 {
+                return Err(io::Error::last_os_error());
+            }
+            if address.is_null() {
+                unsafe {
+                    munmap(address, length);
+                }
+                return Err(io::Error::other("null mapping address"));
+            }
+            mapping = Self { address, length };
+        }
+        Ok(mapping)
+    }
+
+    fn bytes(&self) -> &[u8] {
+        if self.length == 0 {
+            return &[];
+        }
+        // The mapping stays alive for this borrow; all scoped workers finish
+        // before read_graph returns and Drop unmaps the input.
+        unsafe { std::slice::from_raw_parts(self.address.cast(), self.length) }
+    }
+}
+
+impl Drop for MappedFile {
+    fn drop(&mut self) {
+        if self.length != 0 {
+            unsafe {
+                munmap(self.address, self.length);
+            }
+        }
+    }
+}
+
+fn line_chunks(bytes: &[u8], workers: usize) -> Vec<&[u8]> {
+    let workers = workers.clamp(1, 12);
+    let mut chunks = Vec::with_capacity(workers);
+    let mut start = 0;
+    for part in 1..=workers {
+        let mut end = (bytes.len() / workers * part).max(start);
+        if part == workers {
+            end = bytes.len();
+        }
+        while end < bytes.len() && end > 0 && bytes[end - 1] != b'\n' {
+            end += 1;
+        }
+        if end > start {
+            chunks.push(&bytes[start..end]);
+        }
+        start = end;
+    }
+    chunks
+}
+
+/// Parses every chunk's records on its own scoped worker. Each worker owns a
+/// state from `init` that `visit` updates; returns the record count and states.
+fn parse_chunks<S: Send>(
+    chunks: &[&[u8]],
+    init: impl Fn() -> S + Sync,
+    visit: impl Fn(&mut S, [u32; 3]) -> io::Result<()> + Sync,
+) -> io::Result<(usize, Vec<S>)> {
+    thread::scope(|scope| {
+        let handles: Vec<_> = chunks
+            .iter()
+            .map(|&chunk| {
+                let (init, visit) = (&init, &visit);
+                scope.spawn(move || {
+                    let mut state = init();
+                    let mut count = 0;
+                    for line in chunk.split_inclusive(|&byte| byte == b'\n') {
+                        visit(&mut state, parse_fields(line)?)?;
+                        count += 1;
+                    }
+                    Ok::<_, io::Error>((count, state))
+                })
+            })
+            .collect();
+        let mut total = 0;
+        let mut states = Vec::with_capacity(handles.len());
+        for handle in handles {
+            let (count, state) = handle
+                .join()
+                .map_err(|_| io::Error::other("graph worker panicked"))??;
+            total += count;
+            states.push(state);
+        }
+        Ok((total, states))
+    })
+}
+
+/// Edges parsed by one chunk worker, bucketed by the part that owns their source.
+type Buckets = Vec<Vec<(u32, u32, u32)>>;
+
+/// Parses the graph in one pass. Workers bucket each edge by its source's part
+/// (a power-of-two block of IDs, about eight per worker); then each part counts
+/// and places its own edges into its own disjoint slices of the CSR, a region
+/// small enough to stay in cache, with no atomics. Within a row, edges keep
+/// chunk order and then line order.
+fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
+    let invalid = |message| io::Error::new(io::ErrorKind::InvalidData, message);
+    if bytes.is_empty() {
+        return Err(invalid("missing graph header"));
+    }
+    let header_end = bytes
+        .iter()
+        .position(|&byte| byte == b'\n')
+        .map_or(bytes.len(), |i| i + 1);
+    let [n, m] = parse_fields(&bytes[..header_end])?;
+    let (n, m) = (n as usize, m as usize);
+    let packing = Packing::for_nodes(n)?;
+    let workers = workers.clamp(1, 12);
+    let part_bits = n
+        .div_ceil(8 * workers)
+        .next_power_of_two()
+        .trailing_zeros()
+        .max(10);
+    let parts = n.div_ceil(1 << part_bits);
+    let chunks = line_chunks(&bytes[header_end..], workers);
+    let (count, buckets) = parse_chunks(
+        &chunks,
+        || vec![Vec::new(); parts],
+        |buckets: &mut Buckets, [u, v, w]| {
+            if u as usize >= n || v as usize >= n {
+                return Err(invalid("edge vertex outside graph"));
+            }
+            buckets[(u >> part_bits) as usize].push((u, v, w));
+            Ok(())
+        },
+    )?;
+    if count != m {
+        return Err(invalid("edge count differs from header"));
+    }
+    let part_sizes: Vec<usize> = (0..parts)
+        .map(|part| buckets.iter().map(|bucket| bucket[part].len()).sum())
+        .collect();
+    let mut offsets = vec![0_u32; n + 1];
+    let mut edges = vec![0; m];
+    let heavy = Mutex::new(Vec::new());
+    thread::scope(|scope| {
+        let (mut offset_rest, mut edge_rest) = (&mut offsets[..n], edges.as_mut_slice());
+        let mut base = 0;
+        let parts_per_worker = parts.div_ceil(workers).max(1);
+        for first in (0..parts).step_by(parts_per_worker) {
+            let last = (first + parts_per_worker).min(parts);
+            let nodes_here = (last << part_bits).min(n) - (first << part_bits);
+            let edges_here: usize = part_sizes[first..last].iter().sum();
+            let (mut row_starts, rest) = offset_rest.split_at_mut(nodes_here);
+            offset_rest = rest;
+            let (mut slots, rest) = edge_rest.split_at_mut(edges_here);
+            edge_rest = rest;
+            let (buckets, part_sizes, heavy, worker_base) = (&buckets, &part_sizes, &heavy, base);
+            scope.spawn(move || {
+                let mut base = worker_base;
+                for part in first..last {
+                    let start = part << part_bits;
+                    let (part_starts, rest) =
+                        row_starts.split_at_mut((n - start).min(1 << part_bits));
+                    row_starts = rest;
+                    let (part_slots, rest) = slots.split_at_mut(part_sizes[part]);
+                    slots = rest;
+                    let records = || buckets.iter().flat_map(|bucket| &bucket[part]);
+                    for &(u, _, _) in records() {
+                        part_starts[u as usize - start] += 1;
+                    }
+                    let mut total = 0;
+                    for row in part_starts.iter_mut() {
+                        (*row, total) = (total, total + *row);
+                    }
+                    let mut cursor = part_starts.to_vec();
+                    for &(u, v, w) in records() {
+                        let next = &mut cursor[u as usize - start];
+                        let index = (base + *next) as usize;
+                        part_slots[*next as usize] = packing.pack(index, v, w, heavy);
+                        *next += 1;
+                    }
+                    for row in part_starts.iter_mut() {
+                        *row += base;
+                    }
+                    base += part_sizes[part] as u32;
+                }
+            });
+            base += edges_here as u32;
+        }
+    });
+    offsets[n] = m as u32;
+    Ok(Graph::new(offsets, edges, heavy, packing))
+}
+
+fn read_graph(path: &Path, workers: usize) -> io::Result<Graph> {
+    let mapping = MappedFile::open(path)?;
+    build_graph(mapping.bytes(), workers)
+}
+
+/// One worker's share of the renumbering: the old IDs it claimed in visiting
+/// order, each claimed vertex's edge end, and its edges with provisional heads.
+struct Region {
+    order: Vec<u32>,
+    ends: Vec<u32>,
+    edges: Vec<(u32, u32)>,
+}
+
+/// Renumbers vertices so searches touch nearby memory. Every worker grows
+/// breadth-first regions from unclaimed roots in its own slice of old IDs and
+/// claims each vertex with a compare-and-swap on `worker << bits | position + 1`
+/// (0 = free). Workers write their edges with those provisional heads while
+/// visiting, so the old graph is read once; a parallel pass then concatenates
+/// the regions into the new CSR, translating provisional IDs to final ones.
+fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -> Graph {
+    let nodes = graph.offsets.len() - 1;
+    // Provisional IDs need worker bits above the position bits within a u32.
+    if queries.is_empty() || nodes >= 1 << 27 {
+        return graph;
+    }
+    let workers = workers.clamp(1, 12);
+    let bits = usize::BITS - nodes.leading_zeros();
+    let claims: Vec<_> = (0..nodes).map(|_| AtomicU32::new(0)).collect();
+    let regions: Vec<Region> = thread::scope(|scope| {
+        let handles: Vec<_> = (0..workers)
+            .map(|worker| {
+                let (graph, claims) = (&graph, &claims);
+                scope.spawn(move || {
+                    let provisional = |position: usize| (worker << bits | (position + 1)) as u32;
+                    // Reserve for the whole graph: only pages actually written are
+                    // charged, and the buffers never reallocate or copy.
+                    let mut region = Region {
+                        order: Vec::with_capacity(nodes),
+                        ends: Vec::with_capacity(nodes),
+                        edges: Vec::with_capacity(graph.edges.len()),
+                    };
+                    for root in nodes * worker / workers..nodes * (worker + 1) / workers {
+                        let claim = provisional(region.order.len());
+                        if claims[root].load(Ordering::Relaxed) != 0
+                            || claims[root]
+                                .compare_exchange(0, claim, Ordering::Relaxed, Ordering::Relaxed)
+                                .is_err()
+                        {
+                            continue;
+                        }
+                        let mut head = region.order.len();
+                        region.order.push(root as u32);
+                        while head < region.order.len() {
+                            let node = region.order[head] as usize;
+                            head += 1;
+                            for (target, weight) in graph.row(node) {
+                                let slot = &claims[target as usize];
+                                let mut id = slot.load(Ordering::Relaxed);
+                                if id == 0 {
+                                    let claim = provisional(region.order.len());
+                                    id = match slot.compare_exchange(
+                                        0,
+                                        claim,
+                                        Ordering::Relaxed,
+                                        Ordering::Relaxed,
+                                    ) {
+                                        Ok(_) => {
+                                            region.order.push(target);
+                                            claim
+                                        }
+                                        Err(owner) => owner,
+                                    };
+                                }
+                                region.edges.push((id, weight));
+                            }
+                            region.ends.push(region.edges.len() as u32);
+                        }
+                    }
+                    region
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .map(|handle| handle.join().expect("reorder worker panicked"))
+            .collect()
+    });
+    let packing = graph.packing;
+    drop(graph);
+    let mut node_base = Vec::with_capacity(workers);
+    let mut edge_base = Vec::with_capacity(workers);
+    let (mut node_total, mut edge_total) = (0_u32, 0_u32);
+    for region in &regions {
+        node_base.push(node_total);
+        edge_base.push(edge_total);
+        node_total += region.order.len() as u32;
+        edge_total += region.edges.len() as u32;
+    }
+    let mask = (1_u32 << bits) - 1;
+    let final_id = |id: u32| node_base[(id >> bits) as usize] + (id & mask) - 1;
+    let mut new_offsets = vec![0_u32; nodes + 1];
+    let mut new_edges = vec![0; edge_total as usize];
+    let heavy = Mutex::new(Vec::new());
+    thread::scope(|scope| {
+        let mut offset_rest = &mut new_offsets[1..];
+        let mut edge_rest = new_edges.as_mut_slice();
+        for (region, &base) in regions.iter().zip(&edge_base) {
+            let (offset_slots, rest) = offset_rest.split_at_mut(region.order.len());
+            offset_rest = rest;
+            let (edge_slots, rest) = edge_rest.split_at_mut(region.edges.len());
+            edge_rest = rest;
+            let (final_id, heavy) = (&final_id, &heavy);
+            scope.spawn(move || {
+                for (slot, &end) in offset_slots.iter_mut().zip(&region.ends) {
+                    *slot = base + end;
+                }
+                for (index, (slot, &(id, weight))) in
+                    edge_slots.iter_mut().zip(&region.edges).enumerate()
+                {
+                    *slot = packing.pack(base as usize + index, final_id(id), weight, heavy);
+                }
+            });
+        }
+    });
+    for (source, target) in queries {
+        *source = final_id(claims[*source].load(Ordering::Relaxed)) as usize;
+        *target = final_id(claims[*target].load(Ordering::Relaxed)) as usize;
+    }
+    Graph::new(new_offsets, new_edges, heavy, packing)
+}
+
+/// Reverse graph: row `v` lists `(u, w)` for every edge `u -> v` of `graph`.
+/// Workers count in-degrees over disjoint source rows, then scatter each edge
+/// into a slot claimed from its target's atomic cursor.
+fn transpose(graph: &Graph, workers: usize) -> Graph {
+    let nodes = graph.offsets.len() - 1;
+    let workers = workers.clamp(1, 12);
+    let for_each_edge = |visit: &(dyn Fn(u32, u32, u32) + Sync)| {
+        thread::scope(|scope| {
+            for worker in 0..workers {
+                scope.spawn(move || {
+                    for source in nodes * worker / workers..nodes * (worker + 1) / workers {
+                        for (target, weight) in graph.row(source) {
+                            visit(source as u32, target, weight);
+                        }
+                    }
+                });
+            }
+        });
+    };
+    let degrees: Vec<_> = (0..nodes).map(|_| AtomicU32::new(0)).collect();
+    for_each_edge(&|_, target, _| {
+        degrees[target as usize].fetch_add(1, Ordering::Relaxed);
+    });
+    let mut offsets = vec![0_u32; nodes + 1];
+    for (i, degree) in degrees.into_iter().enumerate() {
+        offsets[i + 1] = offsets[i] + degree.into_inner();
+    }
+    let cursor: Vec<_> = offsets[..nodes]
+        .iter()
+        .map(|&offset| AtomicU32::new(offset))
+        .collect();
+    let mut edges = vec![0; graph.edges.len()];
+    let slots = AtomicPtr::new(edges.as_mut_ptr());
+    let heavy = Mutex::new(Vec::new());
+    for_each_edge(&|source, target, weight| {
+        let index = cursor[target as usize].fetch_add(1, Ordering::Relaxed) as usize;
+        let packed = graph.packing.pack(index, source, weight, &heavy);
+        // Every edge is visited once and the counted cursors hand out unique,
+        // in-bounds slots; the Vec does not move and is read only after the joins.
+        unsafe {
+            slots.load(Ordering::Relaxed).add(index).write(packed);
+        }
+    });
+    Graph::new(offsets, edges, heavy, graph.packing)
+}
+
+/// Distance width used by one Dijkstra run; `MAX` marks unvisited vertices.
+trait Distance: Copy + Ord + Into<u64> {
+    const MAX: Self;
+    const ZERO: Self;
+    /// Heap key ordered like `(distance, node)`.
+    type Key: Copy + Ord;
+    /// Adds an edge weight, or returns `None` if the sum does not fit below `MAX`.
+    fn relax(self, weight: u32) -> Option<Self>;
+    fn key(self, node: u32) -> Self::Key;
+    fn unkey(key: Self::Key) -> (Self, u32);
+}
+
+impl Distance for u32 {
+    const MAX: Self = u32::MAX;
+    const ZERO: Self = 0;
+    /// Distance in the high half, node in the low half: one comparison per sift.
+    type Key = u64;
+    fn relax(self, weight: u32) -> Option<Self> {
+        self.checked_add(weight).filter(|&sum| sum != u32::MAX)
+    }
+    fn key(self, node: u32) -> u64 {
+        u64::from(self) << 32 | u64::from(node)
+    }
+    fn unkey(key: u64) -> (Self, u32) {
+        ((key >> 32) as u32, key as u32)
+    }
+}
+
+impl Distance for u64 {
+    const MAX: Self = u64::MAX;
+    const ZERO: Self = 0;
+    type Key = (u64, u32);
+    fn relax(self, weight: u32) -> Option<Self> {
+        // Paths have at most n - 1 < 2^21 edges, so sums stay far below 2^63.
+        Some(self + u64::from(weight))
+    }
+    fn key(self, node: u32) -> (u64, u32) {
+        (self, node)
+    }
+    fn unkey(key: (u64, u32)) -> (Self, u32) {
+        key
+    }
+}
+
+/// Vertices per distance page (4 KB of `u32`). Renumbered searches are local,
+/// so a query touches few pages.
+const PAGE: usize = 1 << 10;
+const NO_PAGE: u32 = u32::MAX;
+
+/// One direction of a bidirectional search. Distances live in pages that are
+/// assigned on first write and returned after each query, so memory follows
+/// the largest search instead of the vertex count.
+struct Side<D: Distance> {
+    page_of_block: Vec<u32>,
+    pages: Vec<D>,
+    used_blocks: Vec<u32>,
+    heap: BinaryHeap<Reverse<D::Key>>,
+}
+
+impl<D: Distance> Side<D> {
+    fn new(nodes: usize) -> Self {
+        Self {
+            page_of_block: vec![NO_PAGE; nodes.div_ceil(PAGE)],
+            pages: Vec::new(),
+            used_blocks: Vec::new(),
+            heap: BinaryHeap::new(),
+        }
+    }
+
+    fn distance(&self, node: u32) -> D {
+        match self.page_of_block[node as usize / PAGE] {
+            NO_PAGE => D::MAX,
+            page => self.pages[page as usize * PAGE + node as usize % PAGE],
+        }
+    }
+
+    fn reach(&mut self, node: u32, distance: D) {
+        let block = node as usize / PAGE;
+        let mut page = self.page_of_block[block];
+        if page == NO_PAGE {
+            page = self.used_blocks.len() as u32;
+            self.used_blocks.push(block as u32);
+            self.page_of_block[block] = page;
+            let end = (page as usize + 1) * PAGE;
+            if self.pages.len() < end {
+                self.pages.resize(end, D::MAX);
+            }
+        }
+        self.pages[page as usize * PAGE + node as usize % PAGE] = distance;
+        self.heap.push(Reverse(distance.key(node)));
+    }
+
+    /// Smallest queued key; a stale key is still a valid lower bound.
+    fn top(&self) -> Option<u64> {
+        self.heap.peek().map(|&Reverse(key)| D::unkey(key).0.into())
+    }
+
+    /// Settles the next vertex and relaxes its edges in `graph`. Returns the
+    /// shortest path length through any edge that reaches a vertex `other` has
+    /// already labelled. Sums that do not fit `D` are skipped and flagged.
+    fn settle_next(&mut self, graph: &Graph, other: &Self, overflowed: &mut bool) -> u64 {
+        let Some(Reverse(key)) = self.heap.pop() else {
+            return u64::MAX;
+        };
+        let (distance, node) = D::unkey(key);
+        if distance > self.distance(node) {
+            return u64::MAX;
+        }
+        let mut meeting = u64::MAX;
+        for (next, weight) in graph.row(node as usize) {
+            let Some(candidate) = distance.relax(weight) else {
+                *overflowed = true;
+                continue;
+            };
+            let across = other.distance(next);
+            if across != D::MAX {
+                meeting = meeting.min(candidate.into() + across.into());
+            }
+            if candidate < self.distance(next) {
+                self.reach(next, candidate);
+            }
+        }
+        meeting
+    }
+
+    /// Clears the pages this query used and makes them available again.
+    fn reset(&mut self) {
+        for (page, &block) in self.used_blocks.iter().enumerate() {
+            self.page_of_block[block as usize] = NO_PAGE;
+            self.pages[page * PAGE..(page + 1) * PAGE].fill(D::MAX);
+        }
+        self.used_blocks.clear();
+        self.heap.clear();
+    }
+}
+
+/// Bidirectional Dijkstra: forward from the source over `forward`, backward
+/// from the target over the reverse graph. Each step grows the side with the
+/// smaller queue, so a side that is about to run out (an island, a dead end)
+/// finishes first instead of letting the other side flood the graph.
+struct Search<D: Distance> {
+    forward: Side<D>,
+    backward: Side<D>,
+    overflowed: bool,
+}
+
+impl<D: Distance> Search<D> {
+    fn new(nodes: usize) -> Self {
+        Self {
+            forward: Side::new(nodes),
+            backward: Side::new(nodes),
+            overflowed: false,
+        }
+    }
+
+    /// Stops when the two queue minima sum to at least the best path seen, or a
+    /// side runs out (then every path has been seen). A path shorter than
+    /// `D::MAX` is exact even if larger sums were skipped: all its prefixes and
+    /// suffixes fit. Otherwise `overflowed` tells the caller to widen.
+    fn run(&mut self, forward: &Graph, backward: &Graph, source: u32, target: u32) -> Option<u64> {
+        self.overflowed = false;
+        self.forward.reach(source, D::ZERO);
+        self.backward.reach(target, D::ZERO);
+        let mut best = u64::MAX;
+        while let (Some(ahead), Some(behind)) = (self.forward.top(), self.backward.top()) {
+            if ahead + behind >= best {
+                break;
+            }
+            let meeting = if self.forward.heap.len() <= self.backward.heap.len() {
+                self.forward
+                    .settle_next(forward, &self.backward, &mut self.overflowed)
+            } else {
+                self.backward
+                    .settle_next(backward, &self.forward, &mut self.overflowed)
+            };
+            best = best.min(meeting);
+        }
+        self.forward.reset();
+        self.backward.reset();
+        (best != u64::MAX).then_some(best)
+    }
+}
+
+/// `u64` search shared by all workers, allocated on the first query whose answer
+/// may not fit in `u32`. One lock-protected instance keeps memory at one array.
+type WideSearch = Mutex<Option<Search<u64>>>;
+
+/// Per-worker query state: a compact `u32` search plus the shared fallback.
+struct Searcher<'a> {
+    narrow: Search<u32>,
+    wide: &'a WideSearch,
+}
+
+impl<'a> Searcher<'a> {
+    fn new(nodes: usize, wide: &'a WideSearch) -> Self {
+        Self {
+            narrow: Search::new(nodes),
+            wide,
+        }
+    }
+
+    fn shortest_path(
+        &mut self,
+        forward: &Graph,
+        backward: &Graph,
+        source: usize,
+        target: usize,
+    ) -> Option<u64> {
+        if source == target {
+            return Some(0);
+        }
+        if forward.offsets[source] == forward.offsets[source + 1]
+            || backward.offsets[target] == backward.offsets[target + 1]
+        {
+            return None;
+        }
+        let (source, target) = (source as u32, target as u32);
+        let found = self.narrow.run(forward, backward, source, target);
+        if !self.narrow.overflowed || found.is_some_and(|distance| distance < u32::MAX.into()) {
+            return found;
+        }
+        let nodes = forward.offsets.len() - 1;
+        let mut wide = self
+            .wide
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner());
+        wide.get_or_insert_with(|| Search::new(nodes))
+            .run(forward, backward, source, target)
+    }
+}
+
+fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> Vec<Option<u64>> {
+    if queries.is_empty() {
+        return Vec::new();
+    }
+    let backward = &transpose(graph, workers);
+    let workers = workers.clamp(1, 12).min(queries.len());
+    let wide = Mutex::new(None);
+    if workers == 1 {
+        let mut searcher = Searcher::new(graph.offsets.len() - 1, &wide);
+        return queries
+            .iter()
+            .map(|&(source, target)| searcher.shortest_path(graph, backward, source, target))
+            .collect();
+    }
+    let next = AtomicUsize::new(0);
+    let answers: Vec<_> = queries.iter().map(|_| AtomicU64::new(u64::MAX)).collect();
+    thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| {
+                let mut searcher = Searcher::new(graph.offsets.len() - 1, &wide);
+                loop {
+                    let index = next.fetch_add(1, Ordering::Relaxed);
+                    let Some(&(source, target)) = queries.get(index) else {
+                        break;
+                    };
+                    let distance = searcher.shortest_path(graph, backward, source, target);
+                    answers[index].store(distance.unwrap_or(u64::MAX), Ordering::Relaxed);
+                }
+            });
+        }
+    });
+    // Scoped joins make all relaxed answer stores visible before collection.
+    answers
+        .into_iter()
+        .map(|answer| match answer.into_inner() {
+            u64::MAX => None,
+            distance => Some(distance),
+        })
+        .collect()
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    prefer_small_pages();
+    let mut data = PathBuf::from("/data");
+    let mut out = PathBuf::from("/out");
+    let mut workers = thread::available_parallelism()
+        .map_or(1, usize::from)
+        .min(12);
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--data" => data = args.next().ok_or("missing --data value")?.into(),
+            "--out" => out = args.next().ok_or("missing --out value")?.into(),
+            "--threads" => {
+                workers = args
+                    .next()
+                    .ok_or("missing --threads value")?
+                    .parse::<std::num::NonZeroUsize>()?
+                    .get();
+            }
+            _ => return Err(format!("unknown argument: {arg}").into()),
+        }
+    }
+    let graph = read_graph(&data.join("graph.txt"), workers)?;
+    let mut reader = BufReader::new(File::open(data.join("queries.txt"))?);
+    let mut buffer = Vec::with_capacity(32);
+    let mut queries = Vec::new();
+    while let Some([source, target]) = read_record(&mut reader, &mut buffer)? {
+        if source as usize >= graph.offsets.len() - 1 || target as usize >= graph.offsets.len() - 1
+        {
+            return Err("query vertex outside graph".into());
+        }
+        queries.push((source as usize, target as usize));
+    }
+    let graph = reorder_graph(graph, &mut queries, workers);
+    fs::create_dir_all(&out)?;
+    let mut output = BufWriter::new(File::create(out.join("distances.txt"))?);
+    for answer in answer_queries(&graph, &queries, workers) {
+        match answer {
+            Some(distance) => writeln!(output, "{distance}")?,
+            None => writeln!(output, "-1")?,
+        }
+    }
+    output.flush()?;
+    Ok(())
+}
