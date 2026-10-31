@@ -2,40 +2,36 @@
 mod traverse {
     include!("../track-d/src/main.rs");
 
-    #[test]
-    fn reordering_preserves_permutation_edges_incoming_and_all_distances() {
-        let bytes = b"130 9\n5 64 0\n64 5 4294967295\n64 129 4294967295\n129 128 4294967295\n5 5 0\n66 67 1\n67 66 2\n5 64 7\n5 64 0\n";
-        let graph = build_graph(bytes, 6).unwrap();
-        let original: Vec<_> = (0..130)
-            .flat_map(|source| (0..130).map(move |target| (source, target)))
+    /// Reorders `bytes` with `workers`, then checks the vertex permutation, the
+    /// remapped edge multiset, incoming bits and every answer in `pairs`.
+    fn check_reorder(bytes: &[u8], pairs: &[(usize, usize)], workers: usize) {
+        let graph = build_graph(bytes, workers).unwrap();
+        let nodes = graph.offsets.len() - 1;
+        // Self queries first: after reordering they reveal the vertex mapping.
+        let original: Vec<_> = (0..nodes)
+            .map(|node| (node, node))
+            .chain(pairs.iter().copied())
             .collect();
         let expected = answer_queries(&graph, &original, 1);
-        assert_eq!(expected[5 * 130 + 128], Some(2 * u64::from(u32::MAX)));
         let incoming = graph.incoming.clone();
-        let old_edges: Vec<_> = (0..130)
+        let old_edges: Vec<_> = (0..nodes)
             .flat_map(|source| {
                 graph.edges[graph.offsets[source] as usize..graph.offsets[source + 1] as usize]
                     .iter()
-                    .map(move |&(target, weight)| (source, target, weight))
+                    .map(move |&(target, weight)| (source, target as usize, weight))
             })
             .collect();
         let mut queries = original;
-        let reordered = reorder_graph(graph, &mut queries, 6);
-        let mapping: Vec<_> = (0..130)
-            .map(|old| {
-                let (source, target) = queries[old * 130 + old];
-                assert_eq!(source, target);
-                source
-            })
-            .collect();
+        let reordered = reorder_graph(graph, &mut queries, workers);
+        let mapping: Vec<_> = queries[..nodes].iter().map(|&(source, _)| source).collect();
         let mut permutation = mapping.clone();
         permutation.sort_unstable();
-        assert_eq!(permutation, (0..130).collect::<Vec<_>>());
+        assert_eq!(permutation, (0..nodes).collect::<Vec<_>>());
         let mut expected_edges: Vec<_> = old_edges
             .iter()
-            .map(|&(source, target, weight)| (mapping[source], mapping[target as usize], weight))
+            .map(|&(source, target, weight)| (mapping[source], mapping[target], weight))
             .collect();
-        let mut actual_edges: Vec<_> = (0..130)
+        let mut actual_edges: Vec<_> = (0..nodes)
             .flat_map(|source| {
                 reordered.edges
                     [reordered.offsets[source] as usize..reordered.offsets[source + 1] as usize]
@@ -52,12 +48,57 @@ mod traverse {
                 reordered.incoming[new / 64] >> (new % 64) & 1
             );
         }
+        for search_workers in [1, 2, 6, 12] {
+            assert_eq!(
+                answer_queries(&reordered, &queries, search_workers),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn reordering_preserves_permutation_edges_incoming_and_all_distances() {
+        let bytes = b"130 9\n5 64 0\n64 5 4294967295\n64 129 4294967295\n129 128 4294967295\n5 5 0\n66 67 1\n67 66 2\n5 64 7\n5 64 0\n";
+        let pairs: Vec<_> = (0..130)
+            .flat_map(|source| (0..130).map(move |target| (source, target)))
+            .collect();
+        let graph = build_graph(bytes, 1).unwrap();
+        assert_eq!(
+            answer_queries(&graph, &[(5, 128)], 1),
+            [Some(2 * u64::from(u32::MAX))]
+        );
         for workers in [1, 2, 6, 12] {
-            assert_eq!(answer_queries(&reordered, &queries, workers), expected);
+            check_reorder(bytes, &pairs, workers);
         }
         let empty = reorder_graph(build_graph(b"0 0\n", 6).unwrap(), &mut [], 6);
         assert_eq!(empty.offsets, [0]);
         assert!(empty.edges.is_empty());
+    }
+
+    #[test]
+    fn concurrent_region_claims_cover_every_vertex_exactly_once() {
+        // Random sparse graph with several components, so worker regions race
+        // for the same vertices and many roots start new regions.
+        let (nodes, edge_count) = (3_000_usize, 7_000_usize);
+        let mut state = 0x9E37_79B9_7F4A_7C15_u64;
+        let mut next = |bound: usize| {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            (state % bound as u64) as usize
+        };
+        let mut text = format!("{nodes} {edge_count}\n");
+        for _ in 0..edge_count {
+            let source = next(nodes);
+            let target = (source + next(40)) % nodes;
+            text += &format!("{source} {target} {}\n", next(1_000));
+        }
+        let pairs: Vec<_> = (0..400).map(|_| (next(nodes), next(nodes))).collect();
+        for _ in 0..10 {
+            for workers in [2, 6, 12] {
+                check_reorder(text.as_bytes(), &pairs, workers);
+            }
+        }
     }
 
     #[test]

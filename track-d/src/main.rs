@@ -237,77 +237,145 @@ fn read_graph(path: &Path, workers: usize) -> io::Result<Graph> {
     build_graph(mapping.bytes(), workers)
 }
 
+/// One worker's share of the renumbering: the old IDs it claimed in visiting
+/// order, each claimed vertex's edge end, and its edges with provisional heads.
+struct Region {
+    order: Vec<u32>,
+    ends: Vec<u32>,
+    edges: Vec<(u32, u32)>,
+}
+
+/// Renumbers vertices so searches touch nearby memory. Every worker grows
+/// breadth-first regions from unclaimed roots in its own slice of old IDs and
+/// claims each vertex with a compare-and-swap on `worker << bits | position + 1`
+/// (0 = free). Workers write their edges with those provisional heads while
+/// visiting, so the old graph is read once; a parallel pass then concatenates
+/// the regions into the new CSR, translating provisional IDs to final ones.
 fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -> Graph {
-    if queries.is_empty() {
+    let nodes = graph.offsets.len() - 1;
+    // Provisional IDs need worker bits above the position bits within a u32.
+    if queries.is_empty() || nodes >= 1 << 27 {
         return graph;
     }
-    let nodes = graph.offsets.len() - 1;
-    let mut mapping = vec![u32::MAX; nodes];
-    let mut order = Vec::with_capacity(nodes);
-    let mut head = 0;
-    for root in 0..nodes {
-        if mapping[root] != u32::MAX {
-            continue;
-        }
-        mapping[root] = order.len() as u32;
-        order.push(root as u32);
-        while head < order.len() {
-            let node = order[head] as usize;
-            head += 1;
-            for &(target, _) in
-                &graph.edges[graph.offsets[node] as usize..graph.offsets[node + 1] as usize]
-            {
-                if mapping[target as usize] == u32::MAX {
-                    mapping[target as usize] = order.len() as u32;
-                    order.push(target);
-                }
-            }
-        }
-    }
-    let mut offsets = Vec::with_capacity(nodes + 1);
-    let mut incoming = vec![0_u64; nodes.div_ceil(64)];
-    offsets.push(0);
-    for (new, &old) in order.iter().enumerate() {
-        let old = old as usize;
-        if graph.incoming[old / 64] & (1_u64 << (old % 64)) != 0 {
-            incoming[new / 64] |= 1_u64 << (new % 64);
-        }
-        let degree = graph.offsets[old + 1] - graph.offsets[old];
-        offsets.push(offsets.last().unwrap() + degree);
-    }
-    let mut edges = vec![(0, 0); graph.edges.len()];
-    let rows_per_worker = nodes.div_ceil(workers.clamp(1, 12)).max(1);
-    thread::scope(|scope| {
-        let mut remaining = edges.as_mut_slice();
-        for (chunk, old_nodes) in order.chunks(rows_per_worker).enumerate() {
-            let first = chunk * rows_per_worker;
-            let length = (offsets[first + old_nodes.len()] - offsets[first]) as usize;
-            let (destination, rest) = remaining.split_at_mut(length);
-            remaining = rest;
-            let graph = &graph;
-            let mapping = &mapping;
-            scope.spawn(move || {
-                let mut cursor = 0;
-                for &old in old_nodes {
-                    let old = old as usize;
-                    for &(target, weight) in
-                        &graph.edges[graph.offsets[old] as usize..graph.offsets[old + 1] as usize]
-                    {
-                        destination[cursor] = (mapping[target as usize], weight);
-                        cursor += 1;
+    let workers = workers.clamp(1, 12);
+    let bits = usize::BITS - nodes.leading_zeros();
+    let claims: Vec<_> = (0..nodes).map(|_| AtomicU32::new(0)).collect();
+    let Graph {
+        offsets,
+        edges,
+        incoming,
+    } = graph;
+    let regions: Vec<Region> = thread::scope(|scope| {
+        let handles: Vec<_> = (0..workers)
+            .map(|worker| {
+                let (offsets, edges, claims) = (&offsets, &edges, &claims);
+                scope.spawn(move || {
+                    let provisional = |position: usize| (worker << bits | (position + 1)) as u32;
+                    // Reserve for the whole graph: only pages actually written are
+                    // charged, and the buffers never reallocate or copy.
+                    let mut region = Region {
+                        order: Vec::with_capacity(nodes),
+                        ends: Vec::with_capacity(nodes),
+                        edges: Vec::with_capacity(edges.len()),
+                    };
+                    for root in nodes * worker / workers..nodes * (worker + 1) / workers {
+                        let claim = provisional(region.order.len());
+                        if claims[root].load(Ordering::Relaxed) != 0
+                            || claims[root]
+                                .compare_exchange(0, claim, Ordering::Relaxed, Ordering::Relaxed)
+                                .is_err()
+                        {
+                            continue;
+                        }
+                        let mut head = region.order.len();
+                        region.order.push(root as u32);
+                        while head < region.order.len() {
+                            let node = region.order[head] as usize;
+                            head += 1;
+                            for &(target, weight) in
+                                &edges[offsets[node] as usize..offsets[node + 1] as usize]
+                            {
+                                let slot = &claims[target as usize];
+                                let mut id = slot.load(Ordering::Relaxed);
+                                if id == 0 {
+                                    let claim = provisional(region.order.len());
+                                    id = match slot.compare_exchange(
+                                        0,
+                                        claim,
+                                        Ordering::Relaxed,
+                                        Ordering::Relaxed,
+                                    ) {
+                                        Ok(_) => {
+                                            region.order.push(target);
+                                            claim
+                                        }
+                                        Err(owner) => owner,
+                                    };
+                                }
+                                region.edges.push((id, weight));
+                            }
+                            region.ends.push(region.edges.len() as u32);
+                        }
                     }
+                    region
+                })
+            })
+            .collect();
+        handles
+            .into_iter()
+            .map(|handle| handle.join().expect("reorder worker panicked"))
+            .collect()
+    });
+    drop((offsets, edges));
+    let mut node_base = Vec::with_capacity(workers);
+    let mut edge_base = Vec::with_capacity(workers);
+    let (mut node_total, mut edge_total) = (0_u32, 0_u32);
+    for region in &regions {
+        node_base.push(node_total);
+        edge_base.push(edge_total);
+        node_total += region.order.len() as u32;
+        edge_total += region.edges.len() as u32;
+    }
+    let mask = (1_u32 << bits) - 1;
+    let final_id = |id: u32| node_base[(id >> bits) as usize] + (id & mask) - 1;
+    let mut new_offsets = vec![0_u32; nodes + 1];
+    let mut new_edges = vec![(0_u32, 0_u32); edge_total as usize];
+    thread::scope(|scope| {
+        let mut offset_rest = &mut new_offsets[1..];
+        let mut edge_rest = new_edges.as_mut_slice();
+        for (region, &base) in regions.iter().zip(&edge_base) {
+            let (offset_slots, rest) = offset_rest.split_at_mut(region.order.len());
+            offset_rest = rest;
+            let (edge_slots, rest) = edge_rest.split_at_mut(region.edges.len());
+            edge_rest = rest;
+            let final_id = &final_id;
+            scope.spawn(move || {
+                for (slot, &end) in offset_slots.iter_mut().zip(&region.ends) {
+                    *slot = base + end;
+                }
+                for (slot, &(id, weight)) in edge_slots.iter_mut().zip(&region.edges) {
+                    *slot = (final_id(id), weight);
                 }
             });
         }
     });
+    let mut new_incoming = vec![0_u64; nodes.div_ceil(64)];
+    for (region, &base) in regions.iter().zip(&node_base) {
+        for (position, &old) in region.order.iter().enumerate() {
+            let (old, new) = (old as usize, base as usize + position);
+            if incoming[old / 64] & (1_u64 << (old % 64)) != 0 {
+                new_incoming[new / 64] |= 1_u64 << (new % 64);
+            }
+        }
+    }
     for (source, target) in queries {
-        *source = mapping[*source] as usize;
-        *target = mapping[*target] as usize;
+        *source = final_id(claims[*source].load(Ordering::Relaxed)) as usize;
+        *target = final_id(claims[*target].load(Ordering::Relaxed)) as usize;
     }
     Graph {
-        offsets,
-        edges,
-        incoming,
+        offsets: new_offsets,
+        edges: new_edges,
+        incoming: new_incoming,
     }
 }
 

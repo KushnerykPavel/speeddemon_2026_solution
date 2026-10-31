@@ -12,6 +12,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 6 | D7: dynamically scheduled independent queries, up to 12 workers (`b8e5bc1`) | run-cffe0163d7c1 | 1.626762 | 228.868096 | 41.704470 |
 | 8 | Read-only mmap + parallel two-pass CSR (`e5bad19`) | run-d07b2b8242d7 | 1.142983 | 228.335616 | 44.060351 |
 | 9 | D8: BFS vertex order + parallel row-slice CSR rebuild (`accbb64`) | run-c18ebeae7015 | 0.637161 | 234.110976 | 49.692323 |
+| 10 | D12: `u32` distances + shared exact `u64` fallback (`5bb06f2`) | run-e55665d62b35 | 0.587022 | 163.717120 | 51.755970 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -383,5 +384,50 @@ trimmed mean of middle three, cgroup v2 `memory.peak`), baseline `accbb64`:
 Time change is within run spread (8–18%); the memory cut matches −84 MB of
 distance arrays plus one shared 14 MB array at twelve workers. All 36 outputs
 match Python; twelve Rust tests (new fallback test at the `u32::MAX` boundary)
-and 1,224 Python comparisons pass on macOS and VPS. No board run ID yet.
+and 1,224 Python comparisons pass on macOS and VPS. Board result follows below.
 Evidence: [D12 evidence](../tests/performance/2026-10-31-traverse-u32-distances/README.md).
+
+Step 10 official board result, feed 2026-10-31 18:28:53 UTC (19:28:53 Warsaw):
+`run-e55665d62b35`, commit `5bb06f2`, all gates passed. **0.587022 s,
+163.717120 MB, S=491, D=1, K=10.842249, 51.755970 points**. New team best;
+versus step 9: memory −30.07% (234.11 → 163.72 MB), time −7.87% (single runs;
+within board noise), +2.063647 points despite S 437 → 491. Derived Track D
+position: 54 of 88 scored teams. Single live-board run, not final hidden-seed
+scoring. Evidence: [official D12 result](../tests/performance/2026-10-31-board-u32-results/README.md).
+
+
+## Step 11 — parallel region renumbering (VPS measurement)
+
+Step 9's serial BFS order took about 0.42 s on the VPS, as long as half the
+search phase. Now every worker grows breadth-first regions from unclaimed roots
+in its own slice of old IDs and claims vertices with a compare-and-swap of a
+provisional ID (`worker << bits | position + 1`, 0 = free). Edges are written
+with provisional heads during the walk, so the old graph is read once; a parallel
+pass concatenates regions into the new CSR via disjoint `split_at_mut` slices
+(no new unsafe). Graphs with ≥ 2^27 vertices keep the input order. Idea credit:
+Team7's public Track D renumbering (MIT); implementation is ours.
+
+First attempt let region buffers grow by doubling: time fell, but cgroup peak
+rose 20.4% (6 workers) / 6.3% (12) from reallocation copies and slack. Kept
+version reserves the whole graph per worker; untouched reserved pages are not
+charged and nothing reallocates.
+
+Same VPS protocol as step 10, baseline `5bb06f2`:
+
+| Variant | Workers | T (s) | ΔT | cgroup peak (MB) | ΔM |
+|---|---:|---:|---:|---:|---:|
+| `5bb06f2` serial BFS | 6 | 1.5628 | — | 119.8 | — |
+| growing buffers | 6 | 1.2108 | −22.5% | 144.3 | +20.4% |
+| **reserved buffers** | 6 | **1.1620** | **−25.6%** | **113.3** | **−5.5%** |
+| `5bb06f2` serial BFS | 12 | 1.5541 | — | 163.1 | — |
+| growing buffers | 12 | 1.1593 | −25.4% | 173.3 | +6.3% |
+| **reserved buffers** | 12 | **1.1876** | **−23.6%** | **158.6** | **−2.7%** |
+
+Phase medians (separate instrumented builds, four runs each): renumbering
+0.421 → 0.114 s (6 workers) and 0.413 → 0.106 s (12); search 0.704 → 0.664 s and
+0.727 → 0.698 s, so region order keeps the locality of the serial BFS order.
+All outputs match Python; thirteen Rust tests (new: 3,000-vertex random graph,
+2/6/12 workers, ten repetitions, checking permutation, edge multiset, incoming
+bits and answers) and 1,224 Python comparisons pass on macOS and VPS. A mutated
+ID translation fails both renumbering tests. No board run ID yet.
+Evidence: [parallel renumbering](../tests/performance/2026-10-31-traverse-parallel-reorder/README.md).

@@ -40,15 +40,17 @@ without a newline are handled. The std-only mapping wrapper targets 64-bit Unix
 (the Linux competition target and macOS development host); input files remain
 immutable during loading, as with the read-only competition data mount.
 
-Before searching, relabel vertices by BFS discovery order over every component.
-Rebuild CSR rows and incoming presence in the new order and translate query
-endpoints. Disjoint mutable row slices let scoped workers copy/remap edges in
-parallel without additional unsafe code. All vertices and duplicate edges remain;
-query order and exact distances are preserved. Empty queries skip the rebuild.
-The temporary old graph and permutation are released before query processing.
-On the six-vCPU VPS, this reduces full-seed1 time from 2.35 s to 1.63 s including
-preprocessing (30.5% less time), with container peak 140.8 to 147.8 MB. See PERF.md
-for the DFS/BFS comparison, phase timings, repeated measurements and limitations.
+Before searching, relabel vertices for locality. Every worker grows breadth-first
+regions from unclaimed roots in its own slice of old IDs and claims each vertex
+with a compare-and-swap of a provisional ID (worker and position). Edges are
+written with provisional heads during the walk, so the old graph is read once;
+a parallel pass concatenates the regions into the new CSR through disjoint
+`split_at_mut` slices. Region buffers reserve the whole graph up front: only
+written pages are charged and they never reallocate. All vertices and duplicate
+edges remain; exact distances and query order are preserved. Empty queries skip
+the rebuild. Idea credit: Team7's public Track D renumbering (MIT).
+On the six-vCPU VPS, renumbering takes 0.11 s instead of 0.42 s for the serial
+BFS order, with unchanged search time. See PERF.md for measurements.
 
 Release builds use fat LTO, one codegen unit and abort on panic. Docker builds
 also use `target-cpu=native`. Local VPS measurements are recorded in `PERF.md`;
@@ -65,6 +67,7 @@ None.
 
 ## With another 24 hours
 
-Compare 6 versus 12 workers on the competition machine using both time and
-cgroup peak memory, then compare 4-ary and radix priority queues (D9 in the plan)
-against the binary heap, including all loading/reordering costs.
+Bidirectional Dijkstra that expands the side with the smaller queue (reverse
+graph required), paged per-search distance storage instead of dense per-worker
+arrays, and a single-pass bucketed parser. Then compare 6 versus 12 workers on
+the competition machine using time and cgroup peak memory.

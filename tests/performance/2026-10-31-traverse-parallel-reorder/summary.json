@@ -1,0 +1,68 @@
+{
+  "cpuset": "0-5",
+  "memory_limit": "8g",
+  "method": "one warmup, five rotating-order runs; trimmed mean of middle three",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "variants": {
+    "before-6": {
+      "trimmed_mean_seconds": 1.562817499,
+      "median_seconds": 1.580801203,
+      "spread_percent": 10.543409112638557,
+      "max_rss_kib": 144428,
+      "max_cgroup_peak_bytes": 119812096
+    },
+    "before-12": {
+      "trimmed_mean_seconds": 1.554112937,
+      "median_seconds": 1.55300766,
+      "spread_percent": 9.11435253238404,
+      "max_rss_kib": 158548,
+      "max_cgroup_peak_bytes": 163057664
+    },
+    "regions-grow-6": {
+      "trimmed_mean_seconds": 1.2108413576666666,
+      "median_seconds": 1.194681101,
+      "spread_percent": 12.482374496003423,
+      "max_rss_kib": 144472,
+      "max_cgroup_peak_bytes": 144297984
+    },
+    "regions-grow-12": {
+      "trimmed_mean_seconds": 1.1593004716666666,
+      "median_seconds": 1.151824039,
+      "spread_percent": 9.175724859175105,
+      "max_rss_kib": 169044,
+      "max_cgroup_peak_bytes": 173334528
+    },
+    "regions-6": {
+      "trimmed_mean_seconds": 1.162021887,
+      "median_seconds": 1.154809769,
+      "spread_percent": 5.306303920625388,
+      "max_rss_kib": 144396,
+      "max_cgroup_peak_bytes": 113254400
+    },
+    "regions-12": {
+      "trimmed_mean_seconds": 1.1875532853333335,
+      "median_seconds": 1.162831801,
+      "spread_percent": 15.91625849284859,
+      "max_rss_kib": 154324,
+      "max_cgroup_peak_bytes": 158605312
+    }
+  },
+  "comparison": {
+    "regions-grow-6": {
+      "time_change_percent": -22.52189661035614,
+      "memory_change_percent": 20.43690813989265
+    },
+    "regions-6": {
+      "time_change_percent": -25.645707976552412,
+      "memory_change_percent": -5.473317151550372
+    },
+    "regions-grow-12": {
+      "time_change_percent": -25.40436128763359,
+      "memory_change_percent": 6.302594890602631
+    },
+    "regions-12": {
+      "time_change_percent": -23.586423028834645,
+      "memory_change_percent": -2.7305383204802913
+    }
+  }
+}
