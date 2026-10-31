@@ -37,6 +37,16 @@ without a newline are handled. The std-only mapping wrapper targets 64-bit Unix
 (the Linux competition target and macOS development host); input files remain
 immutable during loading, as with the read-only competition data mount.
 
+Before searching, relabel vertices by BFS discovery order over every component.
+Rebuild CSR rows and incoming presence in the new order and translate query
+endpoints. Disjoint mutable row slices let scoped workers copy/remap edges in
+parallel without additional unsafe code. All vertices and duplicate edges remain;
+query order and exact distances are preserved. Empty queries skip the rebuild.
+The temporary old graph and permutation are released before query processing.
+On the six-vCPU VPS, this reduces full-seed1 time from 2.35 s to 1.63 s including
+preprocessing (30.5% less time), with container peak 140.8 to 147.8 MB. See PERF.md
+for the DFS/BFS comparison, phase timings, repeated measurements and limitations.
+
 Release builds use fat LTO, one codegen unit and abort on panic. Docker builds
 also use `target-cpu=native`. Local VPS measurements are recorded in `PERF.md`;
 the small measured build-profile improvement remains inconclusive.
@@ -52,6 +62,6 @@ None.
 
 ## With another 24 hours
 
-Validate additional seeds and compare 6 versus 12 workers on the competition
-machine using both time and cgroup peak memory. Then test DFS/BFS vertex
-reordering (D8 in the plan), including its preprocessing cost.
+Compare 6 versus 12 workers on the competition machine using both time and
+cgroup peak memory, then compare 4-ary and radix priority queues (D9 in the plan)
+against the binary heap, including all loading/reordering costs.

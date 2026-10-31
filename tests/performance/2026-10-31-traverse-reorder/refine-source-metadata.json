@@ -1,0 +1,14 @@
+{
+  "baseline_commit": "e5bad19ffc9c7c18bb543758bde5a33a470bdd8c",
+  "candidate": "BFS mapping, parallel safe row-slice CSR reconstruction",
+  "sha256": {
+    "bfs-par/src/main.rs": "47d64879bb3d754bf4350ff7688670779d352f47af99fad9df20cb238b6bc02f",
+    "profile-bfs-par/src/main.rs": "0c3756f49d0f2309460f0c42c609d4cb60e61a6a0d3fa93c2b0219eb2cdb2346",
+    "bfs-par/Cargo.toml": "ca61ff94e64b8f3c77d9f1fb9118a4563ea66626e515973f59d39fbd1a0c3f20",
+    "profile-bfs-par/Cargo.toml": "ca61ff94e64b8f3c77d9f1fb9118a4563ea66626e515973f59d39fbd1a0c3f20",
+    "bfs-par/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "profile-bfs-par/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "tests/bfs-par-tests.rs": "6088efb9ba071e4ea9a50fc0082fd3c9479af3de8ef2a25cb2a47d421eb19969",
+    "refine.py": "f37fe688519d976a8c35d295c62146df9ff5071117c6950de7f5ec9d1cabb485"
+  }
+}

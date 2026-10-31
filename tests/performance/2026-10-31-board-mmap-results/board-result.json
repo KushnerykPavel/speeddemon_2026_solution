@@ -1,0 +1,651 @@
+{
+  "source_url": "https://s3.amazonaws.com/raptors.dev/speeddemon.dev/2026/board/board.json",
+  "generated_at": "2026-10-31T16:22:57Z",
+  "team": {
+    "team": "Kushneryk",
+    "slug": "kushneryk-d7faec",
+    "watch": {
+      "ok": true,
+      "error": null,
+      "head": "e5bad19ffc9c7c18bb543758bde5a33a470bdd8c",
+      "checked_at": "2026-10-31T16:22:56Z"
+    },
+    "queue": {
+      "in_flight": null,
+      "queued": null
+    },
+    "tracks": {
+      "a": {
+        "registered": true,
+        "best": {
+          "run_id": "run-12ff8c772294",
+          "commit": "531def7dd3ab135c5d606d3e2d3a4aad6536596c",
+          "pushed_at": "2026-10-30T17:01:20Z",
+          "dispatched_at": "2026-10-30T17:02:05Z",
+          "started_at": "2026-10-30T17:02:18Z",
+          "ended_at": "2026-10-30T17:02:20Z",
+          "queue_latency_s": 58.7,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 0.876075,
+          "M_bytes": 35188736,
+          "S": 183,
+          "D": 1,
+          "K": 7.358433,
+          "points": 43.339268,
+          "static_axes": "measured",
+          "timeout_s": 96.142,
+          "build_s": 9.65,
+          "image_bytes": 118144848,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "latest": {
+          "run_id": "run-c0c10e9cc914",
+          "commit": "e5bad19ffc9c7c18bb543758bde5a33a470bdd8c",
+          "pushed_at": "2026-10-31T16:19:35Z",
+          "dispatched_at": "2026-10-31T16:19:51Z",
+          "started_at": "2026-10-31T16:20:15Z",
+          "ended_at": "2026-10-31T16:20:17Z",
+          "queue_latency_s": 40.0,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 0.901183,
+          "M_bytes": 35209216,
+          "S": 183,
+          "D": 1,
+          "K": 7.254358,
+          "points": 43.029948,
+          "static_axes": "measured",
+          "timeout_s": 96.142,
+          "build_s": 0.626,
+          "image_bytes": 118141702,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "b": {
+        "registered": false,
+        "best": null,
+        "latest": {
+          "run_id": "run-3b559342224c",
+          "commit": "e5bad19ffc9c7c18bb543758bde5a33a470bdd8c",
+          "pushed_at": "2026-10-31T16:19:35Z",
+          "dispatched_at": "2026-10-31T16:19:51Z",
+          "started_at": null,
+          "ended_at": null,
+          "queue_latency_s": null,
+          "ok": false,
+          "stage": "unchanged",
+          "gates": {
+            "check": true,
+            "build": null,
+            "correctness": null,
+            "timeout": null,
+            "sandbox": null
+          },
+          "T_s": null,
+          "M_bytes": null,
+          "S": null,
+          "D": null,
+          "K": null,
+          "points": null,
+          "static_axes": null,
+          "timeout_s": null,
+          "build_s": null,
+          "image_bytes": null,
+          "failure": "this folder is the unchanged starter, which is the published reference and scores about 0, so the board does not run it; change the code and push again"
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "c": {
+        "registered": false,
+        "best": null,
+        "latest": {
+          "run_id": "run-94b30290d0a6",
+          "commit": "e5bad19ffc9c7c18bb543758bde5a33a470bdd8c",
+          "pushed_at": "2026-10-31T16:19:35Z",
+          "dispatched_at": "2026-10-31T16:19:51Z",
+          "started_at": null,
+          "ended_at": null,
+          "queue_latency_s": null,
+          "ok": false,
+          "stage": "unchanged",
+          "gates": {
+            "check": true,
+            "build": null,
+            "correctness": null,
+            "timeout": null,
+            "sandbox": null
+          },
+          "T_s": null,
+          "M_bytes": null,
+          "S": null,
+          "D": null,
+          "K": null,
+          "points": null,
+          "static_axes": null,
+          "timeout_s": null,
+          "build_s": null,
+          "image_bytes": null,
+          "failure": "this folder is the unchanged starter, which is the published reference and scores about 0, so the board does not run it; change the code and push again"
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      },
+      "d": {
+        "registered": true,
+        "best": {
+          "run_id": "run-d07b2b8242d7",
+          "commit": "e5bad19ffc9c7c18bb543758bde5a33a470bdd8c",
+          "pushed_at": "2026-10-31T16:19:35Z",
+          "dispatched_at": "2026-10-31T16:19:51Z",
+          "started_at": "2026-10-31T16:20:18Z",
+          "ended_at": "2026-10-31T16:20:21Z",
+          "queue_latency_s": 43.1,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 1.142983,
+          "M_bytes": 228335616,
+          "S": 363,
+          "D": 1,
+          "K": 7.606888,
+          "points": 44.060351,
+          "static_axes": "measured",
+          "timeout_s": 218.078,
+          "build_s": 8.662,
+          "image_bytes": 118194592,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "latest": {
+          "run_id": "run-d07b2b8242d7",
+          "commit": "e5bad19ffc9c7c18bb543758bde5a33a470bdd8c",
+          "pushed_at": "2026-10-31T16:19:35Z",
+          "dispatched_at": "2026-10-31T16:19:51Z",
+          "started_at": "2026-10-31T16:20:18Z",
+          "ended_at": "2026-10-31T16:20:21Z",
+          "queue_latency_s": 43.1,
+          "ok": true,
+          "stage": "scored",
+          "gates": {
+            "check": true,
+            "build": true,
+            "correctness": true,
+            "timeout": true,
+            "sandbox": true
+          },
+          "T_s": 1.142983,
+          "M_bytes": 228335616,
+          "S": 363,
+          "D": 1,
+          "K": 7.606888,
+          "points": 44.060351,
+          "static_axes": "measured",
+          "timeout_s": 218.078,
+          "build_s": 8.662,
+          "image_bytes": 118194592,
+          "failure": null,
+          "lang": [
+            "Rust"
+          ]
+        },
+        "queue_position": null,
+        "queue_latency_s": null
+      }
+    }
+  },
+  "derived_d_rank": 66,
+  "track_d_points_ranking": [
+    {
+      "team": "Cause Of Death",
+      "slug": "cause-of-death-468ee1",
+      "points": 73.008704
+    },
+    {
+      "team": "Kirk Mates",
+      "slug": "kirk-mates-cec461",
+      "points": 72.841393
+    },
+    {
+      "team": "ALL STAR",
+      "slug": "all-star-65db2c",
+      "points": 71.978921
+    },
+    {
+      "team": "Aflatoon",
+      "slug": "aflatoon-2430e5",
+      "points": 70.486479
+    },
+    {
+      "team": "HighVelocity",
+      "slug": "highvelocity-7f330e",
+      "points": 69.158334
+    },
+    {
+      "team": "Cache Me",
+      "slug": "cache-me-1a8ad0",
+      "points": 68.884064
+    },
+    {
+      "team": "Cosmic",
+      "slug": "cosmic-01307b",
+      "points": 68.801804
+    },
+    {
+      "team": "ttimesai",
+      "slug": "ttimesai-984b63",
+      "points": 68.664665
+    },
+    {
+      "team": "Lex",
+      "slug": "lex-15e38a",
+      "points": 68.368897
+    },
+    {
+      "team": "NewtonRedHeat",
+      "slug": "newtonredheat-dba6a3",
+      "points": 68.316671
+    },
+    {
+      "team": "Yasaswi P",
+      "slug": "yasaswi-p-b90876",
+      "points": 67.06009
+    },
+    {
+      "team": "NickTrapp",
+      "slug": "nicktrapp-951f2d",
+      "points": 66.799836
+    },
+    {
+      "team": "Rafiqh",
+      "slug": "rafiqh-aa136a",
+      "points": 66.336976
+    },
+    {
+      "team": "Team7",
+      "slug": "team7-cbd592",
+      "points": 66.197604
+    },
+    {
+      "team": "guseinov",
+      "slug": "guseinov-184360",
+      "points": 66.14279
+    },
+    {
+      "team": "Team FlyHigh",
+      "slug": "team-flyhigh-06c731",
+      "points": 65.375448
+    },
+    {
+      "team": "Red Jones",
+      "slug": "red-jones-00c4a7",
+      "points": 65.222044
+    },
+    {
+      "team": "Rui Codex",
+      "slug": "rui-codex-4fc841",
+      "points": 65.090622
+    },
+    {
+      "team": "SALAAR",
+      "slug": "salaar-c2efb1",
+      "points": 64.101347
+    },
+    {
+      "team": "Deez-attacher",
+      "slug": "deez-attacher-c137d9",
+      "points": 63.93374
+    },
+    {
+      "team": "Gigatron",
+      "slug": "gigatron-d3046c",
+      "points": 63.566101
+    },
+    {
+      "team": "PeppaPig",
+      "slug": "peppapig-85d554",
+      "points": 63.556057
+    },
+    {
+      "team": "Unity",
+      "slug": "unity-a5790b",
+      "points": 63.29216
+    },
+    {
+      "team": "Microsecond",
+      "slug": "microsecond-da3bce",
+      "points": 63.194628
+    },
+    {
+      "team": "ahptour",
+      "slug": "ahptour-074fed",
+      "points": 63.181152
+    },
+    {
+      "team": "Glitter",
+      "slug": "glitter-ce2bf1",
+      "points": 62.66323
+    },
+    {
+      "team": "LippInc",
+      "slug": "lippinc-84c212",
+      "points": 62.541798
+    },
+    {
+      "team": "SpeedDEMONS",
+      "slug": "speeddemons-e14b88",
+      "points": 62.38874
+    },
+    {
+      "team": "Sanjay Sah",
+      "slug": "sanjay-sah-b11676",
+      "points": 61.651508
+    },
+    {
+      "team": "flash",
+      "slug": "flash-851e43",
+      "points": 60.732009
+    },
+    {
+      "team": "cOnfig",
+      "slug": "config-b79606",
+      "points": 60.382309
+    },
+    {
+      "team": "vayu",
+      "slug": "vayu-52eda4",
+      "points": 60.192587
+    },
+    {
+      "team": "Chezhil S",
+      "slug": "chezhil-s-1f8f37",
+      "points": 59.710214
+    },
+    {
+      "team": "cryptocoders",
+      "slug": "cryptocoders-be9722",
+      "points": 59.509537
+    },
+    {
+      "team": "Dracarys",
+      "slug": "dracarys-e10c53",
+      "points": 59.384449
+    },
+    {
+      "team": "CodeScythe",
+      "slug": "codescythe-db1281",
+      "points": 59.376007
+    },
+    {
+      "team": "Third of the Code",
+      "slug": "third-of-the-code-d4f1c0",
+      "points": 59.290753
+    },
+    {
+      "team": "BobTheBuilder",
+      "slug": "bobthebuilder-861658",
+      "points": 59.189605
+    },
+    {
+      "team": "FAHHHH",
+      "slug": "fahhhh-373339",
+      "points": 59.012049
+    },
+    {
+      "team": "SingletonSet",
+      "slug": "singletonset-ccdfef",
+      "points": 58.783309
+    },
+    {
+      "team": "nastik",
+      "slug": "nastik-e552fb",
+      "points": 58.757721
+    },
+    {
+      "team": "Bharat Labs",
+      "slug": "bharat-labs-10030e",
+      "points": 58.645561
+    },
+    {
+      "team": "another ello",
+      "slug": "another-ello-8cd65d",
+      "points": 58.598683
+    },
+    {
+      "team": "DiadkoShmek",
+      "slug": "diadkoshmek-c19906",
+      "points": 58.221135
+    },
+    {
+      "team": "narks",
+      "slug": "narks-8e1d2a",
+      "points": 58.074079
+    },
+    {
+      "team": "Featherweight",
+      "slug": "featherweight-704e5b",
+      "points": 58.067571
+    },
+    {
+      "team": "Saksham Singh",
+      "slug": "saksham-singh-eb9f5c",
+      "points": 57.96468
+    },
+    {
+      "team": "pranaysb",
+      "slug": "pranaysb-c623cb",
+      "points": 57.169628
+    },
+    {
+      "team": "LEX ULTIMA",
+      "slug": "lex-ultima-62fc2d",
+      "points": 54.45903
+    },
+    {
+      "team": "Gdnsk",
+      "slug": "gdnsk-fd7c4f",
+      "points": 54.225311
+    },
+    {
+      "team": "Kujo Jotaro",
+      "slug": "kujo-jotaro-4ca762",
+      "points": 52.212525
+    },
+    {
+      "team": "Argonauts",
+      "slug": "argonauts-55aeaf",
+      "points": 51.557459
+    },
+    {
+      "team": "DWISHAKTI",
+      "slug": "dwishakti-cadea3",
+      "points": 51.537194
+    },
+    {
+      "team": "AlienX",
+      "slug": "alienx-a19f6c",
+      "points": 50.744647
+    },
+    {
+      "team": "Four-Eyed Gems",
+      "slug": "four-eyed-gems-352674",
+      "points": 50.609398
+    },
+    {
+      "team": "Pal Ghevariya",
+      "slug": "pal-ghevariya-26be32",
+      "points": 50.559088
+    },
+    {
+      "team": "Bounded Accord",
+      "slug": "bounded-accord-a19067",
+      "points": 50.424918
+    },
+    {
+      "team": "crowded-shadow",
+      "slug": "crowded-shadow-0201c5",
+      "points": 50.364088
+    },
+    {
+      "team": "Stellaris",
+      "slug": "stellaris-ee30c1",
+      "points": 50.075705
+    },
+    {
+      "team": "Runtime Terrors",
+      "slug": "runtime-terrors-0c95d2",
+      "points": 50.004182
+    },
+    {
+      "team": "Ganondorf",
+      "slug": "ganondorf-2d8437",
+      "points": 48.692131
+    },
+    {
+      "team": "Rajpriyan S",
+      "slug": "rajpriyan-s-c48a31",
+      "points": 46.83134
+    },
+    {
+      "team": "ZeroSouls",
+      "slug": "zerosouls-66e4c6",
+      "points": 46.033838
+    },
+    {
+      "team": "Leo",
+      "slug": "leo-8535e8",
+      "points": 45.176739
+    },
+    {
+      "team": "TECHBUILDER",
+      "slug": "techbuilder-a95d3f",
+      "points": 44.273264
+    },
+    {
+      "team": "Kushneryk",
+      "slug": "kushneryk-d7faec",
+      "points": 44.060351
+    },
+    {
+      "team": "HYV7x.o",
+      "slug": "hyv7x-o-14fcfb",
+      "points": 43.619229
+    },
+    {
+      "team": "Cache Me If You Can",
+      "slug": "cache-me-if-you-can-c1d0b8",
+      "points": 43.352828
+    },
+    {
+      "team": "K+I+R+M+A+D+A",
+      "slug": "k-i-r-m-a-d-a-6670fd",
+      "points": 42.946997
+    },
+    {
+      "team": "Deploy or Die",
+      "slug": "deploy-or-die-2887c1",
+      "points": 41.656303
+    },
+    {
+      "team": "IdeaTeam",
+      "slug": "ideateam-b74e91",
+      "points": 41.54892
+    },
+    {
+      "team": "BeyondBug",
+      "slug": "beyondbug-ec7c92",
+      "points": 40.544452
+    },
+    {
+      "team": "PDOM",
+      "slug": "pdom-301e65",
+      "points": 40.413082
+    },
+    {
+      "team": "Jauguar27",
+      "slug": "jauguar27-7050c6",
+      "points": 40.02114
+    },
+    {
+      "team": "Team Neon",
+      "slug": "team-neon-7afb5d",
+      "points": 39.351783
+    },
+    {
+      "team": "Roschefein",
+      "slug": "roschefein-1fdf6a",
+      "points": 39.252279
+    },
+    {
+      "team": "FERROCIOUS",
+      "slug": "ferrocious-ef2e96",
+      "points": 38.121991
+    },
+    {
+      "team": "Mayuri",
+      "slug": "mayuri-e8bab6",
+      "points": 36.703238
+    },
+    {
+      "team": "InnoTech",
+      "slug": "innotech-6c67a0",
+      "points": 36.462192
+    },
+    {
+      "team": "SITARAM",
+      "slug": "sitaram-6a83c7",
+      "points": 35.485846
+    },
+    {
+      "team": "BaldheadBill",
+      "slug": "baldheadbill-978595",
+      "points": 34.111273
+    },
+    {
+      "team": "Hunt",
+      "slug": "hunt-18c3bc",
+      "points": 26.679957
+    },
+    {
+      "team": "Dakris",
+      "slug": "dakris-2394ee",
+      "points": 0.029608
+    },
+    {
+      "team": "Reference (naive Python)",
+      "slug": "reference-naive-python-b8be73",
+      "points": 0.0
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+--- a/track-d/src/main.rs
++++ b/track-d/src/main.rs
+@@ -236,6 +236,80 @@
+     build_graph(mapping.bytes(), workers)
+ }
+ 
++fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -> Graph {
++    if queries.is_empty() {
++        return graph;
++    }
++    let nodes = graph.offsets.len() - 1;
++    let mut mapping = vec![u32::MAX; nodes];
++    let mut order = Vec::with_capacity(nodes);
++    let mut head = 0;
++    for root in 0..nodes {
++        if mapping[root] != u32::MAX {
++            continue;
++        }
++        mapping[root] = order.len() as u32;
++        order.push(root as u32);
++        while head < order.len() {
++            let node = order[head] as usize;
++            head += 1;
++            for &(target, _) in
++                &graph.edges[graph.offsets[node] as usize..graph.offsets[node + 1] as usize]
++            {
++                if mapping[target as usize] == u32::MAX {
++                    mapping[target as usize] = order.len() as u32;
++                    order.push(target);
++                }
++            }
++        }
++    }
++    let mut offsets = Vec::with_capacity(nodes + 1);
++    let mut incoming = vec![0_u64; nodes.div_ceil(64)];
++    offsets.push(0);
++    for (new, &old) in order.iter().enumerate() {
++        let old = old as usize;
++        if graph.incoming[old / 64] & (1_u64 << (old % 64)) != 0 {
++            incoming[new / 64] |= 1_u64 << (new % 64);
++        }
++        let degree = graph.offsets[old + 1] - graph.offsets[old];
++        offsets.push(offsets.last().unwrap() + degree);
++    }
++    let mut edges = vec![(0, 0); graph.edges.len()];
++    let rows_per_worker = nodes.div_ceil(workers.clamp(1, 12)).max(1);
++    thread::scope(|scope| {
++        let mut remaining = edges.as_mut_slice();
++        for (chunk, old_nodes) in order.chunks(rows_per_worker).enumerate() {
++            let first = chunk * rows_per_worker;
++            let length = (offsets[first + old_nodes.len()] - offsets[first]) as usize;
++            let (destination, rest) = remaining.split_at_mut(length);
++            remaining = rest;
++            let graph = &graph;
++            let mapping = &mapping;
++            scope.spawn(move || {
++                let mut cursor = 0;
++                for &old in old_nodes {
++                    let old = old as usize;
++                    for &(target, weight) in
++                        &graph.edges[graph.offsets[old] as usize..graph.offsets[old + 1] as usize]
++                    {
++                        destination[cursor] = (mapping[target as usize], weight);
++                        cursor += 1;
++                    }
++                }
++            });
++        }
++    });
++    for (source, target) in queries {
++        *source = mapping[*source] as usize;
++        *target = mapping[*target] as usize;
++    }
++    Graph {
++        offsets,
++        edges,
++        incoming,
++    }
++}
++
+ struct Searcher {
+     distances: Vec<u64>,
+     touched: Vec<u32>,
+@@ -369,6 +443,7 @@
+         }
+         queries.push((source as usize, target as usize));
+     }
++    let graph = reorder_graph(graph, &mut queries, workers);
+     fs::create_dir_all(&out)?;
+     let mut output = BufWriter::new(File::create(out.join("distances.txt"))?);
+     for answer in answer_queries(&graph, &queries, workers) {

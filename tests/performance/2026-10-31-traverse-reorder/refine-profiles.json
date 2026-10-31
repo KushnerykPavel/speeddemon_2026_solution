@@ -1,0 +1,53 @@
+[
+  {
+    "round": 0,
+    "phases": {
+      "graph_s": 0.376768393,
+      "query_parse_s": 0.000224148,
+      "reorder_s": 0.439483876,
+      "search_s": 0.858908686,
+      "output_s": 0.000112471
+    },
+    "measurement": {
+      "seconds": 1.6827928810000001,
+      "max_rss_kib": 144304,
+      "cgroup_peak_bytes": 147574784,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "python_byte_equal": true
+  },
+  {
+    "round": 1,
+    "phases": {
+      "graph_s": 0.372692659,
+      "query_parse_s": 0.000196433,
+      "reorder_s": 0.424361561,
+      "search_s": 0.837217834,
+      "output_s": 0.000106323
+    },
+    "measurement": {
+      "seconds": 1.643595133,
+      "max_rss_kib": 144304,
+      "cgroup_peak_bytes": 147046400,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "python_byte_equal": true
+  },
+  {
+    "round": 2,
+    "phases": {
+      "graph_s": 0.389833534,
+      "query_parse_s": 0.000335428,
+      "reorder_s": 0.38803063,
+      "search_s": 0.785227901,
+      "output_s": 0.000119023
+    },
+    "measurement": {
+      "seconds": 1.571461783,
+      "max_rss_kib": 144108,
+      "cgroup_peak_bytes": 147464192,
+      "cgroup_metric": "v2 memory.peak"
+    },
+    "python_byte_equal": true
+  }
+]

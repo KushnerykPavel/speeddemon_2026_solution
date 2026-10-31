@@ -10,6 +10,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 4 | Direct checked uint32 byte parser (board time regression) (`6d6732f`) | Not in public history | 8.915943 | 114.974720 | 27.265802 |
 | 5 | D5: self-query shortcut and degree rejection (`292002c`) | Not in public history | 6.927519 | 115.212288 | 29.716415 |
 | 6 | D7: dynamically scheduled independent queries, up to 12 workers (`b8e5bc1`) | run-cffe0163d7c1 | 1.626762 | 228.868096 | 41.704470 |
+| 8 | Read-only mmap + parallel two-pass CSR (`e5bad19`) | run-d07b2b8242d7 | 1.142983 | 228.335616 | 44.060351 |
 
 Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
@@ -29,7 +30,7 @@ Step 4 increased time 19.40% and lost 2.688200 points compared with that first
 combined run (the unchanged-source rerun at `531def7` took 7.804536 s).
 Step 5 reduced time 22.30% and added 2.450613 points versus step 4.
 Step 6 reduced time **76.52% (4.26x)** and added **11.988055 points** versus step 5,
-while measured memory rose 98.65%. It is the current best D run:
+while measured memory rose 98.65%. It was the best D run before step 8:
 **1.626762 s / 228.868096 MB / 41.704470 points**, `run-cffe0163d7c1`.
 
 The Rust baseline preserves adjacency lists and one fresh Dijkstra search per
@@ -253,7 +254,94 @@ Python byte-for-byte. Ten Rust tests and 1,224 Python random/fixture comparisons
 pass on macOS and Linux, along with eight invalid-input and three invalid-thread
 checks. New tests verify chunk coverage, retained edge multisets and repeated
 20,000-edge contention on three source rows. Release Clippy, build and formatting
-pass. The candidate is retained in the scored source; no board run ID yet.
+pass. The candidate is retained in the scored source; its board result follows below.
 Full sources, patches, preparation/remote scripts, all raw measurements, normalized
 memory labels, compiler/CPU records and source hashes:
 [mmap/parallel evidence](../tests/performance/2026-10-31-traverse-mmap-parallel/README.md).
+
+
+Step 8 official board result, feed 2026-10-31 16:22:57 UTC (17:22:57 Warsaw):
+`run-d07b2b8242d7`, commit `e5bad19`, all gates passed. **1.142983 s,
+228.335616 MB, S=363, D=1, K=7.606888, 44.060351 points**. New team best;
+29.74% less time (1.4233x) and +2.355881 points versus D7. Memory is essentially
+unchanged; source increased from 230 to 363 measured code lines. Derived Track D
+position in this snapshot: 66 of 84 scored teams. Step 7 was rejected and has no
+board row; step 8 is the implementation first measured here. This is a single
+live-board run, not final holdout scoring. Evidence:
+[official mmap result](../tests/performance/2026-10-31-board-mmap-results/README.md).
+
+
+## Step 9 — D8 BFS vertex order with parallel CSR reconstruction
+
+DFS and BFS discovery orders were compared against submitted mmap/parallel CSR
+`e5bad19`. Both cover every vertex via a traversal forest, including isolated
+vertices and regions not reached from earlier roots. A bijection translates
+old IDs to discovery IDs. CSR rows, targets, incoming presence and query endpoints
+are remapped; every edge/weight/duplicate and query order are retained. Dijkstra
+and its scheduling are unchanged. Empty query input skips all preprocessing.
+
+Initial complete-process comparison on six-vCPU Linux x86-64 VPS, CPU set 0-5,
+identical pinned Rust/native/offline release builds and existing runtime limits.
+Inputs prewarmed outside fresh cgroups. Per variant: one warmup and five rotating
+measurements; discard min/max and average middle three. Cgroup memory.peak below
+is whole-container peak, maximum of five measured runs, decimal MB; no board
+points inferred. Twelve workers oversubscribe six vCPUs.
+
+| Layout | Workers | Complete T (s) | Max cgroup peak (MB) |
+|---|---:|---:|---:|
+| Original | 6 | 2.419476 | 140.849152 |
+| DFS | 6 | 2.003979 | 148.889600 |
+| BFS, serial rebuild | 6 | 1.891317 | 147.537920 |
+| Original | 12 | 2.462673 | 228.917248 |
+| DFS | 12 | 2.069629 | 235.229184 |
+| BFS, serial rebuild | 12 | 1.986810 | 233.791488 |
+
+BFS gave the better full time (21.83% less at six workers versus DFS's 17.17%).
+Its serial preprocessing cost was 0.706970 s by diagnostic medians, so refined
+it with parallel row reconstruction: compute new row offsets, split the new edge
+Vec into disjoint mutable row slices, copy/remap rows on scoped workers. BFS
+discovery remains serial. This adds no unsafe code or dependency. Old graph,
+order and permutation are released before queries. Reconstruction honors the
+same --threads cap as loading and query work.
+
+Refinement reran the controls and candidate on unchanged baseline binaries:
+
+| Layout | Workers | Complete T (s) | Max cgroup peak (MB) |
+|---|---:|---:|---:|
+| Original | 6 | 2.276060 | 141.078528 |
+| BFS, serial rebuild | 6 | 1.947441 | 147.718144 |
+| BFS, parallel rebuild | 6 | 1.597091 | 147.447808 |
+| Original | 12 | 2.343141 | 229.167104 |
+| BFS, parallel rebuild | 12 | 1.626069 | 233.906176 |
+
+Selected BFS+parallel rebuild reduces six-worker time 29.83%, increasing peak
+memory 4.51%; twelve-worker time falls 30.60% with 2.07% more peak memory on this
+VM. Candidate six-worker spread was 6.68%, triggering one confirmation, same
+binaries and limits, one warmup and five alternating runs per version:
+**2.347075 → 1.630284 s (-30.54%, 1.44x)**, peak **140.779520 → 147.820544 MB**
+(+5.00%). Spreads remained 5.00%/7.38%; exact speedup is uncertain on the shared
+host, but both batches show the same large net gain including preprocessing.
+Initial per-variant spreads and all individual runs are retained in the evidence.
+
+Separate phase-build medians at six workers (three runs each): original search
+2.012080 s versus selected 0.837218 s (2.40x); selected BFS/permutation, CSR rebuild,
+query translation and cleanup 0.424362 s. Graph load is 0.366568 s in the baseline
+phase batch and 0.376768 s in the selected batch. Serial BFS preprocessing was
+0.706970 s and DFS 0.836939 s. These are diagnostic builds/batches, not substituted
+for normal timings, and phase medians need not sum to whole-process medians.
+
+All 90 full outputs match the Python reference: 36 initial normal/warmups, nine
+initial diagnostics, 30 refinement normal/warmups, three selected diagnostics,
+and twelve confirmation runs. The selected candidate also matches Python and
+the preserved baseline output hashes on nine official-generator/edge datasets:
+tiny/sample seeds 1/7/42, edge-cases, no-edges and no-queries. Input/output hashes
+are recorded. Each prototype and the selected candidate pass eleven Rust tests
+and 1,224 Python fixture/random comparisons plus invalid-input/thread checks.
+The new permutation test checks every ordered pair on a disconnected 130-node
+graph, remapped edge multisets, incoming bits, self paths, zero/max weights and
+sums above u32. Local release build, Clippy and formatting pass.
+
+Decision: retain BFS order and parallel row-slice reconstruction. DFS and serial
+BFS remain experiment snapshots. No board submission/run ID for step 9 yet.
+Exact sources, scripts, test/manifest snapshots, all logs, source hashes and
+multi-seed checks: [D8 evidence](../tests/performance/2026-10-31-traverse-reorder/README.md).

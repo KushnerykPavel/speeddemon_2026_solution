@@ -1,0 +1,83 @@
+[
+  {
+    "case": "tiny-seed1",
+    "python_byte_equal": true,
+    "output_sha256": "ecaca77d3221fe3928109da36480cfdb39f288f2e57ecbc61d3d7706d5cb4bd5",
+    "input_sha256": {
+      "graph.txt": "206898b5d3ef1244c4900362249f2d090ff96cd704cd620d6abb445c863ec685",
+      "queries.txt": "10dcae5fb50c9f4a5e040148b2cb1153ab1cb489bfb12fc58b4ce0da545fa49a"
+    }
+  },
+  {
+    "case": "tiny-seed7",
+    "python_byte_equal": true,
+    "output_sha256": "70595ddd5a567f2b63ed182123353053ab42dfb521865ec44e81f684be9ba836",
+    "input_sha256": {
+      "graph.txt": "c8b4f04ebcb0cc20f421ed8089ec95d8b93567a1249cd17915e6d30290a8a07e",
+      "queries.txt": "daeb76d2d976136ecee96b1d6f1d516632a81b029acae160a9f3332a90500ddb"
+    }
+  },
+  {
+    "case": "tiny-seed42",
+    "python_byte_equal": true,
+    "output_sha256": "fbfcc948817019836ba14858214b7615f37f29adc095ad4712373df0064c33b5",
+    "input_sha256": {
+      "graph.txt": "c88f3eb381e401b2cbea68efe6b653575e1824390964c588bf62ad95b7fbe0d2",
+      "queries.txt": "46b95c6539a497d05ac3f4f51f966ac3dca35d7a654b2828652cfaec17b2d39e"
+    }
+  },
+  {
+    "case": "sample-seed1",
+    "python_byte_equal": true,
+    "output_sha256": "a4c76ed030bc7e365db33191f6cf74708fba7f25eb48d64c8c4279f2e57046a0",
+    "input_sha256": {
+      "graph.txt": "16351d408f1f94a6bcf66de5c5762abede111c07a4a38306253504a6c9c9b7cd",
+      "queries.txt": "fb4065ffe94d2dd51c924f389bd0c6afa58d42534391aa5b0fe5edfaa33988a5"
+    }
+  },
+  {
+    "case": "sample-seed7",
+    "python_byte_equal": true,
+    "output_sha256": "88bf36c94620505d1beafe7cd56a08dc2d261b71f9824d2f764d5ce6e5d7872e",
+    "input_sha256": {
+      "graph.txt": "f30694a1f266d69ddb12b0be8ca89898f3b7085d0405f9104bec94fc6bc7cd31",
+      "queries.txt": "0a0ffd75fcee0c4ff7733c52aac1e30d40a81967965dec6bef2b29263aa18f38"
+    }
+  },
+  {
+    "case": "sample-seed42",
+    "python_byte_equal": true,
+    "output_sha256": "e003ecd1553a9010cca836975f759aa8588403070e83ed359cc3fd991a2275a6",
+    "input_sha256": {
+      "graph.txt": "131a81dd7acced2d1b328779d3366615946fc60fd8106e4b22ad8f0042eb4685",
+      "queries.txt": "44de648ba33216213e2ca17bd281caf0a089c0d53081cb7b64a9d77958e8d310"
+    }
+  },
+  {
+    "case": "edge-cases",
+    "python_byte_equal": true,
+    "output_sha256": "2e9871bba1d5013144ceff48d806a28da0e3f203b29118a89d98d8f654c3f6a0",
+    "input_sha256": {
+      "graph.txt": "00f3a8e0504ef089f581c3b0ed49aa4822d5c8978650cea1bc30442c4fce13eb",
+      "queries.txt": "fbb6c7ad60d4e504782559dada011fcfd909029c01367ca8c11280beae6602ca"
+    }
+  },
+  {
+    "case": "no-edges",
+    "python_byte_equal": true,
+    "output_sha256": "506e2bfd11650b547deac071a486fee5d72b3e22f6dd87724cca748094941334",
+    "input_sha256": {
+      "graph.txt": "f447e635ef60d86f4591ef150e99d027d79600a624955da19c447d2e7f957fc8",
+      "queries.txt": "98af4b126c841bb99f8d497ddd79d7401627ffc323b8a5a74fca276b5b989527"
+    }
+  },
+  {
+    "case": "no-queries",
+    "python_byte_equal": true,
+    "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "input_sha256": {
+      "graph.txt": "f4a8ae8e74ddfb896a256de4e3099911dcaa6a9302591713898069b0bcd6e3d7",
+      "queries.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+]

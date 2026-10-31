@@ -3,6 +3,64 @@ mod traverse {
     include!("../track-d/src/main.rs");
 
     #[test]
+    fn reordering_preserves_permutation_edges_incoming_and_all_distances() {
+        let bytes = b"130 9\n5 64 0\n64 5 4294967295\n64 129 4294967295\n129 128 4294967295\n5 5 0\n66 67 1\n67 66 2\n5 64 7\n5 64 0\n";
+        let graph = build_graph(bytes, 6).unwrap();
+        let original: Vec<_> = (0..130)
+            .flat_map(|source| (0..130).map(move |target| (source, target)))
+            .collect();
+        let expected = answer_queries(&graph, &original, 1);
+        assert_eq!(expected[5 * 130 + 128], Some(2 * u64::from(u32::MAX)));
+        let incoming = graph.incoming.clone();
+        let old_edges: Vec<_> = (0..130)
+            .flat_map(|source| {
+                graph.edges[graph.offsets[source] as usize..graph.offsets[source + 1] as usize]
+                    .iter()
+                    .map(move |&(target, weight)| (source, target, weight))
+            })
+            .collect();
+        let mut queries = original;
+        let reordered = reorder_graph(graph, &mut queries, 6);
+        let mapping: Vec<_> = (0..130)
+            .map(|old| {
+                let (source, target) = queries[old * 130 + old];
+                assert_eq!(source, target);
+                source
+            })
+            .collect();
+        let mut permutation = mapping.clone();
+        permutation.sort_unstable();
+        assert_eq!(permutation, (0..130).collect::<Vec<_>>());
+        let mut expected_edges: Vec<_> = old_edges
+            .iter()
+            .map(|&(source, target, weight)| (mapping[source], mapping[target as usize], weight))
+            .collect();
+        let mut actual_edges: Vec<_> = (0..130)
+            .flat_map(|source| {
+                reordered.edges
+                    [reordered.offsets[source] as usize..reordered.offsets[source + 1] as usize]
+                    .iter()
+                    .map(move |&(target, weight)| (source, target as usize, weight))
+            })
+            .collect();
+        expected_edges.sort_unstable();
+        actual_edges.sort_unstable();
+        assert_eq!(actual_edges, expected_edges);
+        for (old, &new) in mapping.iter().enumerate() {
+            assert_eq!(
+                incoming[old / 64] >> (old % 64) & 1,
+                reordered.incoming[new / 64] >> (new % 64) & 1
+            );
+        }
+        for workers in [1, 2, 6, 12] {
+            assert_eq!(answer_queries(&reordered, &queries, workers), expected);
+        }
+        let empty = reorder_graph(build_graph(b"0 0\n", 6).unwrap(), &mut [], 6);
+        assert_eq!(empty.offsets, [0]);
+        assert!(empty.edges.is_empty());
+    }
+
+    #[test]
     fn graph_loader_preserves_every_edge() {
         let directory = std::env::temp_dir().join(format!("traverse-csr-{}", std::process::id()));
         fs::create_dir(&directory).unwrap();

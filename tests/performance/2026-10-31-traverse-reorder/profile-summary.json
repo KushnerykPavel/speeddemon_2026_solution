@@ -1,0 +1,23 @@
+{
+  "before": {
+    "graph_s": 0.366567824,
+    "query_parse_s": 0.00021278,
+    "reorder_s": 0,
+    "search_s": 2.012079835,
+    "output_s": 0.000135122
+  },
+  "dfs": {
+    "graph_s": 0.397146262,
+    "query_parse_s": 0.000192832,
+    "reorder_s": 0.836938526,
+    "search_s": 0.773159797,
+    "output_s": 0.000134971
+  },
+  "bfs": {
+    "graph_s": 0.364155159,
+    "query_parse_s": 0.000192835,
+    "reorder_s": 0.706969814,
+    "search_s": 0.836416747,
+    "output_s": 0.000146398
+  }
+}
