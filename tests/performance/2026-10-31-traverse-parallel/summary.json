@@ -1,0 +1,245 @@
+{
+  "platform": "macOS-14.5-arm64-arm-64bit",
+  "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "seed": 20261031,
+  "nodes": 90000,
+  "edges": 358800,
+  "queries": 1000,
+  "graph_sha256": "f3313db59f0a07fb9731e06b204fb1a22b912292a7f8cafd6b209aeccbdfef1d",
+  "queries_sha256": "8fc8f237e0c4276ee1e241a90c95f658c6ec4c25ff0f9abe42137be76d9ee7a1",
+  "method": "warm cache; one warmup, five rotating-order runs; discard min/max and average middle three",
+  "rows": [
+    {
+      "round": 0,
+      "variant": "before",
+      "seconds": 0.784033500123769,
+      "python_byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "1",
+      "seconds": 0.5514851668849587,
+      "python_byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "2",
+      "seconds": 0.5657227919436991,
+      "python_byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "4",
+      "seconds": 0.23418850009329617,
+      "python_byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "6",
+      "seconds": 0.10776358284056187,
+      "python_byte_equal": true
+    },
+    {
+      "round": 0,
+      "variant": "12",
+      "seconds": 0.3545428749639541,
+      "python_byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "1",
+      "seconds": 0.5823689592070878,
+      "python_byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "2",
+      "seconds": 0.23640662501566112,
+      "python_byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "4",
+      "seconds": 0.13365108286961913,
+      "python_byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "6",
+      "seconds": 0.07024816703051329,
+      "python_byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "12",
+      "seconds": 0.08975533279590309,
+      "python_byte_equal": true
+    },
+    {
+      "round": 1,
+      "variant": "before",
+      "seconds": 0.3116197499912232,
+      "python_byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "2",
+      "seconds": 0.19266625004820526,
+      "python_byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "4",
+      "seconds": 0.13952012499794364,
+      "python_byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "6",
+      "seconds": 0.07055604201741517,
+      "python_byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "12",
+      "seconds": 0.07904295809566975,
+      "python_byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "before",
+      "seconds": 0.3563650001306087,
+      "python_byte_equal": true
+    },
+    {
+      "round": 2,
+      "variant": "1",
+      "seconds": 0.31694679195061326,
+      "python_byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "4",
+      "seconds": 0.08558045816607773,
+      "python_byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "6",
+      "seconds": 0.06984370807185769,
+      "python_byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "12",
+      "seconds": 0.05577683402225375,
+      "python_byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "before",
+      "seconds": 0.28755587502382696,
+      "python_byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "1",
+      "seconds": 0.3143387921154499,
+      "python_byte_equal": true
+    },
+    {
+      "round": 3,
+      "variant": "2",
+      "seconds": 0.15689279208891094,
+      "python_byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "6",
+      "seconds": 0.08843374997377396,
+      "python_byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "12",
+      "seconds": 0.06802329211495817,
+      "python_byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "before",
+      "seconds": 0.29057062487117946,
+      "python_byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "1",
+      "seconds": 0.38823458296246827,
+      "python_byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "2",
+      "seconds": 0.14964016713202,
+      "python_byte_equal": true
+    },
+    {
+      "round": 4,
+      "variant": "4",
+      "seconds": 0.11939741717651486,
+      "python_byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "12",
+      "seconds": 0.059140542056411505,
+      "python_byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "before",
+      "seconds": 0.26694683404639363,
+      "python_byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "1",
+      "seconds": 0.272518000099808,
+      "python_byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "2",
+      "seconds": 0.15025737509131432,
+      "python_byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "4",
+      "seconds": 0.08916741609573364,
+      "python_byte_equal": true
+    },
+    {
+      "round": 5,
+      "variant": "6",
+      "seconds": 0.06223579193465412,
+      "python_byte_equal": true
+    }
+  ],
+  "trimmed_mean_seconds": {
+    "before": 0.29658208329540986,
+    "1": 0.33984005567617714,
+    "2": 0.16660547240947685,
+    "4": 0.11407197204728921,
+    "6": 0.07021597237326205,
+    "12": 0.06873559742234647
+  },
+  "speedup_vs_before": {
+    "before": 1.0,
+    "1": 0.8727107895074427,
+    "2": 1.7801461080851009,
+    "4": 2.599955782060645,
+    "6": 4.223854961643273,
+    "12": 4.314825133082916
+  }
+}

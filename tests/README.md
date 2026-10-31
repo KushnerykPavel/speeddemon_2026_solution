@@ -25,6 +25,10 @@ distances above `u32::MAX`, zero weights, duplicate edges, self-loops,
 unreachable vertices, empty queries, LF/CRLF and EOF tails are included. Degree
 rejection checks cover isolated self paths, no-in targets, no-out sources,
 self-loop-only components, bitset word boundaries and state reuse after rejection.
+The Python comparison runs every case with default scheduling and explicit
+1/2/4/6/12 workers (1,224 comparisons), plus three invalid thread options. Seven
+Rust tests include repeated parallel-versus-serial comparisons with skewed work,
+duplicate queries, large distances, fewer queries than workers and empty input.
 
 `reference/` preserves the organisers' MIT-licensed Python implementations
 unchanged, outside the independently scored track folders.

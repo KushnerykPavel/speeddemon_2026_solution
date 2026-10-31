@@ -3,6 +3,47 @@ mod traverse {
     include!("../track-d/src/main.rs");
 
     #[test]
+    fn parallel_answers_match_serial_with_skewed_work_and_duplicates() {
+        let nodes = 130;
+        let mut offsets: Vec<u32> = (0..nodes as u32).collect();
+        offsets.push(nodes as u32 - 1);
+        let graph = Graph {
+            offsets,
+            edges: (1..nodes as u32).map(|target| (target, u32::MAX)).collect(),
+            incoming: vec![u64::MAX - 1, u64::MAX, 3],
+        };
+        let queries: Vec<_> = (0..1000)
+            .map(|index| match index % 5 {
+                0 => (0, 129),
+                1 => (129, 0),
+                2 => (index % nodes, index % nodes),
+                3 => (3, 4),
+                _ => (1, 64),
+            })
+            .collect();
+        let mut searcher = Searcher::new(nodes);
+        let expected: Vec<_> = queries
+            .iter()
+            .map(|&(source, target)| searcher.shortest_path(&graph, source, target))
+            .collect();
+        assert_eq!(expected[0], Some(129 * u64::from(u32::MAX)));
+        for workers in [1, 2, 4, 6, 12, 99] {
+            for _ in 0..5 {
+                assert_eq!(answer_queries(&graph, &queries, workers), expected);
+            }
+            assert!(answer_queries(&graph, &[], workers).is_empty());
+            assert_eq!(
+                answer_queries(&graph, &[(0, 129)], workers),
+                vec![expected[0]]
+            );
+            assert_eq!(
+                answer_queries(&graph, &queries[..3], workers),
+                expected[..3]
+            );
+        }
+    }
+
+    #[test]
     fn degree_checks_preserve_self_paths_and_reusable_state() {
         let graph = Graph {
             offsets: vec![0, 1, 2, 2, 2],

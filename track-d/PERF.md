@@ -10,6 +10,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 3 | Release build: fat LTO, one codegen unit, abort on panic; native CPU in Docker build | | | | |
 | 4 | Direct checked `u32` byte parser with reusable line buffers for graph and queries | | | | |
 | 5 | D5: self-query shortcut and degree rejection using an incoming-edge bitset; provisional pending x86-64 measurement | | | | |
+| 6 | D7: dynamically scheduled independent queries with private search state, up to 12 standard-library workers | | | | |
 
 The Rust baseline preserves adjacency lists and one fresh Dijkstra search per
 query, with a hash map and binary heap. No external dependencies.
@@ -69,3 +70,44 @@ provisionally pending the plan's x86-64/full-workload validation; no board run,
 measured memory/points result for this step yet.
 Raw runs, workload generator and exact source patch:
 `../tests/performance/2026-10-31-traverse-degree-rejection/README.md`.
+
+Step 6: scoped workers share the immutable CSR, claim query indices via a relaxed
+atomic counter, and publish answers into indexed atomic slots. Scoped joins
+complete before reading the answers in input order. Every worker owns its
+distance/touched/heap state. Available parallelism is capped at 12 and the query
+count; `--threads N` enables 1/2/4/6/12 comparisons. One worker uses a serial
+path; empty input creates no search state. No new dependencies or unsafe code.
+At full size each worker initializes 13,924,096 bytes of distances (167,089,152
+bytes for 12), plus variable touched-list/heap memory; these are payload estimates,
+not peak-memory measurements.
+Seven regression tests pass; 204 cases match Python under default and each of
+1/2/4/6/12 workers (1,224 output comparisons). Eight invalid-input cases and
+three invalid thread options fail cleanly. Release build, Clippy and formatting
+pass. Local Mac synthetic 90k-node shuffled/relabelled grid, 1,000 skewed queries:
+trimmed means 296.58 → 68.74 ms (12 workers, 4.31x) and repeat 266.87 → 56.30 ms
+(4.74x); six workers gave 70.22 and 68.86 ms (4.22x and 3.88x). The new serial
+path took 339.84 and 285.14 ms, slower than the previous binary. All 72 benchmark
+outputs match Python. These are local diagnostics; default worker choice remains
+provisional pending scoring-machine time and cgroup memory measurements. No board
+run ID or measured memory/points result yet. Raw runs and reproduction:
+`../tests/performance/2026-10-31-traverse-parallel/README.md`.
+
+Step 6 VPS validation: Linux x86-64, six Haswell KVM vCPUs, CPU set 0-5 for
+every variant. Exact baseline `292002c` versus hashed D7 working-tree source,
+same pinned Rust 1.99.1 image, offline release/native builds and runtime limits.
+Official full seed 1, prewarmed input, one warmup plus five rotating-order
+measurements; discard min/max and average the middle three. Serial baseline
+12.9859 s; candidate 1/2/4/6/12 workers: 13.1116 / 7.3969 / 4.6269 / 3.7130 /
+3.7406 s. Six workers give 3.50x speedup (71.41% less time). Maximum child RSS
+over five measured runs: 110.61 MiB baseline, 110.73 / 110.76 / 110.69 / 132.86 /
+216.91 MiB for 1/2/4/6/12 workers. RSS is not cgroup memory.peak; no points claim.
+All 36 full outputs match the saved Python reference, SHA-256
+`a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e`.
+Seven Rust regression tests and all 1,224 Python comparisons also pass on VPS,
+along with eight invalid-input and three invalid-thread checks. Run spreads
+were 6.85% baseline and 3.58 / 4.74 / 6.77 / 4.55 / 5.44% by worker count;
+shared-host noise exceeds the board's 5% stability limit in some variants.
+Default selects six workers on this VPS. Twelve workers oversubscribe six CPUs;
+this result does not choose between six and twelve on the competition machine.
+Remote checkout was left unchanged; evidence and exact commands:
+`../tests/performance/2026-10-31-traverse-parallel-vps/README.md`.

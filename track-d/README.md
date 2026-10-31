@@ -12,7 +12,14 @@ Zero weights, parallel edges, duplicates and isolated nodes are supported.
 Before searching, return zero for identical endpoints and reject queries with
 no outgoing edge at the source or no incoming edge at the target. Incoming-edge
 presence uses one bit per vertex (217,568 bytes at 1,740,512 vertices).
-Queries run sequentially; no routing index or answer cache is used.
+Independent queries run on scoped standard-library threads sharing the immutable
+graph. Each worker reuses its own search state and claims its next query from an
+atomic counter; indexed answers preserve input order. No routing index or answer
+cache is used. The default uses available parallelism capped at 12 workers and
+the query count; `--threads N` overrides it (positive integer, capped at 12).
+One worker follows the serial path; empty queries allocate no search state.
+On the six-vCPU Linux VPS, full seed 1 matches Python and six workers reduce
+time from 12.99 s to 3.71 s (3.50x); measurements and limitations are in `PERF.md`.
 
 Graph headers, edges and queries are parsed directly from ASCII bytes into
 `u32` values, using one reusable line buffer per file. There are no temporary
@@ -26,6 +33,7 @@ the small measured build-profile improvement remains inconclusive.
 Build: `cargo build --release --offline --locked`.
 Run: `target/release/traverse-baseline --data /data --out /out`.
 The container defaults to `/data` and `/out`.
+For a serial comparison, append `--threads 1`.
 
 ## Dependencies
 
@@ -33,5 +41,6 @@ None.
 
 ## With another 24 hours
 
-Validate degree rejection on the full x86-64 workload, measure loading and query
-work separately, then compare parallel independent queries (D7 in the plan).
+Validate additional seeds and compare 6 versus 12 workers on the competition
+machine using both time and cgroup peak memory. Then test DFS/BFS vertex
+reordering (D8 in the plan), including its preprocessing cost.

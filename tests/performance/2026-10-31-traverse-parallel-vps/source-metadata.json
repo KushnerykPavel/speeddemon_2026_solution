@@ -1,0 +1,17 @@
+{
+  "baseline_commit": "292002c9be369bf08a320506ccf1a5080d6a2dfd",
+  "candidate": "working tree D7",
+  "sha256": {
+    "before/src/main.rs": "606c7b0e8bf38525c4e60558e45ed72522285e38326be8360e046fa589de84c6",
+    "track-d/src/main.rs": "d0c018ff290465af4699902971e14a61b24670521417fe7f3a6300a7a47645a8",
+    "before/Cargo.toml": "ca61ff94e64b8f3c77d9f1fb9118a4563ea66626e515973f59d39fbd1a0c3f20",
+    "track-d/Cargo.toml": "ca61ff94e64b8f3c77d9f1fb9118a4563ea66626e515973f59d39fbd1a0c3f20",
+    "before/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "track-d/Cargo.lock": "66689ea43d8480f7214ab3a77c45e29d92e86e744887256703421495d5f34184",
+    "tests/traverse-parser.rs": "1b76a70e4655fd013ff8468bbb9c202928d841ad41cfc36ffecee0269635854a",
+    "tests/traverse-check.py": "c3e5feb3a2f0540bd838114c36a4cc0d5a1c7079edc2acb2528a7029ec5d0e60",
+    "tests/reference/d_traverse.py": "342f2f7ccab7c22e30c5dcb34a9958da41387e0171cf8c3283a79439e73fff27",
+    "experiment.py": "d3c61b67a1d942dc3d374b4818a0635eccbf5f60df19ee94f35f6b51dc90feb1",
+    "measure.rs": "63ac42ed4662acb75c06b067a9ef92623150da26f668e2b5ca7425ede4afccb5"
+  }
+}

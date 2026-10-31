@@ -1,0 +1,12 @@
+
+running 7 tests
+test traverse::empty_input_is_eof ... ok
+test traverse::propagates_read_failure_after_partial_record ... ok
+test traverse::degree_checks_preserve_self_paths_and_reusable_state ... ok
+test traverse::records_across_every_buffer_boundary ... ok
+test traverse::rejects_malformed_or_overflowing_fields ... ok
+test traverse::long_records_reuse_buffer ... ok
+test traverse::parallel_answers_match_serial_with_skewed_work_and_duplicates ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+

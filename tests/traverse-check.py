@@ -12,6 +12,7 @@ import tempfile
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("binary", type=Path)
+    parser.add_argument("--threads", type=int, nargs="+", default=[1, 2, 4, 6, 12])
     args = parser.parse_args()
     binary = args.binary.resolve()
     reference = runpy.run_path(str(Path(__file__).parent / "reference/d_traverse.py"))
@@ -46,8 +47,12 @@ def main():
             (root / "graph.txt").write_bytes(graph.encode("ascii"))
             (root / "queries.txt").write_bytes(queries.encode("ascii"))
             reference["main"](str(root), str(expected))
-            subprocess.run([str(binary), "--data", str(root), "--out", str(actual)], check=True)
-            assert (actual / "distances.txt").read_bytes() == (expected / "distances.txt").read_bytes()
+            for threads in [None] + args.threads:
+                command = [str(binary), "--data", str(root), "--out", str(actual)]
+                if threads is not None:
+                    command += ["--threads", str(threads)]
+                subprocess.run(command, check=True)
+                assert (actual / "distances.txt").read_bytes() == (expected / "distances.txt").read_bytes()
         invalid = [
             ("", ""), ("2 1\n0 1 4294967296\n", ""),
             ("2 2\n0 1 3\n", ""), ("2 1\n0 2 3\n", ""),
@@ -60,7 +65,11 @@ def main():
             result = subprocess.run([str(binary), "--data", str(root), "--out", str(actual)], capture_output=True)
             assert result.returncode != 0
             assert b"panicked" not in result.stderr
-    print(json.dumps({"python_byte_equal_cases": len(cases), "invalid_input_cases": len(invalid)}))
+        for value in ["0", "-1", "abc"]:
+            result = subprocess.run([str(binary), "--threads", value], capture_output=True)
+            assert result.returncode != 0
+    print(json.dumps({"python_byte_equal_cases": len(cases), "thread_counts": ["default"] + args.threads,
+                      "invalid_input_cases": len(invalid), "invalid_thread_options": 3}))
 
 
 if __name__ == "__main__":

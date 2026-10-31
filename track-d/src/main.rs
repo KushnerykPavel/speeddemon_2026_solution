@@ -4,6 +4,8 @@ use std::error::Error;
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::thread;
 
 struct Graph {
     offsets: Vec<u32>,
@@ -145,14 +147,63 @@ impl Searcher {
     }
 }
 
+fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> Vec<Option<u64>> {
+    if queries.is_empty() {
+        return Vec::new();
+    }
+    let workers = workers.clamp(1, 12).min(queries.len());
+    if workers == 1 {
+        let mut searcher = Searcher::new(graph.offsets.len() - 1);
+        return queries
+            .iter()
+            .map(|&(source, target)| searcher.shortest_path(graph, source, target))
+            .collect();
+    }
+    let next = AtomicUsize::new(0);
+    let answers: Vec<_> = queries.iter().map(|_| AtomicU64::new(u64::MAX)).collect();
+    thread::scope(|scope| {
+        for _ in 0..workers {
+            scope.spawn(|| {
+                let mut searcher = Searcher::new(graph.offsets.len() - 1);
+                loop {
+                    let index = next.fetch_add(1, Ordering::Relaxed);
+                    let Some(&(source, target)) = queries.get(index) else {
+                        break;
+                    };
+                    let distance = searcher.shortest_path(graph, source, target);
+                    answers[index].store(distance.unwrap_or(u64::MAX), Ordering::Relaxed);
+                }
+            });
+        }
+    });
+    // Scoped joins make all relaxed answer stores visible before collection.
+    answers
+        .into_iter()
+        .map(|answer| match answer.into_inner() {
+            u64::MAX => None,
+            distance => Some(distance),
+        })
+        .collect()
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let mut data = PathBuf::from("/data");
     let mut out = PathBuf::from("/out");
+    let mut workers = thread::available_parallelism()
+        .map_or(1, usize::from)
+        .min(12);
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--data" => data = args.next().ok_or("missing --data value")?.into(),
             "--out" => out = args.next().ok_or("missing --out value")?.into(),
+            "--threads" => {
+                workers = args
+                    .next()
+                    .ok_or("missing --threads value")?
+                    .parse::<std::num::NonZeroUsize>()?
+                    .get();
+            }
             _ => return Err(format!("unknown argument: {arg}").into()),
         }
     }
@@ -169,9 +220,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     fs::create_dir_all(&out)?;
     let mut output = BufWriter::new(File::create(out.join("distances.txt"))?);
-    let mut searcher = Searcher::new(graph.offsets.len() - 1);
-    for (source, target) in queries {
-        match searcher.shortest_path(&graph, source, target) {
+    for answer in answer_queries(&graph, &queries, workers) {
+        match answer {
             Some(distance) => writeln!(output, "{distance}")?,
             None => writeln!(output, "-1")?,
         }
