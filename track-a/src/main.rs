@@ -19,6 +19,22 @@ unsafe fn load(at: *const u8) -> u64 {
     unsafe { at.cast::<u64>().read_unaligned() }
 }
 
+// Bit `i` of the result is set when byte `i` of the 64 bytes at `at` is a newline.
+unsafe fn newlines(at: *const u8) -> u64 {
+    #[cfg(target_arch = "x86_64")]
+    unsafe {
+        use std::arch::x86_64::*;
+        let newline = _mm_set1_epi8(b'\n' as i8);
+        let part = |i: usize| {
+            let bytes = _mm_loadu_si128(at.add(16 * i).cast());
+            _mm_movemask_epi8(_mm_cmpeq_epi8(bytes, newline)) as u16 as u64
+        };
+        part(0) | part(1) << 16 | part(2) << 32 | part(3) << 48
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    (0..64).fold(0, |m, i| m | u64::from(unsafe { *at.add(i) } == b'\n') << i)
+}
+
 // Offset of the first space in `w`, if any.
 fn space_in(w: u64) -> Option<usize> {
     let x = w ^ (0x20 * LANES);
@@ -114,7 +130,8 @@ impl State {
         if self.names.len() >= 0xfffe {
             return Err("too many endpoints");
         }
-        self.names.push(name);
+        // Own the name: the input pages it came from are unmapped after parsing.
+        self.names.push(Box::leak(name.to_vec().into_boxed_slice()));
         self.hashes.push(hash);
         self.slots[i] = hash & !0xffff | self.names.len() as u64;
         if self.names.len() * 2 > self.slots.len() {
@@ -189,6 +206,8 @@ impl State {
 
     // Parses the whole lines `data[pos..end]`, `timestamp method endpoint status latency`,
     // into keys `error << 63 | hour << 56 | endpoint << 32 | latency`; returns the hour range.
+    // The line end comes first (64 bytes per step); the latency, status and endpoint end are
+    // then read backwards from it, so the endpoint's bytes are only hashed, never searched.
     fn scan(
         &mut self,
         data: &'static [u8],
@@ -198,59 +217,83 @@ impl State {
     ) -> Result<(usize, usize), &'static str> {
         assert!(pos <= end && end + SLACK <= data.len());
         let (mut p, stop) = unsafe { (data.as_ptr().add(pos), data.as_ptr().add(end)) };
-        let (mut first, mut last) = (HOURS, 0);
-        // SAFETY: a line starts inside the chunk, and every read below stays within
-        // `SLACK` bytes of a position already checked against `stop`; malformed lines
-        // are rejected before they can lead further.
+        let (mut first, mut last, mut stamp, mut hour) = (HOURS, 0, 0, HOURS);
+        let (mut block, mut mask) = (p, 0_u64);
+        // SAFETY: a line starts inside the chunk and is at least 37 bytes long; every read
+        // below stays within 64 bytes of a position inside the line or the chunk's end.
         unsafe {
             while p < stop {
-                let w = load(p.add(5));
-                let two = |at: u32| ((w >> at & 15) * 10 + (w >> (at + 8) & 15)) as i64;
-                let hour = ((two(24) + 1 - 31 * (11 - two(0))) * 24 + two(48) - 18) as usize;
-                if hour >= HOURS || !matches!(two(0), 10 | 11) {
+                // The next newline, or the chunk's end for an unterminated last line.
+                let newline = loop {
+                    if mask != 0 {
+                        let at = block.sub(64).add(mask.trailing_zeros() as usize);
+                        mask &= mask - 1;
+                        break at;
+                    }
+                    if block >= stop {
+                        break stop;
+                    }
+                    mask = newlines(block);
+                    block = block.add(64);
+                };
+                let line_end = if newline > p && *newline.sub(1) == b'\r' {
+                    newline.sub(1)
+                } else {
+                    newline
+                };
+                if line_end.offset_from(p) < 37 {
                     return Err(BAD);
+                }
+                let w = load(p.add(5));
+                // Records come in long runs of one hour: decode the hour only when it changes.
+                if w != stamp || hour >= HOURS {
+                    let two = |at: u32| ((w >> at & 15) * 10 + (w >> (at + 8) & 15)) as i64;
+                    hour = ((two(24) + 1 - 31 * (11 - two(0))) * 24 + two(48) - 18) as usize;
+                    if hour >= HOURS || !matches!(two(0), 10 | 11) {
+                        return Err(BAD);
+                    }
+                    (stamp, first, last) = (w, first.min(hour), last.max(hour));
                 }
                 let method = space_in(load(p.add(28))).filter(|&m| m > 0).ok_or(BAD)?;
                 let name = p.add(29 + method);
-                let (mut at, mut hash) = (name, 0);
-                let length = loop {
-                    let w = load(at);
-                    if let Some(n) = space_in(w) {
-                        hash = hash_word(hash, w & ((1_u64 << (8 * n)) - 1));
-                        break at.add(n).offset_from(name) as usize;
+                // The latency's digits end the line; find the space before them.
+                let x = load(line_end.sub(8)) ^ (0x20 * LANES);
+                let spaces = !(((x & (0x7f * LANES)) + (0x7f * LANES)) | x | (0x7f * LANES));
+                let mut digits = (spaces.leading_zeros() / 8) as usize;
+                if spaces == 0 {
+                    digits = 8;
+                    while digits <= 10 && *line_end.sub(digits + 1) != b' ' {
+                        digits += 1;
                     }
-                    hash = hash_word(hash, w);
-                    at = at.add(8);
-                    if at >= stop {
-                        return Err(BAD);
-                    }
+                }
+                let (latency, found) = match digits {
+                    1..=10 => number(line_end.sub(digits)).ok_or(BAD)?,
+                    _ => return Err(BAD),
                 };
-                let status = name.add(length + 1);
-                let s = load(status) as u32 ^ 0x2030_3030;
-                if length == 0
-                    || s & 0xf0f0_f0f0 != 0
-                    || (s + 0x0006_0606) & 0x00f0_f0f0 != 0
-                    || s >> 24 != 0
-                {
+                // " SSS " precedes the digits: a space, three status digits, a space.
+                let tail = line_end.sub(digits + 5);
+                let x = (load(tail) ^ 0x20_3030_3020) & 0xff_ffff_ffff;
+                let bad = x & 0xff_0000_00ff
+                    | x & 0xf0f0_f000
+                    | ((x & 0x0f0f_0f00) + 0x0606_0600) & 0x1010_1000;
+                if found != digits || bad != 0 || tail <= name {
                     return Err(BAD);
                 }
-                let (latency, digits) = number(status.add(4)).ok_or(BAD)?;
-                let mut line_end = status.add(4 + digits);
-                if *line_end == b'\r' {
-                    line_end = line_end.add(1);
+                let (mut at, mut hash) = (name, 0);
+                while at.add(8) <= tail {
+                    hash = hash_word(hash, load(at));
+                    at = at.add(8);
                 }
-                if *line_end != b'\n' && line_end != stop {
-                    return Err(BAD);
-                }
-                p = line_end.add(1);
+                let rest = tail.offset_from(at) as usize;
+                hash = hash_word(hash, load(at) & ((1_u64 << (8 * rest)) - 1));
+                let length = tail.offset_from(name) as usize;
+                p = newline.add(1);
                 let id = self.endpoint(
                     std::slice::from_raw_parts(name, length),
                     hash ^ length as u64,
                 )?;
-                let error = u64::from(*status == b'5');
+                let error = u64::from(*tail.add(1) == b'5');
                 keys.push(error << 63 | (hour as u64) << 56 | id << 32 | latency);
-                first = first.min(hour);
-                last = last.max(hour);
             }
         }
         Ok((first.min(last), last))
@@ -259,6 +302,7 @@ impl State {
 
 // The competition target and local development hosts use 64-bit Unix off_t.
 unsafe extern "C" {
+    fn munmap(address: *mut u8, length: usize) -> i32;
     fn mmap(
         address: *mut u8,
         length: usize,
@@ -299,6 +343,20 @@ fn map_file(path: PathBuf) -> std::io::Result<&'static [u8]> {
     Ok(unsafe { std::slice::from_raw_parts(address, length) })
 }
 
+// Unmaps the whole pages inside the parsed chunk `data[start..end]`, keeping one page at
+// each end because a neighbouring chunk's parser may read past its end. Doing it here, in
+// parallel, spares the kernel one serial teardown of the whole mapping at exit.
+fn release(data: &[u8], start: usize, end: usize) {
+    const PAGE: usize = 16384; // a multiple of every supported page size
+    let (from, to) = (
+        (start.div_ceil(PAGE) + 1) * PAGE,
+        (end / PAGE).saturating_sub(1) * PAGE,
+    );
+    if to > from {
+        unsafe { munmap(data.as_ptr().add(from) as *mut u8, to - from) };
+    }
+}
+
 // Splits `bytes` into up to `pieces` ranges that start and end after a newline.
 fn line_chunks(bytes: &[u8], pieces: usize) -> Vec<(usize, usize)> {
     let (mut chunks, mut start) = (Vec::new(), 0);
@@ -327,16 +385,26 @@ fn run<T: Send>(workers: usize, job: impl Fn() -> T + Sync) -> Vec<T> {
     })
 }
 
-fn itoa(mut value: u64, buffer: &mut [u8; 20]) -> &[u8] {
-    let mut at = buffer.len();
-    loop {
-        at -= 1;
-        buffer[at] = b'0' + (value % 10) as u8;
-        value /= 10;
-        if value == 0 {
-            return &buffer[at..];
-        }
+// Appends `value` in decimal, two digits per step.
+fn push_number(text: &mut Vec<u8>, mut value: u64) {
+    const PAIRS: &[u8; 200] = b"0001020304050607080910111213141516171819202122232425262728293031323334353637383940414243444546474849\
+5051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899";
+    let mut digits = [0; 20];
+    let mut at = digits.len();
+    while value >= 100 {
+        let pair = (value % 100) as usize * 2;
+        value /= 100;
+        at -= 2;
+        digits[at..at + 2].copy_from_slice(&PAIRS[pair..pair + 2]);
     }
+    if value >= 10 {
+        at -= 2;
+        digits[at..at + 2].copy_from_slice(&PAIRS[value as usize * 2..][..2]);
+    } else {
+        at -= 1;
+        digits[at] = b'0' + value as u8;
+    }
+    text.extend_from_slice(&digits[at..]);
 }
 
 // The rows of one hour: endpoint rank, count, p50, p95, p99, errors.
@@ -368,7 +436,10 @@ fn summarize(
         while let Some(&(start, end)) = chunks.get(next.fetch_add(1, Ordering::Relaxed)) {
             match start {
                 usize::MAX => state.chunk(tail, 0, end)?,
-                _ => state.chunk(data, start, end)?,
+                _ => {
+                    state.chunk(data, start, end)?;
+                    release(data, start, end);
+                }
             }
         }
         Ok::<State, &'static str>(state)
@@ -497,7 +568,7 @@ fn summarize(
                     ppm,
                 ] {
                     text.push(b' ');
-                    text.extend_from_slice(itoa(field, &mut [0; 20]));
+                    push_number(&mut text, field);
                 }
                 text.push(b'\n');
                 text.extend_from_within(..prefix);
