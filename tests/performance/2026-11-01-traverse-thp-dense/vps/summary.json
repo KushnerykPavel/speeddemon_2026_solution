@@ -1,0 +1,81 @@
+{
+  "cpuset": "0-5",
+  "rounds_excluding_warmup": 10,
+  "order": "alternating",
+  "thp": {
+    "enabled": "always [madvise] never",
+    "defrag": "always defer defer+madvise [madvise] never",
+    "kernel": "7.0.0-28-generic"
+  },
+  "method": "round 0 discarded; trimmed mean (drop min/max) of remaining rounds",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "results": {
+    "12": {
+      "before": {
+        "trimmed_mean_s": 0.482798397875,
+        "median_s": 0.48295462499999997,
+        "spread_percent": 11.140772331905913,
+        "user_s_median": 2.1776195,
+        "sys_s_median": 0.24263600000000002,
+        "minflt_median": 48028.5,
+        "max_cgroup_peak_bytes": 78995456
+      },
+      "thp": {
+        "trimmed_mean_s": 0.459971402375,
+        "median_s": 0.4602082495,
+        "spread_percent": 12.528001946606192,
+        "user_s_median": 2.0850215,
+        "sys_s_median": 0.2262075,
+        "minflt_median": 36775.5,
+        "max_cgroup_peak_bytes": 78962688
+      },
+      "change_percent_trimmed_mean": -4.728059496566528,
+      "paired_change_percent_median": -3.713570345457878,
+      "paired_thp_faster_rounds": "9/10"
+    },
+    "6": {
+      "before": {
+        "trimmed_mean_s": 0.501421488625,
+        "median_s": 0.501890961,
+        "spread_percent": 20.087215928519054,
+        "user_s_median": 2.1662475,
+        "sys_s_median": 0.24521700000000002,
+        "minflt_median": 47276.5,
+        "max_cgroup_peak_bytes": 78155776
+      },
+      "thp": {
+        "trimmed_mean_s": 0.4659485855,
+        "median_s": 0.4585018815,
+        "spread_percent": 16.485293164814795,
+        "user_s_median": 2.0492675,
+        "sys_s_median": 0.208908,
+        "minflt_median": 36054.0,
+        "max_cgroup_peak_bytes": 78270464
+      },
+      "change_percent_trimmed_mean": -7.074468073212003,
+      "paired_change_percent_median": -4.675543382717862,
+      "paired_thp_faster_rounds": "8/10"
+    }
+  },
+  "diag": {
+    "diag-before": {
+      "anon_huge_kib": [
+        0
+      ],
+      "reorder_s_median": 0.113933,
+      "transpose_s_median": 0.06358400000000003,
+      "search_s_median": 0.19445099999999998,
+      "total_s_median": 0.468334
+    },
+    "diag-thp": {
+      "anon_huge_kib": [
+        43008,
+        45056
+      ],
+      "reorder_s_median": 0.110475,
+      "transpose_s_median": 0.05538499999999999,
+      "search_s_median": 0.19840200000000002,
+      "total_s_median": 0.450109
+    }
+  }
+}

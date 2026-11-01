@@ -1,0 +1,204 @@
+THP={"enabled": "always [madvise] never", "defrag": "always defer defer+madvise [madvise] never", "kernel": "7.0.0-28-generic"}
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work -w /work/before rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --locked
+   Compiling traverse-baseline v0.1.0 (/work/before)
+    Finished `release` profile [optimized] target(s) in 7.98s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work -w /work/thp rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --locked
+   Compiling traverse-baseline v0.1.0 (/work/thp)
+    Finished `release` profile [optimized] target(s) in 7.81s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work -w /work/diag-before rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --locke
+   Compiling traverse-baseline v0.1.0 (/work/diag-before)
+    Finished `release` profile [optimized] target(s) in 8.44s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work -w /work/diag-thp rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --locked
+   Compiling traverse-baseline v0.1.0 (/work/diag-thp)
+    Finished `release` profile [optimized] target(s) in 8.58s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work -w /work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc --edition=2024 -O measure.rs -o measure
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc -Vv
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work -w /work/unit-thp rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc --edition=2024 --test -O prune-tests
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work debian:13-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e251
+UNIT thp: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-bench/thp-dense:/work -w /work/unit-before rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc --edition=2024 --test -O prune-te
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work debian:13-slim@sha256:62bd423aeee912639ca8ee681c2b762cb3e251
+UNIT before: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work python:3.13-slim@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4
+PYTHON before: {"python_byte_equal_cases": 204, "thread_counts": ["default", 1, 2, 4, 6, 12], "invalid_input_cases": 8, "invalid_thread_options": 3}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work python:3.13-slim@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4
+PYTHON thp: {"python_byte_equal_cases": 204, "thread_counts": ["default", 1, 2, 4, 6, 12], "invalid_input_cases": 8, "invalid_thread_options": 3}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/edg
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/edg
+EQUAL edge-cases 2e9871bba1d5
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+EQUAL full-seed1 a23dbdf0a3e4
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/no-
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/no-
+EQUAL no-edges 506e2bfd1165
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/no-
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/no-
+EQUAL no-queries e3b0c44298fc
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/sam
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/sam
+EQUAL sample-seed1 a4c76ed030bc
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/sam
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/sam
+EQUAL sample-seed42 e003ecd1553a
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/sam
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/sam
+EQUAL sample-seed7 88bf36c94620
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/tin
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/tin
+EQUAL tiny-seed1 ecaca77d3221
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/tin
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/tin
+EQUAL tiny-seed42 fbfcc9488170
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/tin
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/tin
+EQUAL tiny-seed7 70595ddd5a56
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-before huge=0 marks={'load': 0.093287, 'queries': 0.093612, 'reorder': 0.203437, 'transpose': 0.26577, 'search': 0.466994, 'output': 0.469403}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-thp huge=45056 marks={'load': 0.086961, 'queries': 0.087257, 'reorder': 0.191021, 'transpose': 0.240779, 'search': 0.450021, 'output': 0.451066}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-thp huge=43008 marks={'load': 0.089139, 'queries': 0.089437, 'reorder': 0.199912, 'transpose': 0.254092, 'search': 0.442339, 'output': 0.443485}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-before huge=0 marks={'load': 0.092454, 'queries': 0.092832, 'reorder': 0.189327, 'transpose': 0.242877, 'search': 0.446195, 'output': 0.448612}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-before huge=0 marks={'load': 0.085578, 'queries': 0.085954, 'reorder': 0.201648, 'transpose': 0.265232, 'search': 0.457051, 'output': 0.45986}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-thp huge=43008 marks={'load': 0.092743, 'queries': 0.093044, 'reorder': 0.199053, 'transpose': 0.24951, 'search': 0.448768, 'output': 0.450109}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-thp huge=43008 marks={'load': 0.077274, 'queries': 0.077594, 'reorder': 0.19274, 'transpose': 0.252137, 'search': 0.450539, 'output': 0.451358}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-before huge=0 marks={'load': 0.094246, 'queries': 0.094604, 'reorder': 0.208537, 'transpose': 0.272273, 'search': 0.466168, 'output': 0.468334}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-before huge=0 marks={'load': 0.100487, 'queries': 0.100848, 'reorder': 0.218314, 'transpose': 0.275103, 'search': 0.476483, 'output': 0.479215}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-thp huge=45056 marks={'load': 0.083043, 'queries': 0.083441, 'reorder': 0.202117, 'transpose': 0.261977, 'search': 0.462758, 'output': 0.464028}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-thp huge=45056 marks={'load': 0.103627, 'queries': 0.103948, 'reorder': 0.208726, 'transpose': 0.264111, 'search': 0.445977, 'output': 0.446827}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+DIAG diag-before huge=0 marks={'load': 0.102941, 'queries': 0.103546, 'reorder': 0.216092, 'transpose': 0.279849, 'search': 0.4743, 'output': 0.477833}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-bench/thp-dense:/work -v /home/student/speed-demon-2026/data/rust-validation/d/ful
+SUMMARY={
+ "cpuset": "0-5",
+ "rounds_excluding_warmup": 10,
+ "order": "alternating",
+ "thp": {
+  "enabled": "always [madvise] never",
+  "defrag": "always defer defer+madvise [madvise] never",
+  "kernel": "7.0.0-28-generic"
+ },
+ "method": "round 0 discarded; trimmed mean (drop min/max) of remaining rounds",
+ "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+ "results": {
+  "12": {
+   "before": {
+    "trimmed_mean_s": 0.482798397875,
+    "median_s": 0.48295462499999997,
+    "spread_percent": 11.140772331905913,
+    "user_s_median": 2.1776195,
+    "sys_s_median": 0.24263600000000002,
+    "minflt_median": 48028.5,
+    "max_cgroup_peak_bytes": 78995456
+   },
+   "thp": {
+    "trimmed_mean_s": 0.459971402375,
+    "median_s": 0.4602082495,
+    "spread_percent": 12.528001946606192,
+    "user_s_median": 2.0850215,
+    "sys_s_median": 0.2262075,
+    "minflt_median": 36775.5,
+    "max_cgroup_peak_bytes": 78962688
+   },
+   "change_percent_trimmed_mean": -4.728059496566528,
+   "paired_change_percent_median": -3.713570345457878,
+   "paired_thp_faster_rounds": "9/10"
+  },
+  "6": {
+   "before": {
+    "trimmed_mean_s": 0.501421488625,
+    "median_s": 0.501890961,
+    "spread_percent": 20.087215928519054,
+    "user_s_median": 2.1662475,
+    "sys_s_median": 0.24521700000000002,
+    "minflt_median": 47276.5,
+    "max_cgroup_peak_bytes": 78155776
+   },
+   "thp": {
+    "trimmed_mean_s": 0.4659485855,
+    "median_s": 0.4585018815,
+    "spread_percent": 16.485293164814795,
+    "user_s_median": 2.0492675,
+    "sys_s_median": 0.208908,
+    "minflt_median": 36054.0,
+    "max_cgroup_peak_bytes": 78270464
+   },
+   "change_percent_trimmed_mean": -7.074468073212003,
+   "paired_change_percent_median": -4.675543382717862,
+   "paired_thp_faster_rounds": "8/10"
+  }
+ },
+ "diag": {
+  "diag-before": {
+   "anon_huge_kib": [
+    0
+   ],
+   "reorder_s_median": 0.113933,
+   "transpose_s_median": 0.06358400000000003,
+   "search_s_median": 0.19445099999999998,
+   "total_s_median": 0.468334
+  },
+  "diag-thp": {
+   "anon_huge_kib": [
+    43008,
+    45056
+   ],
+   "reorder_s_median": 0.110475,
+   "transpose_s_median": 0.05538499999999999,
+   "search_s_median": 0.19840200000000002,
+   "total_s_median": 0.450109
+  }
+ }
+}
