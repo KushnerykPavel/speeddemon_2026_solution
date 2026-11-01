@@ -4,69 +4,197 @@ include!("../track-a/src/main.rs");
 #[cfg(test)]
 mod parser_tests {
     use super::*;
-    fn group<'a>(groups: &'a Groups, hour: &[u8; 13], endpoint: &str) -> &'a Group {
-        &groups.rows[groups.hours[hour]][groups.endpoints[endpoint]]
+    use std::collections::BTreeMap;
+
+    fn leak(bytes: Vec<u8>) -> &'static [u8] {
+        Box::leak(bytes.into_boxed_slice())
     }
 
-    #[test]
-    fn numeric_boundaries_and_error_statuses() {
-        for (status, error) in [(499, false), (500, true), (599, true), (600, false)] {
-            for latency in [0, u32::MAX] {
-                let line = format!("2026-10-31T23:59:59.999999Z GET /api {status} {latency}");
-                let record = parse_record(line.as_bytes()).unwrap();
-                assert_eq!(record.hour, *b"2026-10-31T23");
-                assert_eq!(record.endpoint, "/api");
-                assert_eq!(record.latency, latency);
-                assert_eq!(record.error, error);
+    fn run_all(input: &[u8], workers: usize) -> Result<Vec<u8>, &'static str> {
+        summarize(leak(input.to_vec()), workers).map(|texts| texts.concat())
+    }
+
+    // Straightforward reference: group, sort, nearest rank.
+    fn expected(lines: &[(String, String, u32, u32)]) -> String {
+        let mut groups: BTreeMap<(String, String), (Vec<u32>, u64)> = BTreeMap::new();
+        for (timestamp, endpoint, status, latency) in lines {
+            let group = groups
+                .entry((timestamp[..13].to_string(), endpoint.clone()))
+                .or_default();
+            group.0.push(*latency);
+            group.1 += u64::from((500..600).contains(status));
+        }
+        let mut out = String::new();
+        for ((hour, endpoint), (mut values, errors)) in groups {
+            values.sort_unstable();
+            let n = values.len();
+            let at = |p: usize| values[(p * n).div_ceil(100) - 1];
+            let ppm = errors * 1_000_000 / n as u64;
+            out += &format!(
+                "{hour}:00:00Z {endpoint} {n} {} {} {} {errors} {ppm}\n",
+                at(50),
+                at(95),
+                at(99)
+            );
+        }
+        out
+    }
+
+    fn render(lines: &[(String, String, u32, u32)], ending: &str, final_ending: bool) -> Vec<u8> {
+        let mut text = String::new();
+        for (i, (timestamp, endpoint, status, latency)) in lines.iter().enumerate() {
+            text += &format!("{timestamp} GET {endpoint} {status} {latency}");
+            if i + 1 < lines.len() || final_ending {
+                text += ending;
             }
         }
+        text.into_bytes()
     }
 
-    #[test]
-    fn rejects_malformed_records() {
-        for fields in [
-            "GET /api 500",            // missing latency
-            "GET /api 500 1 extra",    // extra field
-            "GET /api x 1",            // invalid status
-            "GET /api 65536 1",        // status overflow
-            "GET /api 4294967296 1",   // parser overflow
-            "GET /api 500 4294967296", // latency overflow
-            "GET /api 500 -1",         // negative latency
-            "GET /api 500 1.5",        // noninteger latency
-            "GET /api 500 +1",         // nondecimal token
-            "GET /api 500 ",           // empty latency
-            "GET  500 1",              // empty endpoint
-            " /api 500 1",             // empty method
-        ] {
-            let line = format!("2026-10-31T23:59:59.999999Z {fields}");
-            assert!(parse_record(line.as_bytes()).is_err(), "{line:?}");
-        }
-        for line in [b"".as_slice(), b"short GET /api 500 1", b" GET /api 500 1"] {
-            assert!(parse_record(line).is_err());
-        }
-        assert!(parse_record(b"2026-10-31T23:59:59.999999Z GET /\xff 500 1").is_err());
-        assert!(parse_record(b"\xff026-10-31T23:59:59.999999Z GET /api 500 1").is_err());
-    }
-
-    #[test]
-    fn line_endings_and_final_line() {
-        for ending in ["\n", "\r\n"] {
-            for final_ending in ["", ending] {
-                let input = format!(
-                    "2026-10-31T23:59:59.999999Z GET /api 499 0{ending}\
-                     2026-11-01T00:00:00.000000Z POST /api/v1 599 4294967295{ending}\
-                     2026-10-31T23:00:00.000000Z GET /api 500 10{final_ending}"
+    fn random_lines(count: usize, endpoints: usize, seed: u64) -> Vec<(String, String, u32, u32)> {
+        let mut state = seed;
+        let mut next = move || {
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (state >> 33) as u32
+        };
+        (0..count)
+            .map(|_| {
+                let hour = next() as usize % HOURS + 18;
+                let (date, h) = (DATES[hour / 24], hour % 24);
+                let endpoint = format!(
+                    "/e{}{}",
+                    next() as usize % endpoints,
+                    "x".repeat(next() as usize % 40)
                 );
-                let groups = read_chunk(input.as_bytes()).unwrap();
-                assert_eq!(groups.hours.len(), 2);
-                let first = group(&groups, b"2026-10-31T23", "/api");
-                assert_eq!(first.latencies, [0, 10]);
-                assert_eq!(first.errors, 1);
-                let second = group(&groups, b"2026-11-01T00", "/api/v1");
-                assert_eq!(second.latencies, [u32::MAX]);
-                assert_eq!(second.errors, 1);
+                let latency = match next() % 20 {
+                    0 => 0,
+                    1 => u32::MAX,
+                    _ => next() % 100_000,
+                };
+                let status = [200, 404, 500, 503, 599, 100][next() as usize % 6];
+                (
+                    format!("{date}T{h:02}:{:02}:30.123456Z", next() % 60),
+                    endpoint,
+                    status,
+                    latency,
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn matches_reference_for_every_worker_count_and_line_ending() {
+        let lines = random_lines(3000, 40, 7);
+        let want = expected(&lines);
+        for (ending, final_ending) in [("\n", true), ("\n", false), ("\r\n", true), ("\r\n", false)]
+        {
+            let input = render(&lines, ending, final_ending);
+            for workers in [1, 2, 3, 5, 12] {
+                assert_eq!(
+                    String::from_utf8(run_all(&input, workers).unwrap()).unwrap(),
+                    want
+                );
             }
         }
+    }
+
+    #[test]
+    fn many_endpoints_grow_the_table_and_share_prefixes() {
+        let lines = random_lines(20_000, 5000, 11);
+        let input = render(&lines, "\n", true);
+        assert_eq!(
+            String::from_utf8(run_all(&input, 4).unwrap()).unwrap(),
+            expected(&lines)
+        );
+        let long = "x".repeat(125);
+        let lines = vec![
+            (
+                "2026-11-01T00:00:00.000000Z".to_string(),
+                format!("/{long}"),
+                500,
+                1,
+            ),
+            (
+                "2026-11-01T00:00:00.000000Z".to_string(),
+                format!("/{long}y"),
+                200,
+                2,
+            ),
+            (
+                "2026-11-01T00:00:00.000000Z".to_string(),
+                "/".to_string(),
+                200,
+                3,
+            ),
+            (
+                "2026-11-01T00:00:00.000000Z".to_string(),
+                "/a".to_string(),
+                200,
+                4,
+            ),
+            (
+                "2026-11-01T00:00:00.000000Z".to_string(),
+                "/aa".to_string(),
+                200,
+                5,
+            ),
+        ];
+        assert_eq!(
+            String::from_utf8(run_all(&render(&lines, "\n", false), 2).unwrap()).unwrap(),
+            expected(&lines)
+        );
+    }
+
+    #[test]
+    fn contract_boundary_hours_and_empty_input() {
+        let lines: Vec<_> = [
+            "2026-10-30T18:00:00.000000Z",
+            "2026-10-31T00:00:00.000000Z",
+            "2026-11-01T00:00:00.000000Z",
+            "2026-11-02T17:59:59.999999Z",
+        ]
+        .map(|t| (t.to_string(), "/a".to_string(), 500, u32::MAX))
+        .to_vec();
+        assert_eq!(
+            String::from_utf8(run_all(&render(&lines, "\n", true), 3).unwrap()).unwrap(),
+            expected(&lines)
+        );
+        assert!(run_all(b"", 4).unwrap().is_empty());
+    }
+
+    #[test]
+    fn rejects_malformed_or_out_of_contract_records() {
+        for record in [
+            "2026-10-31T23:59:59.999999Z GET /api 500", // missing latency
+            "2026-10-31T23:59:59.999999Z GET /api 500 1 extra", // extra field
+            "2026-10-31T23:59:59.999999Z GET /api x00 1", // invalid status
+            "2026-10-31T23:59:59.999999Z GET /api 50 1", // short status
+            "2026-10-31T23:59:59.999999Z GET /api 500 4294967296", // latency overflow
+            "2026-10-31T23:59:59.999999Z GET /api 500 -1", // negative latency
+            "2026-10-31T23:59:59.999999Z GET /api 500 1.5", // noninteger latency
+            "2026-10-31T23:59:59.999999Z GET /api 500 ", // empty latency
+            "2026-10-31T23:59:59.999999Z GET  500 1",   // empty endpoint
+            "2026-10-31T23:59:59.999999Z  /api 500 1",  // empty method
+            "2026-10-30T17:59:59.999999Z GET /api 500 1", // before the window
+            "2026-11-02T18:00:00.000000Z GET /api 500 1", // after the window
+            "2026-09-30T20:00:00.000000Z GET /api 500 1", // other month
+            "short GET /api 500 1",
+        ] {
+            for workers in [1, 4] {
+                assert!(run_all(record.as_bytes(), workers).is_err(), "{record:?}");
+                assert!(
+                    run_all(format!("{record}\n").as_bytes(), workers).is_err(),
+                    "{record:?}"
+                );
+            }
+        }
+        assert!(run_all(b"\n", 1).is_err()); // blank record
+        // One bad record in any chunk fails the run.
+        let mut input = render(&random_lines(500, 10, 3), "\n", true);
+        input.extend_from_slice(b"garbage\n");
+        assert!(run_all(&input, 8).is_err());
     }
 
     #[test]
@@ -74,109 +202,18 @@ mod parser_tests {
         let input: Vec<u8> = (0..50)
             .flat_map(|i| format!("line{i}\n").into_bytes())
             .collect();
-        for workers in [1, 2, 3, 7, 12, 40] {
-            let chunks = line_chunks(&input, workers);
-            assert!(chunks.len() <= workers.min(12));
-            assert_eq!(chunks.concat(), input);
-            assert!(chunks.iter().all(|c| c.ends_with(b"\n")));
+        for pieces in [1, 2, 3, 7, 12, 40, 400] {
+            let chunks = line_chunks(&input, pieces);
+            assert!(chunks.len() <= pieces);
+            let mut at = 0;
+            for &(start, end) in &chunks {
+                assert_eq!(start, at);
+                assert!(input[end - 1] == b'\n');
+                at = end;
+            }
+            assert_eq!(at, input.len());
         }
         assert!(line_chunks(b"", 4).is_empty());
-        assert_eq!(line_chunks(b"no newline", 4), [b"no newline".as_slice()]);
-    }
-
-    #[test]
-    fn parallel_returns_results_in_index_order() {
-        for workers in [1, 3, 12] {
-            assert_eq!(
-                parallel(20, workers, |i| i * i),
-                (0..20).map(|i| i * i).collect::<Vec<_>>()
-            );
-        }
-        assert!(parallel(0, 4, |i| i).is_empty());
-    }
-
-    #[test]
-    fn empty_input_and_blank_records() {
-        assert!(read_chunk(b"").unwrap().hours.is_empty());
-        for input in [b"\n".as_slice(), b"\r\n", b"incomplete"] {
-            assert!(read_chunk(input).is_err());
-        }
-    }
-
-    #[test]
-    fn very_long_record() {
-        let endpoint = format!("/{}", "x".repeat(128 * 1024));
-        let input = format!(
-            "2026-10-31T23:59:59.999999Z GET {endpoint} 500 7\r\n\
-             2026-10-31T23:59:59.999999Z GET /next 600 8\n"
-        );
-        let groups = read_chunk(input.as_bytes()).unwrap();
-        assert_eq!(groups.endpoints.len(), 2);
-        assert_eq!(group(&groups, b"2026-10-31T23", &endpoint).latencies, [7]);
-        assert_eq!(group(&groups, b"2026-10-31T23", "/next").latencies, [8]);
-    }
-
-    #[test]
-    fn endpoint_ids_remain_valid_as_hours_and_endpoints_arrive() {
-        let input = b"2026-11-01T00:00:00.000000Z GET /z 200 1\n\
-                      2026-10-31T23:00:00.000000Z GET /a 500 2\n\
-                      2026-11-01T00:00:00.000000Z GET /aa 599 3\n\
-                      2026-11-01T00:00:00.000000Z GET /z 500 4\n\
-                      2026-10-31T23:00:00.000000Z GET /aa 200 5\n";
-        let groups = read_chunk(input).unwrap();
-        assert_eq!(groups.endpoints.len(), 3);
-        assert_eq!(groups.hours.len(), 2);
-        assert_eq!(group(&groups, b"2026-11-01T00", "/z").latencies, [1, 4]);
-        assert_eq!(group(&groups, b"2026-11-01T00", "/z").errors, 1);
-        assert!(group(&groups, b"2026-11-01T00", "/a").latencies.is_empty());
-        assert!(group(&groups, b"2026-10-31T23", "/z").latencies.is_empty());
-        assert_eq!(group(&groups, b"2026-10-31T23", "/a").latencies, [2]);
-        assert_eq!(group(&groups, b"2026-10-31T23", "/aa").latencies, [5]);
-    }
-
-    #[test]
-    fn hour_cache_handles_runs_transitions_and_revisits() {
-        let mut groups = Groups::default();
-        // Include every-record misses, long runs, month rollover, and new endpoints.
-        for (index, hour) in [23, 0, 23, 0, 0, 0, 23, 23, 0].into_iter().enumerate() {
-            let timestamp = if hour == 23 {
-                "2026-10-31T23"
-            } else {
-                "2026-11-01T00"
-            };
-            let endpoint = if index % 2 == 0 { "/a" } else { "/b" };
-            let line = format!("{timestamp}:00:00.000000Z GET {endpoint} 500 {index}");
-            add_record(&mut groups, line.as_bytes()).unwrap();
-        }
-        assert_eq!(groups.hours.len(), 2);
-        assert_eq!(groups.rows.len(), 2);
-        for (hour, endpoint, latencies) in [
-            (b"2026-10-31T23", "/a", vec![0, 2, 6]),
-            (b"2026-10-31T23", "/b", vec![7]),
-            (b"2026-11-01T00", "/a", vec![4, 8]),
-            (b"2026-11-01T00", "/b", vec![1, 3, 5]),
-        ] {
-            let group = group(&groups, hour, endpoint);
-            assert_eq!(group.latencies, latencies);
-            assert_eq!(group.errors, latencies.len() as u64);
-        }
-    }
-
-    #[test]
-    fn rejected_records_do_not_change_hour_cache_or_groups() {
-        let mut groups = Groups::default();
-        let valid = b"2026-10-31T23:00:00.000000Z GET /a 200 7";
-        let invalid = b"2026-11-01T00:00:00.000000Z GET /new 500 4294967296";
-        assert!(add_record(&mut groups, invalid).is_err());
-        assert!(groups.last_hour.is_none());
-        assert!(groups.hours.is_empty());
-        add_record(&mut groups, valid).unwrap();
-        let cached = groups.last_hour;
-        assert!(add_record(&mut groups, invalid).is_err());
-        assert_eq!(groups.last_hour, cached);
-        assert_eq!(groups.hours.len(), 1);
-        assert_eq!(groups.endpoints.len(), 1);
-        add_record(&mut groups, valid).unwrap();
-        assert_eq!(group(&groups, b"2026-10-31T23", "/a").latencies, [7, 7]);
+        assert_eq!(line_chunks(b"no newline", 4), [(0, 10)]);
     }
 }
