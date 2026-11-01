@@ -69,3 +69,13 @@ Full run, 1 thread, rl-lyceum `perf stat`: 1,277,840,205 instructions (iterators
 task-clock 176.9 vs 177.7 ms. The compiler already produced the same loops; VPS wall A/B (2x9 runs each)
 was within noise (0.092/0.094 vs 0.087/0.099 s). Reverted. The ~117 instr/record in the hour phase is the
 counting sort and selection work itself, not iterator overhead.
+
+## Source-size trim (S 542 -> 536)
+
+`number` now takes the digit count the caller already found, so it no longer re-measures the
+length or returns it (the `found != digits` check is gone); `match digits` became a range check.
+-6 code lines, output identical on all datasets at 1/3/12 threads.
+
+Rejected: dropping `release`/`kept`/`finished` (about -22 lines, roughly +0.3 pt) raised M from 19.6 to
+23.5 MB on the VPS (about -0.8 pt), so it is a net loss. Other candidates are worth under 0.15 pt each
+(about 0.014 pt per line): `push_number` -> `write!` (slower text phase), tail copy -> padded mapping (-7 lines, riskier).

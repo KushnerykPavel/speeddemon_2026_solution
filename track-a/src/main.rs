@@ -51,33 +51,27 @@ fn hash_word(hash: u64, w: u64) -> u64 {
     (hash.rotate_left(5) ^ w).wrapping_mul(0x517c_c1b7_2722_0a95)
 }
 
-// Decimal number of up to ten digits at `at` and its length; the caller
-// guarantees `SLACK` readable bytes.
-unsafe fn number(at: *const u8) -> Option<(u64, usize)> {
-    let w = unsafe { load(at) };
-    let length = ((!w & (0x10 * LANES)).trailing_zeros() / 8) as usize;
+// The `length` (1 to 10) decimal digits at `at` as a `u32`; the caller guarantees `SLACK`
+// readable bytes.
+unsafe fn number(at: *const u8, length: usize) -> Option<u64> {
     if length < 8 {
-        let t = (w ^ (0x30 * LANES)) & ((1_u64 << (8 * length)) - 1);
-        if length == 0 || t & (0xf0 * LANES) != 0 || (t + 6 * LANES) & (0xf0 * LANES) != 0 {
+        let t = (unsafe { load(at) } ^ (0x30 * LANES)) & ((1_u64 << (8 * length)) - 1);
+        if t & (0xf0 * LANES) != 0 || (t + 6 * LANES) & (0xf0 * LANES) != 0 {
             return None;
         }
         let t = (t << (8 * (8 - length))).wrapping_mul(2561) >> 8;
         let t = (t & 0x00ff_00ff_00ff_00ff).wrapping_mul(6_553_601) >> 16;
-        let t = (t & 0x0000_ffff_0000_ffff).wrapping_mul(42_949_672_960_001) >> 32;
-        return Some((t, length));
+        return Some((t & 0x0000_ffff_0000_ffff).wrapping_mul(42_949_672_960_001) >> 32);
     }
-    let (mut value, mut length) = (0_u64, 0);
-    while let Some(d) = unsafe { *at.add(length) }
-        .checked_sub(b'0')
-        .filter(|d| *d < 10)
-    {
-        value = value * 10 + u64::from(d);
-        length += 1;
-        if length > 10 || value > u64::from(u32::MAX) {
+    let mut value = 0_u64;
+    for i in 0..length {
+        let d = unsafe { *at.add(i) }.wrapping_sub(b'0');
+        if d > 9 {
             return None;
         }
+        value = value * 10 + u64::from(d);
     }
-    Some((value, length))
+    (value <= u64::from(u32::MAX)).then_some(value)
 }
 
 // 16 KB of one hour's records from one thread.
@@ -227,17 +221,17 @@ impl State {
                         digits += 1;
                     }
                 }
-                let (latency, found) = match digits {
-                    1..=10 => number(line_end.sub(digits)).ok_or(BAD)?,
-                    _ => return Err(BAD),
-                };
+                if !(1..=10).contains(&digits) {
+                    return Err(BAD);
+                }
+                let latency = number(line_end.sub(digits), digits).ok_or(BAD)?;
                 // " SSS " precedes the digits: a space, three status digits, a space.
                 let tail = line_end.sub(digits + 5);
                 let x = (load(tail) ^ 0x20_3030_3020) & 0xff_ffff_ffff;
                 let bad = x & 0xff_0000_00ff
                     | x & 0xf0f0_f000
                     | ((x & 0x0f0f_0f00) + 0x0606_0600) & 0x1010_1000;
-                if found != digits || bad != 0 || tail <= name {
+                if bad != 0 || tail <= name {
                     return Err(BAD);
                 }
                 let (mut at, mut hash) = (name, 0);
