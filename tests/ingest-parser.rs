@@ -161,6 +161,31 @@ mod parser_tests {
     }
 
     #[test]
+    fn names_with_equal_ends_stay_separate() {
+        // Same length, first eight and last eight bytes: the table's hash cannot tell them apart.
+        let names = [
+            "/api/v2/imports/{version}/returns/{name}",
+            "/api/v2/reports/{version}/ledgers/{name}",
+        ];
+        let lines: Vec<_> = (0..200)
+            .map(|i| {
+                (
+                    "2026-11-01T00:00:00.000000Z".to_string(),
+                    names[i % 2].to_string(),
+                    200,
+                    i as u32,
+                )
+            })
+            .collect();
+        for workers in [1, 4] {
+            let got =
+                String::from_utf8(run_all(&render(&lines, "\n", true), workers).unwrap()).unwrap();
+            assert_eq!(got, expected(&lines));
+            assert_eq!(got.lines().count(), 2);
+        }
+    }
+
+    #[test]
     fn too_many_endpoints_is_an_error() {
         let lines: Vec<_> = (0..5000)
             .map(|i| {

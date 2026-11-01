@@ -43,3 +43,21 @@ would silently corrupt the output on a hidden seed. The four-word variants are c
 these seeds but are only a statistical argument and save about 3% of parse instructions, so the
 full-byte hash stays. (Cache Me compares the name bytes after the hash; we measured that at about
 10% of parse time earlier and do not.)
+
+## Two-word hash plus SSE2 name comparison — measured, rejected, 2026-11-01
+
+Cache Me's approach, in Rust: hash of the length and the first and last eight bytes, slot holding
+the address of the name's own copy (64 zero bytes after it), every probe compared byte for byte
+(four 16-byte SSE2 compares for names up to 64 bytes, slice equality beyond). It is correct by
+construction: a test with two names of equal length, first eight and last eight bytes stays separate.
+
+| | Instructions, full run, 1 thread | VPS board-like T (9 runs) | VPS M |
+|---|---:|---:|---:|
+| full-byte hash, hash-only table (current) | 1.277 G | 0.0915 s | 19.9 MB |
+| two-word hash + SSE2 compare | 1.391 G (+9%) | 0.0976 s (+7%) | 19.6 MB |
+
+The compare costs more than the shorter hash saves (about 6 words hashed on average against 2):
+four loads, compares and movemasks per probe, plus the slot indirection, against roughly 10
+multiply-rotate steps. Cache Me's version uses 32-byte AVX2 compares (two per name) and their
+gain was against `memcmp`, not against a hash-only table. Reverted; the hash-only table with the
+full-byte hash stays (collision-free on 300 generator seeds).
