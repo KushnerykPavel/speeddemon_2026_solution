@@ -4,6 +4,7 @@ use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc;
 use std::thread;
 
 // The spec fixes every timestamp between 2026-10-30T18 and 2026-11-02T17 (72 hours).
@@ -40,30 +41,60 @@ fn digit(data: &[u8], i: usize) -> Option<u8> {
     data.get(i)?.checked_sub(b'0').filter(|d| *d < 10)
 }
 
-// Hour of the timestamp at `p`, counted from 2026-10-30T18.
+// Hour of the timestamp at `p`, counted from 2026-10-30T18. One load covers
+// `MM-DDTHH` of `YYYY-MM-DDTHH:...`.
 fn hour_index(data: &[u8], p: usize) -> Option<usize> {
-    let two = |i| {
-        Some(usize::from(
-            digit(data, p + i)? * 10 + digit(data, p + i + 1)?,
-        ))
-    };
-    let day_index = match two(5)? {
-        10 => two(8)?.checked_sub(30)?,
-        11 => two(8)? + 1,
+    let w = word(data, p + 5);
+    let two = |at: u32| ((w >> at & 15) * 10 + (w >> (at + 8) & 15)) as usize;
+    if w >> 16 & 0xff != u64::from(b'-') || w >> 40 & 0xff != u64::from(b'T') {
+        return None;
+    }
+    let day_index = match two(0) {
+        10 => two(24).checked_sub(30)?,
+        11 => two(24) + 1,
         _ => return None,
     };
-    (day_index * 24 + two(11)?)
+    (day_index * 24 + two(48))
         .checked_sub(18)
         .filter(|h| *h < HOURS)
 }
 
+// Decimal number at `i` and its length in digits (at most ten, value below 2^32).
+fn number(data: &[u8], i: usize) -> Option<(u64, usize)> {
+    let w = word(data, i);
+    let length = ((!w & (0x10 * LANES)).trailing_zeros() / 8) as usize;
+    if length < 8 {
+        let mask = (1_u64 << (8 * length)) - 1;
+        let t = (w ^ (0x30 * LANES)) & mask;
+        if length == 0 || t & (0xf0 * LANES) != 0 || (t + 6 * LANES) & (0xf0 * LANES) != 0 {
+            return None;
+        }
+        let t = (t << (8 * (8 - length))).wrapping_mul(2561) >> 8;
+        let t = (t & 0x00ff_00ff_00ff_00ff).wrapping_mul(6_553_601) >> 16;
+        let t = (t & 0x0000_ffff_0000_ffff).wrapping_mul(42_949_672_960_001) >> 32;
+        return Some((t, length));
+    }
+    let mut value = 0_u64;
+    let mut length = 0;
+    while let Some(d) = digit(data, i + length) {
+        value = value * 10 + u64::from(d);
+        length += 1;
+        if value > u64::from(u32::MAX) {
+            return None;
+        }
+    }
+    (length > 0).then_some((value, length))
+}
+
 // One worker's data: an endpoint table (open addressing, full byte comparison)
-// and one vector of `error << 63 | endpoint << 32 | latency` keys per hour.
+// and `error << 63 | endpoint << 32 | latency` keys. `open` collects the current
+// chunk per hour; `flush` moves each hour's keys, trimmed to size, into `hours`.
 struct State {
     names: Vec<&'static [u8]>,
     hashes: Vec<u64>,
     slots: Vec<u32>,
-    hours: Vec<Vec<u64>>,
+    open: Vec<Vec<u64>>,
+    hours: Vec<Vec<Vec<u64>>>,
 }
 
 impl State {
@@ -72,7 +103,17 @@ impl State {
             names: Vec::new(),
             hashes: Vec::new(),
             slots: vec![0; 4096],
+            open: vec![Vec::new(); HOURS],
             hours: vec![Vec::new(); HOURS],
+        }
+    }
+
+    fn flush(&mut self) {
+        for (open, hour) in self.open.iter_mut().zip(&mut self.hours) {
+            if !open.is_empty() {
+                open.shrink_to_fit();
+                hour.push(std::mem::take(open));
+            }
         }
     }
 
@@ -137,17 +178,8 @@ impl State {
             if length == 0 || !ok || data.get(status + 3) != Some(&b' ') {
                 return Err(BAD);
             }
-            let (mut j, mut latency) = (status + 4, 0_u64);
-            while let Some(d) = digit(data, j) {
-                latency = latency * 10 + u64::from(d);
-                j += 1;
-                if latency > u64::from(u32::MAX) {
-                    return Err(BAD);
-                }
-            }
-            if j == status + 4 {
-                return Err(BAD);
-            }
+            let (latency, digits) = number(data, status + 4).ok_or(BAD)?;
+            let mut j = status + 4 + digits;
             if data.get(j) == Some(&b'\r') {
                 j += 1;
             }
@@ -157,7 +189,7 @@ impl State {
             pos = j + 1;
             let id = self.endpoint(&data[start..start + length], hash ^ length as u64);
             let error = u64::from(data[status] == b'5');
-            self.hours[hour].push(error << 63 | id << 32 | latency);
+            self.open[hour].push(error << 63 | id << 32 | latency);
         }
         Ok(())
     }
@@ -233,82 +265,161 @@ fn run<T: Send>(workers: usize, job: impl Fn() -> T + Sync) -> Vec<T> {
     })
 }
 
-fn summarize(data: &'static [u8], workers: usize) -> Result<Vec<Vec<u8>>, &'static str> {
+fn itoa(mut value: u64, buffer: &mut [u8; 20]) -> &[u8] {
+    let mut at = buffer.len();
+    loop {
+        at -= 1;
+        buffer[at] = b'0' + (value % 10) as u8;
+        value /= 10;
+        if value == 0 {
+            return &buffer[at..];
+        }
+    }
+}
+
+fn summarize(
+    data: &'static [u8],
+    workers: usize,
+    out: &mut impl Write,
+) -> Result<(), Box<dyn Error>> {
     let chunks = line_chunks(data, workers * 8);
     let next = AtomicUsize::new(0);
     let states = run(workers, || {
         let mut state = State::new();
         while let Some(&(start, end)) = chunks.get(next.fetch_add(1, Ordering::Relaxed)) {
             state.scan(data, start, end)?;
+            state.flush();
         }
-        Ok(state)
+        Ok::<State, &'static str>(state)
     })
     .into_iter()
     .collect::<Result<Vec<_>, _>>()?;
 
-    let mut endpoints: Vec<&[u8]> = states
-        .iter()
-        .flat_map(|s| s.names.iter().copied())
-        .collect();
-    endpoints.sort_unstable();
-    endpoints.dedup();
-    // remap[state][local endpoint ID] is the endpoint's rank in byte order.
-    let remap: Vec<Vec<u64>> = states
+    // Global endpoint table, built from the workers' stored hashes; ranks follow byte order.
+    let mut global = State::new();
+    let local_ids: Vec<Vec<u64>> = states
         .iter()
         .map(|s| {
             s.names
                 .iter()
-                .map(|n| endpoints.binary_search(n).unwrap() as u64)
+                .zip(&s.hashes)
+                .map(|(&n, &h)| global.endpoint(n, h))
                 .collect()
         })
         .collect();
+    let mut order: Vec<usize> = (0..global.names.len()).collect();
+    order.sort_unstable_by_key(|&id| global.names[id]);
+    let endpoints: Vec<&[u8]> = order.iter().map(|&id| global.names[id]).collect();
+    let mut rank_of = vec![0; order.len()];
+    for (rank, &id) in order.iter().enumerate() {
+        rank_of[id] = rank as u64;
+    }
+    // remap[state][local endpoint ID] is the endpoint's rank in byte order.
+    let remap: Vec<Vec<u64>> = local_ids
+        .iter()
+        .map(|ids| ids.iter().map(|&id| rank_of[id as usize]).collect())
+        .collect();
 
+    // Workers format whole hours; this thread writes them in order as they complete.
     let next = AtomicUsize::new(0);
-    let mut texts: Vec<(usize, Vec<u8>)> = run(workers, || {
-        let (mut done, mut keys, mut errors) = (Vec::new(), Vec::new(), vec![0; endpoints.len()]);
-        loop {
-            let hour = next.fetch_add(1, Ordering::Relaxed);
-            if hour >= HOURS {
-                return done;
-            }
-            keys.clear();
-            errors.fill(0);
-            for (state, ranks) in states.iter().zip(&remap) {
-                for &key in &state.hours[hour] {
-                    let rank = ranks[(key >> 32 & 0x7fff_ffff) as usize];
-                    errors[rank as usize] += key >> 63;
-                    keys.push(rank << 32 | key & 0xffff_ffff);
+    let (sender, receiver) = mpsc::channel();
+    thread::scope(|scope| {
+        for _ in 0..workers.max(1) {
+            let (states, remap, endpoints, next, sender) =
+                (&states, &remap, &endpoints, &next, sender.clone());
+            scope.spawn(move || {
+                let ranks = endpoints.len();
+                let (mut errors, mut start) = (vec![0; ranks], vec![0; ranks + 1]);
+                let (mut cursor, mut latencies) = (vec![0; ranks], Vec::new());
+                loop {
+                    let hour = next.fetch_add(1, Ordering::Relaxed);
+                    if hour >= HOURS {
+                        return;
+                    }
+                    let keys = || {
+                        states.iter().zip(remap.iter()).flat_map(|(s, r)| {
+                            s.hours[hour]
+                                .iter()
+                                .flatten()
+                                .map(move |&k| (r[(k >> 32 & 0x7fff_ffff) as usize] as usize, k))
+                        })
+                    };
+                    errors.fill(0);
+                    start.fill(0);
+                    for (rank, key) in keys() {
+                        errors[rank] += key >> 63;
+                        start[rank + 1] += 1;
+                    }
+                    for rank in 0..ranks {
+                        start[rank + 1] += start[rank];
+                    }
+                    cursor.copy_from_slice(&start[..ranks]);
+                    latencies.resize(start[ranks], 0);
+                    for (rank, key) in keys() {
+                        latencies[cursor[rank]] = key as u32;
+                        cursor[rank] += 1;
+                    }
+                    let mut text = format!(
+                        "{}T{:02}:00:00Z ",
+                        DATES[(hour + 18) / 24],
+                        (hour + 18) % 24
+                    )
+                    .into_bytes();
+                    let prefix = text.len();
+                    for (rank, endpoint) in endpoints.iter().enumerate() {
+                        let group = &mut latencies[start[rank]..start[rank + 1]];
+                        if group.is_empty() {
+                            continue;
+                        }
+                        let count = group.len();
+                        let mut ends = [50, 95, 99].map(|p| (p * count).div_ceil(100) - 1);
+                        let mut values = [0; 3];
+                        let mut high = count;
+                        for (value, index) in values.iter_mut().zip(ends.iter_mut()).rev() {
+                            if *index < high {
+                                group[..high].select_nth_unstable(*index);
+                                high = *index;
+                            }
+                            *value = group[*index];
+                        }
+                        text.extend_from_slice(endpoint);
+                        let errs = errors[rank];
+                        let fields = [
+                            count as u64,
+                            values[0].into(),
+                            values[1].into(),
+                            values[2].into(),
+                            errs,
+                            errs * 1_000_000 / count as u64,
+                        ];
+                        for field in fields {
+                            text.push(b' ');
+                            text.extend_from_slice(itoa(field, &mut [0; 20]));
+                        }
+                        text.push(b'\n');
+                        text.extend_from_within(..prefix);
+                    }
+                    text.truncate(text.len() - prefix);
+                    if sender.send((hour, text)).is_err() {
+                        return;
+                    }
                 }
-            }
-            keys.sort_unstable();
-            let (mut text, mut i) = (Vec::new(), 0);
-            while i < keys.len() {
-                let rank = keys[i] >> 32;
-                let count = keys[i..].partition_point(|&key| key >> 32 == rank);
-                let at = |percent: usize| keys[i + (percent * count).div_ceil(100) - 1] as u32;
-                let (date, h) = (DATES[(hour + 18) / 24], (hour + 18) % 24);
-                let errs: u64 = errors[rank as usize];
-                write!(text, "{date}T{h:02}:00:00Z ").unwrap();
-                text.extend_from_slice(endpoints[rank as usize]);
-                let ppm = errs * 1_000_000 / count as u64;
-                writeln!(
-                    text,
-                    " {count} {} {} {} {errs} {ppm}",
-                    at(50),
-                    at(95),
-                    at(99)
-                )
-                .unwrap();
-                i += count;
-            }
-            done.push((hour, text));
+            });
         }
-    })
-    .concat();
-    texts.sort_unstable_by_key(|&(hour, _)| hour);
+        drop(sender);
+        let (mut pending, mut written) = (vec![None; HOURS], 0);
+        for (hour, text) in receiver {
+            pending[hour] = Some(text);
+            while let Some(text) = pending.get_mut(written).and_then(Option::take) {
+                out.write_all(&text)?;
+                written += 1;
+            }
+        }
+        Ok::<(), std::io::Error>(())
+    })?;
     // The caller exits right away, so the worker state is not freed.
-    std::mem::forget(states);
-    Ok(texts.into_iter().map(|(_, text)| text).collect())
+    std::mem::forget((states, global));
+    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -328,12 +439,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     tune_memory();
-    let texts = summarize(map_file(data.join("requests.log"))?, workers)?;
+    let data = map_file(data.join("requests.log"))?;
     fs::create_dir_all(&out)?;
-    let mut output = File::create(out.join("summary.txt"))?;
-    for text in &texts {
-        output.write_all(text)?;
-    }
-    // Skip freeing the hour texts and unmapping the input.
+    summarize(data, workers, &mut File::create(out.join("summary.txt"))?)?;
+    // Skip unmapping the input.
     std::process::exit(0);
 }

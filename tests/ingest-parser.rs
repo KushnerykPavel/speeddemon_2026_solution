@@ -10,8 +10,13 @@ mod parser_tests {
         Box::leak(bytes.into_boxed_slice())
     }
 
-    fn run_all(input: &[u8], workers: usize) -> Result<Vec<u8>, &'static str> {
-        summarize(leak(input.to_vec()), workers).map(|texts| texts.concat())
+    fn run_all(input: &[u8], workers: usize) -> Result<Vec<u8>, String> {
+        {
+            let mut out = Vec::new();
+            summarize(leak(input.to_vec()), workers, &mut out)
+                .map(|()| out)
+                .map_err(|e| e.to_string())
+        }
     }
 
     // Straightforward reference: group, sort, nearest rank.
