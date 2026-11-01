@@ -69,8 +69,8 @@ fn words(name: &[u8]) -> impl Iterator<Item = u64> + '_ {
 /// tag from 0 to 1, copies the name's words into the arena, then publishes the tag (a hash with
 /// the top bit set). A name's id is its insertion number.
 struct Table {
-    tags: Vec<AtomicU64>,
-    spans: Vec<AtomicU64>,
+    /// Per slot: the tag, then the name's arena offset, id and length.
+    slots: Vec<[AtomicU64; 2]>,
     arena: &'static [AtomicU64],
     next: AtomicUsize,
     used: AtomicUsize,
@@ -82,8 +82,7 @@ impl Table {
         // Zeroed on demand by the kernel: only the pages names are copied to are charged.
         let arena = Box::leak(vec![0_u64; bytes / 8 + 1].into_boxed_slice());
         Self {
-            tags: (0..slots).map(|_| AtomicU64::new(0)).collect(),
-            spans: (0..slots).map(|_| AtomicU64::new(0)).collect(),
+            slots: (0..slots).map(|_| Default::default()).collect(),
             // SAFETY: same size and alignment, and the words are only used through atomics now.
             arena: unsafe { std::slice::from_raw_parts(arena.as_ptr().cast(), arena.len()) },
             next: AtomicUsize::new(0),
@@ -100,12 +99,12 @@ impl Table {
         let mask = (1 << SLOT_BITS) - 1;
         let mut slot = (hash >> 20) as usize & mask;
         loop {
-            let mut seen = self.tags[slot].load(Acquire);
+            let mut seen = self.slots[slot][0].load(Acquire);
             if seen == 0 {
                 if self.used.load(Relaxed) >= IDS || name.len() >= 1 << 16 {
                     return None;
                 }
-                if self.tags[slot]
+                if self.slots[slot][0]
                     .compare_exchange(0, 1, Acquire, Acquire)
                     .is_ok()
                 {
@@ -115,18 +114,18 @@ impl Table {
                     }
                     let id = self.used.fetch_add(1, Relaxed);
                     let span = (at as u64) << 33 | (id as u64) << 16 | name.len() as u64;
-                    self.spans[slot].store(span, Relaxed);
-                    self.tags[slot].store(tag, Release);
+                    self.slots[slot][1].store(span, Relaxed);
+                    self.slots[slot][0].store(tag, Release);
                     return Some(id);
                 }
-                seen = self.tags[slot].load(Acquire);
+                seen = self.slots[slot][0].load(Acquire);
             }
             while seen == 1 {
                 std::hint::spin_loop();
-                seen = self.tags[slot].load(Acquire);
+                seen = self.slots[slot][0].load(Acquire);
             }
             if seen == tag {
-                let span = self.spans[slot].load(Relaxed);
+                let span = self.slots[slot][1].load(Relaxed);
                 let at = (span >> 33) as usize;
                 if span & 0xFFFF == name.len() as u64
                     && self.arena[at..]
@@ -168,16 +167,31 @@ impl Default for Group {
     }
 }
 
+/// Index of the first `target` byte at or after `at`, eight bytes at a time. The lowest byte the
+/// zero-byte test flags is always a true match.
+fn find(bytes: &[u8], mut at: usize, target: u8) -> usize {
+    const LOW: u64 = 0x0101_0101_0101_0101;
+    while let Some(chunk) = bytes.get(at..at + 8) {
+        let word = u64::from_le_bytes(chunk.try_into().unwrap()) ^ (LOW * u64::from(target));
+        let found = word.wrapping_sub(LOW) & !word & (LOW << 7);
+        if found != 0 {
+            return at + found.trailing_zeros() as usize / 8;
+        }
+        at += 8;
+    }
+    at + bytes[at..].iter().position(|&byte| byte == target).unwrap()
+}
+
 /// Reads one field at `at`; returns its raw bytes (inside the quotes, `""` still doubled), its
 /// value's length and the index after the separator that follows it.
 fn field(bytes: &[u8], at: usize) -> (&[u8], usize, usize) {
     if bytes.get(at) != Some(&b'"') {
-        let end = at + bytes[at..].iter().position(|&byte| byte == b',').unwrap();
+        let end = find(bytes, at, b',');
         return (&bytes[at..end], end - at, end + 1);
     }
     let (mut from, mut escapes) = (at + 1, 0);
     loop {
-        let quote = from + bytes[from..].iter().position(|&byte| byte == b'"').unwrap();
+        let quote = find(bytes, from, b'"');
         if bytes.get(quote + 1) != Some(&b'"') {
             return (&bytes[at + 1..quote], quote - at - 1 - escapes, quote + 2);
         }

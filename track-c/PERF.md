@@ -7,7 +7,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 0 | The reference, unchanged | | 14.44 | 367 | 0 |
 | 1 | Rust: mmap, parallel chunked parsing, per-thread aggregates and name tables, bitset merge (`10cd331`) | run-9f6461f49b69 | 0.464127 | 98.603008 | 39.531957 |
 | 2 | One shared lock-free name table and per-group atomic bitsets; 4 KB pages (`prctl`) (`f04f17a`) | run-8e1b33711a41 | 0.109347 | 22.814720 | 60.968410 |
-| 3 | Dense name ids (half-size bitsets); the arena compares 8-byte words | pending | | | |
+| 3 | Dense name ids (half-size bitsets); the arena compares 8-byte words (`5105fc0`) | run-cf05c9b4105c | 0.109433 | 18.759680 | 61.801278 |
+| 4 | SWAR field scan; slot tag and span interleaved | pending | | | |
 
 ## Step 1 — first Rust version, 2026-11-01
 
@@ -32,7 +33,7 @@ If more than half the slots fill, which needs over 131,000 distinct names (the g
 a 26³ table. `prctl(PR_SET_THP_DISABLE)` and `mallopt` as on Track D.
 
 VPS, same protocol: T 0.632 → 0.274 s, M 67.75 → 21.46 MB, full-seed-1 hash `d8088b1cd42b…`; sample seed 1
-0.087 s, 20.88 MB, hash `9035fed36823…`. Locally, output equals the reference on 11 datasets (tiny/sample
+0.087 s, 20.88 MB, hash `9035fed36823…`. Locally, output equals the reference on 10 datasets (tiny/sample
 seeds 1–3, full seeds 1–2, worked example, edge-case rules) at 1/2/3/5/8/12 threads.
 Board: `run-8e1b33711a41`, 0.109 s, 22.8 MB, S 383, 60.97 points (+21.4).
 
@@ -51,4 +52,22 @@ two rounds, full seed 1, all outputs `d8088b1cd42b…`:
 The per-thread lists save about 6% of the time but add 12 MB (about 4 bytes per record), which costs more
 points than it gains. Dense ids (insertion numbers below 2^17, packed into the slot's span) halve the
 bitsets (241 × 16 KB). The arena now stores 8-byte words, compared a word at a time. Time is unchanged,
-memory −17%. Same 11-dataset local check at 1/3/12 threads.
+memory −17%. Same 10-dataset local check at 1/3/12 threads.
+Board: `run-cf05c9b4105c`, 0.109 s, 18.76 MB, S 384, 61.80 points (+0.83, all from memory).
+
+## Step 4 — SWAR field scan, 2026-11-01
+
+Mac, 1 thread: parse ≈0.18 s, table ≈0.09 s, bitset `fetch_or` ≈0.05 s. Field ends were found with
+`iter().position`, one byte per step. `find()` now tests 8 bytes per step (the zero-byte trick on
+`word ^ splat(byte)`), which cut 1-thread user time on the Mac from 0.40 to 0.32 s. The table's slot
+tag and span now sit side by side, so a probe touches one cache line (neutral on the Mac).
+
+VPS, same protocol, alternating, 9 runs each, two rounds, full seed 1, all outputs `d8088b1cd42b…`:
+
+| Variant | T (s) | M (MB) |
+|---|---|---:|
+| step 3 | 0.272 / 0.287 | 17.9 / 17.9 |
+| **step 4** | 0.254 / 0.263 | 17.7 / 17.7 |
+
+About −7.5% time in both rounds, memory unchanged. Locally, output equals the reference on all 10 datasets at
+1/2/3/5/8/12 threads (60 runs). Raw numbers: `tests/performance/2026-11-01-join-swar/`.
