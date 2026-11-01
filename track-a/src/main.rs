@@ -3,8 +3,8 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::mpsc;
 use std::thread;
 
 // The spec fixes every timestamp between 2026-10-30T18 and 2026-11-02T17 (72 hours).
@@ -86,15 +86,20 @@ fn number(data: &[u8], i: usize) -> Option<(u64, usize)> {
     (length > 0).then_some((value, length))
 }
 
-// One worker's data: an endpoint table (open addressing, full byte comparison)
-// and `error << 63 | endpoint << 32 | latency` keys. `open` collects the current
-// chunk per hour; `flush` moves each hour's keys, trimmed to size, into `hours`.
+// One chunk's keys, `error << 63 | hour << 56 | endpoint << 32 | latency`, grouped by
+// hour: hour `h` is `keys[offsets[h]..offsets[h + 1]]`.
+struct Chunk {
+    keys: Vec<u64>,
+    offsets: [u32; HOURS + 1],
+}
+
+// One worker's data: an endpoint table (open addressing, keyed by a 64-bit hash of
+// the endpoint bytes) and the chunks it has parsed.
 struct State {
     names: Vec<&'static [u8]>,
     hashes: Vec<u64>,
     slots: Vec<u32>,
-    open: Vec<Vec<u64>>,
-    hours: Vec<Vec<Vec<u64>>>,
+    chunks: Vec<Chunk>,
 }
 
 impl State {
@@ -103,18 +108,35 @@ impl State {
             names: Vec::new(),
             hashes: Vec::new(),
             slots: vec![0; 4096],
-            open: vec![Vec::new(); HOURS],
-            hours: vec![Vec::new(); HOURS],
+            chunks: Vec::new(),
         }
     }
 
-    fn flush(&mut self) {
-        for (open, hour) in self.open.iter_mut().zip(&mut self.hours) {
-            if !open.is_empty() {
-                open.shrink_to_fit();
-                hour.push(std::mem::take(open));
-            }
+    // Parses the lines `data[start..end]` into one chunk.
+    fn chunk(&mut self, data: &'static [u8], start: usize, end: usize) -> Result<(), &'static str> {
+        // A record takes at least 38 bytes, so this never reallocates; untouched
+        // capacity is not resident.
+        let mut keys = Vec::with_capacity((end - start) / 38 + 1);
+        self.scan(data, start, end, &mut keys)?;
+        let mut offsets = [0; HOURS + 1];
+        for key in &keys {
+            offsets[(key >> 56 & 0x7f) as usize + 1] += 1;
         }
+        for hour in 0..HOURS {
+            offsets[hour + 1] += offsets[hour];
+        }
+        let mut cursor = offsets;
+        let mut sorted = vec![0; keys.len()];
+        for key in keys {
+            let hour = (key >> 56 & 0x7f) as usize;
+            sorted[cursor[hour] as usize] = key;
+            cursor[hour] += 1;
+        }
+        self.chunks.push(Chunk {
+            keys: sorted,
+            offsets,
+        });
+        Ok(())
     }
 
     fn endpoint(&mut self, name: &'static [u8], hash: u64) -> u64 {
@@ -122,7 +144,7 @@ impl State {
         let mut i = (hash >> 32) as usize & mask;
         while self.slots[i] != 0 {
             let id = self.slots[i] as usize - 1;
-            if self.hashes[id] == hash && self.names[id] == name {
+            if self.hashes[id] == hash {
                 return id as u64;
             }
             i = (i + 1) & mask;
@@ -150,6 +172,7 @@ impl State {
         data: &'static [u8],
         mut pos: usize,
         end: usize,
+        keys: &mut Vec<u64>,
     ) -> Result<(), &'static str> {
         while pos < end {
             let hour = hour_index(data, pos).ok_or(BAD)?;
@@ -189,7 +212,7 @@ impl State {
             pos = j + 1;
             let id = self.endpoint(&data[start..start + length], hash ^ length as u64);
             let error = u64::from(data[status] == b'5');
-            self.open[hour].push(error << 63 | id << 32 | latency);
+            keys.push(error << 63 | (hour as u64) << 56 | id << 32 | latency);
         }
         Ok(())
     }
@@ -280,15 +303,14 @@ fn itoa(mut value: u64, buffer: &mut [u8; 20]) -> &[u8] {
 fn summarize(
     data: &'static [u8],
     workers: usize,
-    out: &mut impl Write,
+    out: &mut (impl Write + Send),
 ) -> Result<(), Box<dyn Error>> {
-    let chunks = line_chunks(data, workers * 8);
+    let chunks = line_chunks(data, workers * 32);
     let next = AtomicUsize::new(0);
     let states = run(workers, || {
         let mut state = State::new();
         while let Some(&(start, end)) = chunks.get(next.fetch_add(1, Ordering::Relaxed)) {
-            state.scan(data, start, end)?;
-            state.flush();
+            state.chunk(data, start, end)?;
         }
         Ok::<State, &'static str>(state)
     })
@@ -320,13 +342,13 @@ fn summarize(
         .map(|ids| ids.iter().map(|&id| rank_of[id as usize]).collect())
         .collect();
 
-    // Workers format whole hours; this thread writes them in order as they complete.
+    // Workers format whole hours and write them in order as they complete.
     let next = AtomicUsize::new(0);
-    let (sender, receiver) = mpsc::channel();
+    let sink = Mutex::new((0, vec![None; HOURS], out));
     thread::scope(|scope| {
         for _ in 0..workers.max(1) {
-            let (states, remap, endpoints, next, sender) =
-                (&states, &remap, &endpoints, &next, sender.clone());
+            let (states, remap, endpoints, next, sink) =
+                (&states, &remap, &endpoints, &next, &sink);
             scope.spawn(move || {
                 let ranks = endpoints.len();
                 let (mut errors, mut start) = (vec![0; ranks], vec![0; ranks + 1]);
@@ -338,10 +360,12 @@ fn summarize(
                     }
                     let keys = || {
                         states.iter().zip(remap.iter()).flat_map(|(s, r)| {
-                            s.hours[hour]
+                            s.chunks
                                 .iter()
-                                .flatten()
-                                .map(move |&k| (r[(k >> 32 & 0x7fff_ffff) as usize] as usize, k))
+                                .flat_map(move |c| {
+                                    &c.keys[c.offsets[hour] as usize..c.offsets[hour + 1] as usize]
+                                })
+                                .map(move |&k| (r[(k >> 32 & 0xff_ffff) as usize] as usize, k))
                         })
                     };
                     errors.fill(0);
@@ -400,23 +424,18 @@ fn summarize(
                         text.extend_from_within(..prefix);
                     }
                     text.truncate(text.len() - prefix);
-                    if sender.send((hour, text)).is_err() {
-                        return;
+                    // Write this hour, and any later ones already finished, if it is next.
+                    let mut guard = sink.lock().unwrap();
+                    let (written, pending, out) = &mut *guard;
+                    pending[hour] = Some(text);
+                    while let Some(text) = pending.get_mut(*written).and_then(Option::take) {
+                        out.write_all(&text).expect("cannot write summary.txt");
+                        *written += 1;
                     }
                 }
             });
         }
-        drop(sender);
-        let (mut pending, mut written) = (vec![None; HOURS], 0);
-        for (hour, text) in receiver {
-            pending[hour] = Some(text);
-            while let Some(text) = pending.get_mut(written).and_then(Option::take) {
-                out.write_all(&text)?;
-                written += 1;
-            }
-        }
-        Ok::<(), std::io::Error>(())
-    })?;
+    });
     // The caller exits right away, so the worker state is not freed.
     std::mem::forget((states, global));
     Ok(())
