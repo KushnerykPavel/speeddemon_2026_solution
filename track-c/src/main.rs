@@ -1,37 +1,16 @@
-use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::error::Error;
 use std::fs::{self, File};
-use std::hash::{BuildHasherDefault, Hasher};
 use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, AtomicUsize};
 use std::thread;
 
 const BOM: &[u8] = b"\xEF\xBB\xBF";
-
-/// Word-at-a-time multiplicative hash for name bytes (keys are compared in full).
-#[derive(Default)]
-struct WordHasher(u64);
-
-impl Hasher for WordHasher {
-    fn write(&mut self, bytes: &[u8]) {
-        let mut chunks = bytes.chunks_exact(8);
-        for chunk in &mut chunks {
-            let word = u64::from_le_bytes(chunk.try_into().unwrap());
-            self.0 = (self.0.rotate_left(5) ^ word).wrapping_mul(0x51_7cc1_b727_220a_95);
-        }
-        for &byte in chunks.remainder() {
-            self.0 = (self.0.rotate_left(5) ^ u64::from(byte)).wrapping_mul(0x51_7cc1_b727_220a_95);
-        }
-    }
-
-    fn finish(&self) -> u64 {
-        self.0
-    }
-}
-
-type Names<'a> = HashMap<Cow<'a, [u8]>, u32, BuildHasherDefault<WordHasher>>;
+/// Name table slots; the table counts as full at half of them (the generator has ~100,000 names).
+const SLOT_BITS: u32 = 18;
 
 unsafe extern "C" {
     fn mmap(
@@ -42,6 +21,22 @@ unsafe extern "C" {
         fd: i32,
         offset: i64,
     ) -> *mut u8;
+}
+
+#[cfg(target_os = "linux")]
+unsafe extern "C" {
+    fn prctl(option: i32, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i32;
+    fn mallopt(parameter: i32, value: i32) -> i32;
+}
+
+/// Asks Linux for 4 KB pages (sparse buffers would commit whole 2 MB huge pages) and a fixed
+/// glibc mmap threshold so large freed blocks go back to the kernel. Failures only cost memory.
+fn tune_memory() {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        prctl(41, 1, 0, 0, 0);
+        mallopt(-3, 256 << 10);
+    }
 }
 
 /// Maps `path` read-only for the rest of the run (the data mount is read-only).
@@ -56,6 +51,93 @@ fn map_file(path: &Path) -> std::io::Result<&'static [u8]> {
         return Err(std::io::Error::last_os_error());
     }
     Ok(unsafe { std::slice::from_raw_parts(address, length) })
+}
+
+/// Word-at-a-time multiplicative hash.
+fn hash(bytes: &[u8]) -> u64 {
+    let mut chunks = bytes.chunks_exact(8);
+    let mut state = bytes.len() as u64;
+    for chunk in &mut chunks {
+        let word = u64::from_le_bytes(chunk.try_into().unwrap());
+        state = (state.rotate_left(5) ^ word).wrapping_mul(0x517c_c1b7_2722_0a95);
+    }
+    let mut tail = [0; 8];
+    tail[..chunks.remainder().len()].copy_from_slice(chunks.remainder());
+    (state.rotate_left(5) ^ u64::from_le_bytes(tail)).wrapping_mul(0x517c_c1b7_2722_0a95)
+}
+
+/// Distinct names, shared by all threads without locks. Names are kept in their raw (still
+/// escaped) form, which is one-to-one with the value. A thread claims a free slot by swapping its
+/// tag from 0 to 1, copies the name into the arena, then publishes the tag (the hash with the top
+/// bit set). A name's id is its slot.
+struct Table {
+    tags: Vec<AtomicU64>,
+    spans: Vec<AtomicU64>,
+    arena: &'static [AtomicU8],
+    next: AtomicUsize,
+    used: AtomicUsize,
+}
+
+impl Table {
+    fn new(arena: usize) -> Self {
+        let slots = 1 << SLOT_BITS;
+        // Zeroed on demand by the kernel: only the pages names are copied to are charged.
+        let arena = Box::leak(vec![0_u8; arena].into_boxed_slice());
+        Self {
+            tags: (0..slots).map(|_| AtomicU64::new(0)).collect(),
+            spans: (0..slots).map(|_| AtomicU64::new(0)).collect(),
+            // SAFETY: same size and alignment, and the bytes are only used through atomics now.
+            arena: unsafe { std::slice::from_raw_parts(arena.as_ptr().cast(), arena.len()) },
+            next: AtomicUsize::new(0),
+            used: AtomicUsize::new(0),
+        }
+    }
+
+    /// Returns the name's id, or `None` once the table is half full.
+    fn id(&self, name: &[u8]) -> Option<usize> {
+        let tag = hash(name) | 1 << 63;
+        let mask = (1 << SLOT_BITS) - 1;
+        let mut slot = (tag >> 20) as usize & mask;
+        loop {
+            let mut seen = self.tags[slot].load(Acquire);
+            if seen == 0 {
+                if self.used.load(Relaxed) >= mask / 2 || name.len() >= 1 << 24 {
+                    return None;
+                }
+                if self.tags[slot]
+                    .compare_exchange(0, 1, Acquire, Acquire)
+                    .is_ok()
+                {
+                    let at = self.next.fetch_add(name.len(), Relaxed);
+                    for (cell, &byte) in self.arena[at..at + name.len()].iter().zip(name) {
+                        cell.store(byte, Relaxed);
+                    }
+                    self.spans[slot].store((at as u64) << 24 | name.len() as u64, Relaxed);
+                    self.used.fetch_add(1, Relaxed);
+                    self.tags[slot].store(tag, Release);
+                    return Some(slot);
+                }
+                seen = self.tags[slot].load(Acquire);
+            }
+            while seen == 1 {
+                std::hint::spin_loop();
+                seen = self.tags[slot].load(Acquire);
+            }
+            if seen == tag {
+                let span = self.spans[slot].load(Relaxed);
+                let (at, length) = ((span >> 24) as usize, (span & 0xFF_FFFF) as usize);
+                if length == name.len()
+                    && self.arena[at..at + length]
+                        .iter()
+                        .zip(name)
+                        .all(|(cell, &byte)| cell.load(Relaxed) == byte)
+                {
+                    return Some(slot);
+                }
+            }
+            slot = (slot + 1) & mask;
+        }
+    }
 }
 
 /// Running aggregates of one group.
@@ -84,47 +166,22 @@ impl Default for Group {
     }
 }
 
-/// One chunk's aggregates, its own name table, and per group the local ids of its names.
-struct Part<'a> {
-    groups: Vec<Group>,
-    names: Names<'a>,
-    seen: Vec<Vec<u32>>,
-}
-
-/// Reads one field at `at`; returns its value, its unescaped length and the index after the
-/// separator that follows it. A quoted field ends at a `"` not followed by another `"`.
-fn field(bytes: &[u8], at: usize) -> (Cow<'_, [u8]>, usize, usize) {
+/// Reads one field at `at`; returns its raw bytes (inside the quotes, `""` still doubled), its
+/// value's length and the index after the separator that follows it.
+fn field(bytes: &[u8], at: usize) -> (&[u8], usize, usize) {
     if bytes.get(at) != Some(&b'"') {
         let end = at + bytes[at..].iter().position(|&byte| byte == b',').unwrap();
-        return (Cow::Borrowed(&bytes[at..end]), end - at, end + 1);
+        return (&bytes[at..end], end - at, end + 1);
     }
-    let (start, mut from, mut escapes) = (at + 1, at + 1, 0);
-    let end = loop {
+    let (mut from, mut escapes) = (at + 1, 0);
+    loop {
         let quote = from + bytes[from..].iter().position(|&byte| byte == b'"').unwrap();
-        if bytes.get(quote + 1) == Some(&b'"') {
-            escapes += 1;
-            from = quote + 2;
-        } else {
-            break quote;
+        if bytes.get(quote + 1) != Some(&b'"') {
+            return (&bytes[at + 1..quote], quote - at - 1 - escapes, quote + 2);
         }
-    };
-    let raw = &bytes[start..end];
-    let value = if escapes == 0 {
-        Cow::Borrowed(raw)
-    } else {
-        let mut owned = Vec::with_capacity(raw.len() - escapes);
-        let mut quote = false;
-        for &byte in raw {
-            if byte == b'"' && quote {
-                quote = false;
-                continue;
-            }
-            quote = byte == b'"';
-            owned.push(byte);
-        }
-        Cow::Owned(owned)
-    };
-    (value, raw.len() - escapes, end + 2)
+        escapes += 1;
+        from = quote + 2;
+    }
 }
 
 /// Decimal digits from `at` up to `stop`; returns the value and the index after `stop`.
@@ -139,15 +196,12 @@ fn digits(bytes: &[u8], mut at: usize, stop: u8) -> (u64, usize) {
     (value, at + 1)
 }
 
-/// Aggregates every record in `bytes`, which starts at a record and ends after a terminator
-/// (or at the end of the file). `country[region]` is a group, or `unmatched`.
-fn parse<'a>(bytes: &'a [u8], country: &[u16], groups: usize) -> Part<'a> {
-    let unmatched = groups - 1;
-    let mut part = Part {
-        groups: vec![Group::default(); groups],
-        names: Names::default(),
-        seen: vec![Vec::new(); groups],
-    };
+/// One parsed record: id, raw name, name and note value lengths, region and amount in cents.
+type Record<'a> = (u64, &'a [u8], usize, usize, u64, i64);
+
+/// Calls `visit` for every record in `bytes`, which starts at a record and ends after a
+/// terminator or at the end of the file.
+fn records<'a>(bytes: &'a [u8], mut visit: impl FnMut(Record<'a>)) {
     let mut at = 0;
     while at < bytes.len() {
         if bytes[at..].starts_with(BOM) {
@@ -162,33 +216,24 @@ fn parse<'a>(bytes: &'a [u8], country: &[u16], groups: usize) -> Part<'a> {
         let cents = (whole * 100
             + u64::from(bytes[next] - b'0') * 10
             + u64::from(bytes[next + 1] - b'0')) as i64;
-        let amount = if negative { -cents } else { cents };
         at = next + 2;
         at += usize::from(bytes.get(at) == Some(&b'\r'));
         at += usize::from(bytes.get(at) == Some(&b'\n'));
-        let index = country
-            .get(region as usize)
-            .map_or(unmatched, |&group| group as usize);
-        let group = &mut part.groups[index];
-        group.count += 1;
-        group.id_sum += id;
-        group.amount_sum += amount;
-        group.min = group.min.min(amount);
-        group.max = group.max.max(amount);
-        group.name_bytes += name_length as u64;
-        group.note_bytes += note_length as u64;
-        let next_id = part.names.len() as u32;
-        let local = *part.names.entry(name).or_insert(next_id);
-        part.seen[index].push(local);
+        visit((
+            id,
+            name,
+            name_length,
+            note_length,
+            region,
+            if negative { -cents } else { cents },
+        ));
     }
-    part
 }
 
-/// Splits `bytes` (records only) into up to `pieces` chunks that each start at a record. Under
-/// the generator's guarantees (spec 2.2) a line inside a quoted note never starts with a digit
-/// or a BOM, so an LF followed by either is always a record terminator.
+/// Splits `bytes` (records only) into up to `pieces` chunks that each start at a record: after an
+/// LF followed by an optional BOM, digits and a comma. Under the generator's guarantees (spec 2.2)
+/// no line inside a quoted note looks like that.
 fn chunks(bytes: &[u8], pieces: usize) -> Vec<&[u8]> {
-    // A record start: an optional BOM, then digits and a comma.
     let record = |rest: &[u8]| {
         let rest = rest.strip_prefix(BOM).unwrap_or(rest);
         let digits = rest.iter().take_while(|byte| byte.is_ascii_digit()).count();
@@ -226,6 +271,7 @@ fn money(text: &mut Vec<u8>, cents: i64) {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    tune_memory();
     let (mut data, mut out) = (PathBuf::from("/data"), PathBuf::from("/out"));
     let mut workers = thread::available_parallelism()
         .map_or(1, usize::from)
@@ -240,24 +286,23 @@ fn main() -> Result<(), Box<dyn Error>> {
             _ => return Err(format!("unknown argument: {arg}").into()),
         }
     }
-    // Regions: `region_id,country` lines after the header, ids ascending.
-    let regions = map_file(&data.join("regions.csv"))?;
+    // Regions: `region_id,country` lines after the header; codes are three capital letters, so
+    // a code's number in base 26 orders codes like their bytes.
     let mut rows = Vec::new();
-    for line in regions
+    let mut present = vec![false; 26 * 26 * 26];
+    for line in map_file(&data.join("regions.csv"))?
         .split(|&byte| byte == b'\n')
         .skip(1)
-        .filter(|line| !line.is_empty())
     {
-        let comma = line
-            .iter()
-            .position(|&byte| byte == b',')
-            .ok_or("bad region line")?;
-        let (region, _) = digits(line, 0, b',');
-        rows.push((region as usize, &line[comma + 1..]));
+        if let [.., b',', a, b, c] = *line {
+            let code = [a, b, c]
+                .iter()
+                .fold(0, |code, &letter| code * 26 + usize::from(letter - b'A'));
+            present[code] = true;
+            rows.push((digits(line, 0, b',').0 as usize, code));
+        }
     }
-    let mut codes: Vec<&[u8]> = rows.iter().map(|&(_, code)| code).collect();
-    codes.sort_unstable();
-    codes.dedup();
+    let codes: Vec<usize> = (0..present.len()).filter(|&code| present[code]).collect();
     let groups = codes.len() + 1;
     let mut country = vec![
         codes.len() as u16;
@@ -270,42 +315,69 @@ fn main() -> Result<(), Box<dyn Error>> {
         country[region] = codes.binary_search(&code).unwrap() as u16;
     }
     // Records: skip a leading BOM and the header line.
-    let records = map_file(&data.join("records.csv"))?;
-    let records = records.strip_prefix(BOM).unwrap_or(records);
-    let body = &records[records
+    let records_file = map_file(&data.join("records.csv"))?;
+    let file = records_file.strip_prefix(BOM).unwrap_or(records_file);
+    let body = &file[file
         .iter()
         .position(|&byte| byte == b'\n')
-        .map_or(records.len(), |at| at + 1)..];
-    let country = &country;
-    let parts: Vec<Part> = thread::scope(|scope| {
+        .map_or(file.len(), |at| at + 1)..];
+    let table = Table::new(body.len());
+    let words = (1 << SLOT_BITS) / 64;
+    let names: Vec<AtomicU64> = (0..groups * words).map(|_| AtomicU64::new(0)).collect();
+    let full = AtomicBool::new(false);
+    let group_of = |region: u64| {
+        country
+            .get(region as usize)
+            .map_or(groups - 1, |&group| group as usize)
+    };
+    let parts: Vec<Vec<Group>> = thread::scope(|scope| {
         let handles: Vec<_> = chunks(body, workers)
             .into_iter()
-            .map(|chunk| scope.spawn(move || parse(chunk, country, groups)))
+            .map(|chunk| {
+                let (table, names, full, group_of) = (&table, &names, &full, &group_of);
+                scope.spawn(move || {
+                    let mut part = vec![Group::default(); groups];
+                    records(
+                        chunk,
+                        |(id, name, name_length, note_length, region, amount)| {
+                            let index = group_of(region);
+                            let group = &mut part[index];
+                            group.count += 1;
+                            group.id_sum += id;
+                            group.amount_sum += amount;
+                            group.min = group.min.min(amount);
+                            group.max = group.max.max(amount);
+                            group.name_bytes += name_length as u64;
+                            group.note_bytes += note_length as u64;
+                            match table.id(name) {
+                                Some(slot) => {
+                                    _ = names[index * words + slot / 64]
+                                        .fetch_or(1 << (slot % 64), Relaxed)
+                                }
+                                None => full.store(true, Relaxed),
+                            }
+                        },
+                    );
+                    part
+                })
+            })
             .collect();
         handles
             .into_iter()
             .map(|handle| handle.join().unwrap())
             .collect()
     });
-    // Merge: one global id per distinct name, then one bitset of names per group.
-    let mut global = Names::default();
-    let mut translate = Vec::with_capacity(parts.len());
-    for part in &parts {
-        let mut map = vec![0_u32; part.names.len()];
-        for (name, &local) in &part.names {
-            let next = global.len() as u32;
-            map[local as usize] = *global.entry(Cow::Borrowed(name.as_ref())).or_insert(next);
-        }
-        translate.push(map);
+    // More names than the table holds: count distinct names exactly in one slow pass instead.
+    let mut exact = vec![HashSet::new(); if full.into_inner() { groups } else { 0 }];
+    if !exact.is_empty() {
+        records(body, |(_, name, _, _, region, _)| {
+            _ = exact[group_of(region)].insert(name)
+        });
     }
-    let words = global.len().div_ceil(64);
     let mut text = Vec::new();
-    let mut bits = vec![0_u64; words];
     for index in 0..groups {
         let mut total = Group::default();
-        bits.fill(0);
-        for (part, map) in parts.iter().zip(&translate) {
-            let group = &part.groups[index];
+        for group in parts.iter().map(|part| &part[index]) {
             total.count += group.count;
             total.id_sum += group.id_sum;
             total.amount_sum += group.amount_sum;
@@ -313,16 +385,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             total.max = total.max.max(group.max);
             total.name_bytes += group.name_bytes;
             total.note_bytes += group.note_bytes;
-            for &local in &part.seen[index] {
-                let id = map[local as usize] as usize;
-                bits[id / 64] |= 1 << (id % 64);
-            }
         }
         if total.count == 0 {
             continue;
         }
-        let distinct: u32 = bits.iter().map(|word| word.count_ones()).sum();
-        text.extend_from_slice(codes.get(index).copied().unwrap_or(b"_UNMATCHED"));
+        let distinct = match exact.get(index) {
+            Some(set) => set.len() as u64,
+            None => names[index * words..(index + 1) * words]
+                .iter()
+                .map(|word| u64::from(word.load(Relaxed).count_ones()))
+                .sum(),
+        };
+        match codes.get(index) {
+            Some(&code) => text
+                .extend([code / 676, code / 26 % 26, code % 26].map(|letter| b'A' + letter as u8)),
+            None => text.extend_from_slice(b"_UNMATCHED"),
+        }
         write!(text, " {} {} ", total.count, total.id_sum)?;
         money(&mut text, total.amount_sum);
         text.push(b' ');
