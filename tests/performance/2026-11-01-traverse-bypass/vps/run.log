@@ -1,0 +1,49 @@
+   Compiling traverse-baseline v0.1.0 (/work/diag-before)
+    Finished `release` profile [optimized] target(s) in 8.62s
+   Compiling traverse-baseline v0.1.0 (/work/diag-v3)
+    Finished `release` profile [optimized] target(s) in 8.74s
+diag-before {'load': 0.095752, 'queries': 0.096253, 'reorder': 0.231561, 'transpose': 0.301997, 'search': 0.512233, 'output': 0.515351}
+diag-v3 {'load': 0.082661, 'queries': 0.08315, 'reorder': 0.203803, 'contract': 0.350026, 'transpose': 0.397584, 'search': 0.564565, 'output': 0.567207}
+diag-v3 {'load': 0.074796, 'queries': 0.075109, 'reorder': 0.17468, 'contract': 0.304737, 'transpose': 0.356637, 'search': 0.522771, 'output': 0.524729}
+diag-before {'load': 0.102974, 'queries': 0.103322, 'reorder': 0.206831, 'transpose': 0.260069, 'search': 0.444429, 'output': 0.446456}
+diag-before {'load': 0.096571, 'queries': 0.097045, 'reorder': 0.220895, 'transpose': 0.280309, 'search': 0.48135, 'output': 0.484296}
+diag-v3 {'load': 0.09394, 'queries': 0.094248, 'reorder': 0.19952, 'contract': 0.353779, 'transpose': 0.406584, 'search': 0.555063, 'output': 0.557731}
+diag-v3 {'load': 0.080318, 'queries': 0.080915, 'reorder': 0.185532, 'contract': 0.303434, 'transpose': 0.349772, 'search': 0.504597, 'output': 0.506634}
+diag-before {'load': 0.086267, 'queries': 0.086611, 'reorder': 0.204614, 'transpose': 0.263851, 'search': 0.465562, 'output': 0.468559}
+diag-before {'load': 0.08994, 'queries': 0.090274, 'reorder': 0.213068, 'transpose': 0.274988, 'search': 0.473091, 'output': 0.475428}
+diag-v3 {'load': 0.092822, 'queries': 0.093122, 'reorder': 0.186388, 'contract': 0.335062, 'transpose': 0.386702, 'search': 0.559741, 'output': 0.562526}
+diag-v3 {'load': 0.095132, 'queries': 0.095549, 'reorder': 0.23698, 'contract': 0.392178, 'transpose': 0.443106, 'search': 0.599963, 'output': 0.602503}
+diag-before {'load': 0.08396, 'queries': 0.08439, 'reorder': 0.213838, 'transpose': 0.283614, 'search': 0.479153, 'output': 0.482016}
+diag-before {'load': 0.08096, 'queries': 0.081345, 'reorder': 0.198726, 'transpose': 0.249953, 'search': 0.427069, 'output': 0.429285}
+diag-v3 {'load': 0.098759, 'queries': 0.099112, 'reorder': 0.240309, 'contract': 0.390912, 'transpose': 0.43907, 'search': 0.592601, 'output': 0.594566}
+diag-v3 {'load': 0.071238, 'queries': 0.071538, 'reorder': 0.171951, 'contract': 0.324931, 'transpose': 0.370088, 'search': 0.532175, 'output': 0.53464}
+diag-before {'load': 0.091299, 'queries': 0.092015, 'reorder': 0.226342, 'transpose': 0.297666, 'search': 0.49557, 'output': 0.498537}
+diag-before {'load': 0.108769, 'queries': 0.109161, 'reorder': 0.220955, 'transpose': 0.279656, 'search': 0.483874, 'output': 0.486945}
+diag-v3 {'load': 0.100357, 'queries': 0.100932, 'reorder': 0.228434, 'contract': 0.409379, 'transpose': 0.455836, 'search': 0.612124, 'output': 0.614191}
+SUMMARY={
+ "diag-before": {
+  "seconds_median": 0.48589695050000004,
+  "peak_mb_max": 78.753792,
+  "phase_ms_median": {
+   "load": 90.6195,
+   "queries": 0.388499999999993,
+   "reorder": 120.3985,
+   "transpose": 59.32549999999999,
+   "search": 198.0035,
+   "output": 2.904500000000004
+  }
+ },
+ "diag-v3": {
+  "seconds_median": 0.5680017305,
+  "peak_mb_max": 78.630912,
+  "phase_ms_median": {
+   "load": 93.38099999999999,
+   "queries": 0.33299999999999996,
+   "reorder": 104.94449999999999,
+   "contract": 151.7915,
+   "transpose": 49.543000000000006,
+   "search": 156.5725,
+   "output": 2.2660000000000458
+  }
+ }
+}

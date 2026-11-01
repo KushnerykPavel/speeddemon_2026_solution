@@ -27,6 +27,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 21 | `Graph::row` back on `enumerate()`, Dial rejected (`21df4fd`) | run-711cf3f5f6f1 | 0.206146 | 79.745024 | 64.981435 |
 | 23 | Chained BFS blobs of 512 (`cae88c9`) | run-81554f49a3d1 | 0.198285 | 79.855616 | 65.339497 |
 | 23 (re-sample) | Same blob binary, record-only commit (`61d9b2a`) | run-403e26bcde98 | 0.222510 | 79.708160 | 64.096032 |
+| 27 | Huge pages for the dense final graph arrays (`a86b62a`; mean of 3 samples 0.2145 s; reverted) | Not in public history | 0.196730 | 79.540224 | 65.385135 |
+| 21 (re-sample) | `21df4fd` code rebuilt by a Track A push (`14001f9`); best of 21 board runs of this binary, which average 0.2069 ± 0.0069 s and 64.95 ± 0.35 points | run-8040ef5bc533 | 0.198594 | 79.650816 | **65.391789** |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -813,3 +815,53 @@ Time change: 0.0% at 1 thread, +0.1% at 3, +2.8% at 6, −3.5% at 12 (spread
 help; it also needs a binary `pgo.profdata` rebuilt after every source change.
 Not adopted. Evidence:
 [PGO](../tests/performance/2026-11-01-traverse-pgo/README.md).
+
+## Step 25 — prune pushes by the best path (VPS measurement, rejected)
+
+Skip a push when `candidate + other.top() >= best` (exact; meeting update first). Counters at one thread on full
+seed 1: pushes 8,655,173 → 8,158,649 (-5.7%), pops unchanged (7.57M). Same VPS protocol, 12 workers: 0.4772 →
+0.4800 s (+0.6%, spreads 25% / 10%), 6 workers 0.4915 → 0.4903 s; peak unchanged (78.8 MB). Outputs equal on all
+ten datasets; random all-pairs reference test and 204 Python cases pass, a mutant is caught. Rusage prelude: sys
+time ~10% of CPU, ~16% of 6-vCPU capacity idle. Not adopted. Evidence:
+[mu-prune](../tests/performance/2026-11-01-traverse-mu-prune/README.md).
+
+## Step 26 — renumbering disabled after bidirectional search (VPS measurement, rejected)
+
+Control for the open question since step 12: `reorder_graph` returns the graph unchanged. Same VPS protocol,
+full seed 1: 12 workers 0.469 → 1.091 s (+133%), 6 workers 0.476 → 1.067 s (+124%), 1 worker 2.253 → 5.172 s
+(+130%), slower in 0/8 paired rounds each; cgroup peak 78.7 → 229.5 MB at 12 workers. Outputs equal. The
+renumbering still pays by a wide margin and stays. Evidence:
+[no reorder](../tests/performance/2026-11-01-traverse-no-reorder/README.md).
+
+## Step 27 — huge pages for the dense final graph arrays (VPS gain, board rejected, reverted)
+
+Step 15 turned THP off for the whole process to save memory on sparse buffers. Now THP is allowed again only
+while the renumber copy and the transpose allocate and fill their offsets and edges (`prctl` off/on plus
+`madvise(MADV_HUGEPAGE)`), and is turned off before the search workers allocate their sparse distance pages.
+Same VPS protocol (10 alternating pairs after warmup): 12 workers 0.4828 → 0.4600 s (−4.7%, 9/10 pairs faster),
+6 workers 0.5014 → 0.4659 s (−7.1%, 8/10); cgroup peak unchanged (79.00 / 78.96 MB); minor faults −24%;
+AnonHugePages 43–45 MB. On this KVM guest the gain is in the copy and transpose; the search phase is unchanged, so the
+board's TLB effect is untested. The pre-registered criterion (search phase faster in ≥ 7/10 pairs) was **not met**.
+The step is accepted on total time, with the mechanism revised from TLB misses to first-touch faults; the board runs
+these arrays on 4 KB pages too, so that mechanism should transfer. Outputs equal on all ten datasets; unit and 204
+Python cases pass. +26 scored lines (714 → 740 non-blank, non-comment), ≈ −0.12 points from S. Below
+single-board-run noise: needs the resample protocol before adoption, reading both T and M (the board's THP mode
+`always` could give huge pages to other allocations made inside the window; `defrag=madvise` could stall faults). Code on branch `exp/d-thp-dense`
+Evidence: [THP dense](../tests/performance/2026-11-01-traverse-thp-dense/README.md).
+
+Board resample of the same binary (candidate commit `a86b62a`, then record-only `d6900d5` and `63124aa`):
+T 0.196730 / 0.230308 / 0.216382 s (run ID of the third: `run-6c84f8ae31f3`; the compact history omits the
+others), M 79.54 / 81.03 / 79.43 MB, S 749, 65.39 / 63.59 / 64.36 points.
+Mean T 0.2145 s against the baseline mean 0.2069 s over 21 runs (+3.7%), one memory sample 1.4 MB above the baseline
+range. The VPS gain did not transfer; the board's THP and defrag behaviour is a likely cause (untested). Rejected and
+reverted; the scored code is the `21df4fd` code again. Board record:
+[THP board results](../tests/performance/2026-11-01-board-thp-results/README.md).
+
+## Step 28 — degree-2 bypass and spur removal (VPS and Mac measurement, rejected)
+
+22.8% of vertices (31.8% of edge lines) are two-way degree-2 and 5.8% are spurs. Contracting them is exact and cuts
+the search by 21% on the VPS, but every variant costs more than that. Classifying in old IDs pays a random access
+per edge (≈30 ms on the Mac at 12 threads, with CAS or `fetch_add` alike). A separate contraction after
+renumbering costs 152 ms on the VPS (total 0.486 → 0.568 s, +17%). Evidence:
+[bypass](../tests/performance/2026-11-01-traverse-bypass/README.md).
+

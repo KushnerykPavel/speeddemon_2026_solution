@@ -1,0 +1,27 @@
+{
+  "diag-before": {
+    "seconds_median": 0.48589695050000004,
+    "peak_mb_max": 78.753792,
+    "phase_ms_median": {
+      "load": 90.6195,
+      "queries": 0.388499999999993,
+      "reorder": 120.3985,
+      "transpose": 59.32549999999999,
+      "search": 198.0035,
+      "output": 2.904500000000004
+    }
+  },
+  "diag-v3": {
+    "seconds_median": 0.5680017305,
+    "peak_mb_max": 78.630912,
+    "phase_ms_median": {
+      "load": 93.38099999999999,
+      "queries": 0.33299999999999996,
+      "reorder": 104.94449999999999,
+      "contract": 151.7915,
+      "transpose": 49.543000000000006,
+      "search": 156.5725,
+      "output": 2.2660000000000458
+    }
+  }
+}

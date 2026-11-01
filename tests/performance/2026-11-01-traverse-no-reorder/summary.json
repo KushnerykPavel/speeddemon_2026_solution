@@ -1,0 +1,79 @@
+{
+  "cpuset": "0-5",
+  "rounds_excluding_warmup": 8,
+  "order": "alternating",
+  "method": "round 0 discarded; trimmed mean (drop min/max) of remaining rounds",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "counts": {},
+  "results": {
+    "12": {
+      "before": {
+        "trimmed_mean_s": 0.4688297515,
+        "median_s": 0.4701871555,
+        "spread_percent": 32.24947395982196,
+        "user_s_median": 2.07948,
+        "sys_s_median": 0.2280525,
+        "minflt_median": 48083.0,
+        "max_cgroup_peak_bytes": 78733312
+      },
+      "noreorder": {
+        "trimmed_mean_s": 1.0906311015,
+        "median_s": 1.084506452,
+        "spread_percent": 11.013036687767386,
+        "user_s_median": 5.750567,
+        "sys_s_median": 0.277867,
+        "minflt_median": 71209.0,
+        "max_cgroup_peak_bytes": 229511168
+      },
+      "change_percent_trimmed_mean": 132.62838973221608,
+      "paired_change_percent_median": 132.6278456050042,
+      "paired_noreorder_faster_rounds": "0/8"
+    },
+    "6": {
+      "before": {
+        "trimmed_mean_s": 0.4762076843333333,
+        "median_s": 0.4776446245,
+        "spread_percent": 9.595825299582161,
+        "user_s_median": 2.106368,
+        "sys_s_median": 0.233753,
+        "minflt_median": 47296.0,
+        "max_cgroup_peak_bytes": 78254080
+      },
+      "noreorder": {
+        "trimmed_mean_s": 1.067326701,
+        "median_s": 1.058333981,
+        "spread_percent": 12.72409399454384,
+        "user_s_median": 5.467696500000001,
+        "sys_s_median": 0.2121585,
+        "minflt_median": 51669.0,
+        "max_cgroup_peak_bytes": 143331328
+      },
+      "change_percent_trimmed_mean": 124.1305077834272,
+      "paired_change_percent_median": 121.50467488857804,
+      "paired_noreorder_faster_rounds": "0/8"
+    },
+    "1": {
+      "before": {
+        "trimmed_mean_s": 2.2534224265,
+        "median_s": 2.249632358,
+        "spread_percent": 19.26704088242177,
+        "user_s_median": 2.071275,
+        "sys_s_median": 0.17398799999999998,
+        "minflt_median": 43432.0,
+        "max_cgroup_peak_bytes": 70266880
+      },
+      "noreorder": {
+        "trimmed_mean_s": 5.172183326666667,
+        "median_s": 5.1653599,
+        "spread_percent": 7.352301384391602,
+        "user_s_median": 5.0162185,
+        "sys_s_median": 0.1299685,
+        "minflt_median": 32983.5,
+        "max_cgroup_peak_bytes": 70299648
+      },
+      "change_percent_trimmed_mean": 129.52568794214346,
+      "paired_change_percent_median": 128.29479004890175,
+      "paired_noreorder_faster_rounds": "0/8"
+    }
+  }
+}

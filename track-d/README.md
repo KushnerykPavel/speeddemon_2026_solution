@@ -2,86 +2,88 @@
 
 The task, the input files and the exact output format are in the [spec](https://github.com/hackathon-raptors/speed-demon-2026/blob/main/specs/d-traverse.md).
 
+## Result
+
+Board, 21 runs of the final code: T 0.2069 ± 0.0069 s (best 0.198594 s, `run-8040ef5bc533`),
+M 79.6 MB, S 723, no dependencies, 64.95 ± 0.35 points (best 65.39). Every step, its run ID and the
+rejected experiments are in [PERF.md](PERF.md).
+
 ## Approach
 
-Rust implementation of exact point-to-point shortest paths with bidirectional
-Dijkstra. Load a CSR graph with `u32` offsets, retaining every input edge
-(duplicates included), and build its reverse CSR in parallel. Each edge is
-packed into one `u32` (endpoint in the low bits needed for `n - 1`, weight above);
-weights too large for the remaining bits keep an escape code and their exact value
-in a sorted `(edge index, weight)` list. Each query
-searches forward from the source and backward from the target, always growing
-the side with the smaller queue (choosing by smaller key would let one side
-flood the graph when the other side's first edge weighs close to 2^32). The
-best path length `μ` is updated whenever an edge reaches a vertex the other side
-has labelled; the search stops once the two queue minima sum to at least `μ` or
-a side is exhausted. Distances are `u32` in 1,024-vertex pages assigned on first
-write and recycled after each query, so worker memory follows the largest search
-rather than the vertex count. Relaxations that do not fit `u32` are skipped; a
-found distance below `u32::MAX` is still exact. Otherwise, if anything was
-skipped, the query reruns in one `u64` search shared by all workers behind a
-mutex (4 of 2,000 seed-1 answers exceed `u32`).
-Zero weights, parallel edges, duplicates and isolated nodes are supported.
-Before searching, return zero for identical endpoints and reject queries with
-no outgoing edge at the source or no incoming edge at the target (an empty row
-of the reverse graph).
-Independent queries run on scoped standard-library threads sharing the immutable
-graph. Each worker reuses its own search state and claims its next query from an
-atomic counter; indexed answers preserve input order. No routing index or answer
-cache is used. The default uses available parallelism capped at 12 workers and
-the query count; `--threads N` overrides it (positive integer, capped at 12).
-Empty query files start no search workers.
-On the six-vCPU Linux VPS, full seed 1 matches Python. Adding mmap/parallel CSR
-to D7 reduced time from 3.77 s to 2.38 s at six workers (36.8% less time), with
-container peak memory 139.7 to 140.8 MB. One-worker loading is slower; the
-improvement applies to parallel modes. Details and limitations are in `PERF.md`.
+Rust, standard library only. Exact point-to-point shortest paths with bidirectional Dijkstra over a
+renumbered, packed CSR graph. Five phases, each on scoped worker threads (available parallelism, capped
+at 12; `--threads N` overrides it):
 
-The graph is mapped read-only with `mmap` and divided into newline-aligned chunks.
-Each scoped worker parses its chunk once and buckets every edge by the part that
-owns its source (a power-of-two block of vertex IDs, about eight per worker).
-Each part then counts and places its own edges into its own `split_at_mut` slices
-of the CSR: a cache-sized region, plain writes, no atomics. The temporary
-buckets hold one `(u, v, w)` triple per edge and are freed after placement, below
-the search-phase memory peak. The mapping is released after loading. Every edge
-is retained. Loading uses the same worker limit as query processing.
+1. **Load.** `graph.txt` is mapped read-only with `mmap` and kept mapped for the run. It is split into
+   newline-aligned chunks, one per worker. Plain `u v w` records are parsed with one 8-byte load per
+   number (SWAR: the length from the first byte with bit 4 clear, a nibble check for digits, three
+   multiplies). Any other shape falls back to a strict field parser, so overflow, field counts, vertex
+   bounds, CRLF and a missing final newline are still handled. Each worker buckets its edges by the part
+   (a power-of-two block of vertex IDs, about eight per worker) that owns the source. Bucket records are
+   8 bytes: the source and the packed target and weight, with escaped weights kept in a side list. Each
+   part then counts and places its own edges into disjoint `split_at_mut` slices of the CSR: a cache-sized
+   region, plain writes, no atomics. Every input edge is kept, duplicates and self-loops included.
+2. **Packed edges.** Each edge is one `u32`: the other endpoint in the low `ceil(log2 n)` bits, the weight
+   above it. A weight that does not fit is stored as the all-ones escape code, with its exact value in a
+   sorted `(edge index, weight)` list (3,496 of 5,000,000 edges on seed 1).
+3. **Renumber for locality.** Every worker grows breadth-first regions from unclaimed roots in its own
+   slice of old IDs. It claims each vertex with a compare-and-swap of a provisional ID (worker and
+   position) and notes its degree. The regions, one after another, give the new order. A parallel pass
+   over equal pieces of that order then copies the rows from the old graph into the new CSR, translating
+   heads through the claims. Software prefetch asks for rows a few vertices ahead. Without this step the
+   run is 2.3× slower. Idea credit: Team7's public Track D renumbering (MIT).
+4. **Reverse graph.** In-degrees are counted with atomics, then each edge is scattered through atomic
+   cursors into a reverse CSR with the same packing.
+5. **Queries.** Workers claim queries from an atomic counter; answers are stored by index, so the output
+   keeps input order. `s == t` returns 0. A source with no out-edge, or a target with no in-edge (an empty
+   reverse row), returns `-1` without a search. Otherwise the search runs forward from `s` and backward from
+   `t`. It always grows the side with the smaller queue: choosing by the smaller key would let one side
+   flood the graph when the other side's first edge weighs close to 2^32. The best path length `μ` is
+   updated whenever an edge reaches a vertex the other side has labelled. The search stops once the two
+   queue minima sum to at least `μ`, or when a side is exhausted. Heaps hold one `u64` key, the distance
+   shifted above the vertex. Distances are `u32` in 1,024-vertex pages, assigned on first write and
+   recycled after each query, so worker memory follows the largest search. A relaxation that does not fit
+   `u32` is skipped. An answer below `u32::MAX` is still exact; otherwise the query reruns in one `u64`
+   search shared by all workers behind a mutex (4 of 2,000 seed-1 answers exceed `u32`).
 
-Plain `u v w` records are parsed with one 8-byte load per number (SWAR: length
-from the first byte with bit 4 clear, a nibble check for digits, three
-multiplies); any other shape falls back to the strict parser. Graph fields are
-parsed directly from borrowed ASCII byte slices; queries retain
-a reusable line buffer and share the checked `u32` parser. No temporary strings
-or field vectors. Overflow, field counts, vertex bounds, LF/CRLF and final lines
-without a newline are handled. The std-only mapping wrapper targets 64-bit Unix
-(the Linux competition target and macOS development host); input files remain
-immutable during loading, as with the read-only competition data mount.
+Memory: on Linux the process asks for 4 KB pages (`prctl(PR_SET_THP_DISABLE)`), because the reserved and
+paged buffers are touched sparsely. With 2 MB pages one touched byte commits 2 MB, and the board measured
+132 → 102 MB. `mallopt(M_MMAP_THRESHOLD, 256 KB)` returns large freed buffers to the kernel. The peak
+(≈ 79 MB) is at the end of load placement, when the buckets and the first CSR are both live.
 
-Before searching, relabel vertices for locality. Every worker grows breadth-first
-regions from unclaimed roots in its own slice of old IDs and claims each vertex
-with a compare-and-swap of a provisional ID (worker and position). Edges are
-written with provisional heads during the walk, so the old graph is read once;
-a parallel pass concatenates the regions into the new CSR through disjoint
-`split_at_mut` slices. Region buffers reserve the whole graph up front: only
-written pages are charged and they never reallocate. All vertices and duplicate
-edges remain; exact distances and query order are preserved. Empty queries skip
-the rebuild. Idea credit: Team7's public Track D renumbering (MIT).
-On the six-vCPU VPS, renumbering takes 0.11 s instead of 0.42 s for the serial
-BFS order, with unchanged search time. See PERF.md for measurements.
+No routing index or answer cache is used, and nothing is computed ahead of the run. Output is byte-equal
+to the Python reference on full seed 1 (SHA-256 `a23dbdf0…277e`) and on the sample, tiny and edge-case
+datasets.
 
-Release builds use fat LTO, one codegen unit and abort on panic. Docker builds
-also use `target-cpu=native`. Local VPS measurements are recorded in `PERF.md`;
-the small measured build-profile improvement remains inconclusive.
+Release builds use fat LTO, one codegen unit and abort on panic. The Docker build adds
+`target-cpu=native`.
 
 Build: `cargo build --release --offline --locked`.
 Run: `target/release/traverse-baseline --data /data --out /out`.
-The container defaults to `/data` and `/out`.
-For a serial comparison, append `--threads 1`.
+The container defaults to `/data` and `/out`. For a serial comparison, append `--threads 1`.
 
 ## Dependencies
 
 None.
 
+## What did not work
+
+These are measured; details and evidence are in PERF.md.
+- **Other priority queues:** three Dial bucket rings, plus a radix heap tried as a local prototype only
+  (search 7–30% slower on an M1 Pro). The search is bound by memory latency, not by the heap.
+- **Profile-guided optimization** made no difference.
+- **Pruning pushes by `μ`** cut pushes 5.7% but no settles.
+- **Smaller BFS "blobs"** for the renumbering gave no gain.
+- **Huge pages only for the final graph arrays** were −4.7% on the VPS, but the board samples came out
+  slower and used more memory.
+- **Contracting two-way degree-2 vertices (31.8% of edges) and dead-end spurs** is exact and cut the search
+  by 21%. Finding the chains cost more than that saved: total time was +17%.
+
 ## With another 24 hours
 
-Locate the new memory peak (loading or renumbering) and shrink its transient
-buffers, then compare 6 versus 12 workers on the competition machine using time
-and cgroup peak memory.
+The board's time splits about 55% building and 45% searching. Closing the 2× gap to the leaders needs
+the building phases to do less random-access work, not a faster search loop. The next steps would be:
+- build the reverse graph without atomics, from per-worker inboxes bucketed by target block;
+- run the prefix sums and large zero-fills in parallel;
+- classify degree-2 chains inside an existing per-edge pass rather than a separate one, so the 21% smaller
+  search pays off.

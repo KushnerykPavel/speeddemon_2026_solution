@@ -1,0 +1,65 @@
+{
+  "cpuset": "0-5",
+  "rounds_excluding_warmup": 8,
+  "order": "alternating",
+  "method": "round 0 discarded; trimmed mean (drop min/max) of remaining rounds",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "counts": {
+    "before": {
+      "pushes": 8655173,
+      "pops": 7573787
+    },
+    "prune": {
+      "pushes": 8158649,
+      "pops": 7594477
+    }
+  },
+  "results": {
+    "12": {
+      "before": {
+        "trimmed_mean_s": 0.47723428483333336,
+        "median_s": 0.478550733,
+        "spread_percent": 24.83646124156289,
+        "user_s_median": 2.1762775,
+        "sys_s_median": 0.239218,
+        "minflt_median": 47974.0,
+        "max_cgroup_peak_bytes": 78888960
+      },
+      "prune": {
+        "trimmed_mean_s": 0.4799918105,
+        "median_s": 0.4824952535,
+        "spread_percent": 9.904253305116484,
+        "user_s_median": 2.1375365,
+        "sys_s_median": 0.23718650000000002,
+        "minflt_median": 47860.0,
+        "max_cgroup_peak_bytes": 78778368
+      },
+      "change_percent_trimmed_mean": 0.5778138231685714,
+      "paired_change_percent_median": 1.330346058903631,
+      "paired_prune_faster_rounds": "3/8"
+    },
+    "6": {
+      "before": {
+        "trimmed_mean_s": 0.4915255313333333,
+        "median_s": 0.49196392499999997,
+        "spread_percent": 9.91680104670416,
+        "user_s_median": 2.103987,
+        "sys_s_median": 0.23312650000000001,
+        "minflt_median": 47312.5,
+        "max_cgroup_peak_bytes": 78008320
+      },
+      "prune": {
+        "trimmed_mean_s": 0.49030668466666666,
+        "median_s": 0.49700869999999997,
+        "spread_percent": 34.92406367255316,
+        "user_s_median": 2.1232225,
+        "sys_s_median": 0.237098,
+        "minflt_median": 47201.5,
+        "max_cgroup_peak_bytes": 78401536
+      },
+      "change_percent_trimmed_mean": -0.24797219858759822,
+      "paired_change_percent_median": -1.629425271970697,
+      "paired_prune_faster_rounds": "5/8"
+    }
+  }
+}

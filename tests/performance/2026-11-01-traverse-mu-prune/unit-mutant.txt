@@ -1,0 +1,20 @@
+
+running 1 test
+test traverse::pruned_bidirectional_matches_reference ... FAILED
+
+failures:
+
+---- traverse::pruned_bidirectional_matches_reference stdout ----
+
+thread 'traverse::pruned_bidirectional_matches_reference' (7) panicked at prune-tests.rs:50:21:
+assertion `left == right` failed: round 1 1->17
+  left: Some(11)
+ right: Some(10)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    traverse::pruned_bidirectional_matches_reference
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
