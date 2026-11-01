@@ -1,0 +1,4 @@
+hours 72 records/hour min 14464 max 72853 mean 43056; groups/hour min 1541 max 1842
+threads 6 ideal 516.7  makespan 546.5  overshoot 5.8%
+threads 8 ideal 387.5  makespan 423.4  overshoot 9.3%
+threads 12 ideal 258.3  makespan 286.4  overshoot 10.8%

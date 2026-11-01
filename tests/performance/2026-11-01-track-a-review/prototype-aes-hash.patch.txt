@@ -1,0 +1,43 @@
+--- /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/cur/track-a/src/main.rs	2026-11-01 11:59:27
++++ /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/oracle/src/main.rs	2026-11-01 12:26:15
+@@ -244,14 +244,33 @@
+                 if bad != 0 || tail <= name {
+                     return Err(BAD);
+                 }
+-                let (mut at, mut hash) = (name, 0);
+-                while at.add(8) <= tail {
+-                    hash = hash_word(hash, load(at));
+-                    at = at.add(8);
+-                }
+-                let rest = tail.offset_from(at) as usize;
+-                hash = hash_word(hash, load(at) & ((1_u64 << (8 * rest)) - 1));
++                // EXPLORATORY PROTOTYPE (profiler review): names up to 64 bytes are masked and folded with AES rounds,
++                // with no length-dependent branch; longer names continue with the old word loop.
+                 let length = tail.offset_from(name) as usize;
++                let mut hash = {
++                    use std::arch::x86_64::*;
++                    let len = _mm256_set1_epi8(length.min(100) as i8);
++                    let lo = _mm256_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
++                    let hi = _mm256_add_epi8(lo, _mm256_set1_epi8(32));
++                    let b0 = _mm256_and_si256(_mm256_loadu_si256(name.cast()), _mm256_cmpgt_epi8(len, lo));
++                    let b1 = _mm256_and_si256(_mm256_loadu_si256(name.add(32).cast()), _mm256_cmpgt_epi8(len, hi));
++                    let k = _mm_set1_epi64x(0x517c_c1b7_2722_0a95);
++                    let mut x = _mm_aesenc_si128(_mm_xor_si128(_mm256_castsi256_si128(b0), k), k);
++                    x = _mm_aesenc_si128(_mm_xor_si128(x, _mm256_extracti128_si256(b0, 1)), k);
++                    x = _mm_aesenc_si128(_mm_xor_si128(x, _mm256_castsi256_si128(b1)), k);
++                    x = _mm_aesenc_si128(_mm_xor_si128(x, _mm256_extracti128_si256(b1, 1)), k);
++                    x = _mm_aesenc_si128(x, k);
++                    (_mm_cvtsi128_si64(x) ^ _mm_extract_epi64(x, 1)) as u64
++                };
++                if length > 64 {
++                    let mut at = name.add(64);
++                    while at.add(8) <= tail {
++                        hash = hash_word(hash, load(at));
++                        at = at.add(8);
++                    }
++                    let rest = tail.offset_from(at) as usize;
++                    hash = hash_word(hash, load(at) & ((1_u64 << (8 * rest)) - 1));
++                }
+                 p = newline.add(1);
+                 let name = std::slice::from_raw_parts(name, length);
+                 let slot = names.slot(name, (hash ^ length as u64) | 1)?;

@@ -1,0 +1,9 @@
+board HEAD (T 0.031695, M 20.56e6, S 554)                                        K=36.4819 points=78.104
+VPS harness batch cpuset0-5 full-seed20261101 b1 (not comparable to board)       K=21.5816 points=66.704
+VPS harness median of 4 batches seed 20261101                                    K=22.3341 points=67.448
+--- marginal value at the board point (points = 50 log10 K)
+1% of T (0.32 ms): 0.1091 pts ; 1 ms of T: 0.348 pts
+1% of M: 0.0436 pts ; 1 MB of M: 0.217 pts
+1 line of S: -0.0059 pts ; 10 lines 0.059 ; 22 lines 0.132
+docs claim 0.014 pt/line; formula gives 0.0059
+trade: -22 lines (+0.132) vs M 19.6->23.5 MB (-0.788)

@@ -1,0 +1,119 @@
+    Finished `release` profile [optimized + debuginfo] target(s) in 4.32s
+##### cycles:u by symbol
+    64.91%  [.] _RNvMs_CskRVm8ZTmEuP_15ingest_baselineNtB4_5State4scan
+    25.82%  [.] _RINvNtNtCsgHYyB3hU8Ec_3std3sys9backtrace28___rust_begin_short_backtraceRNCNvCskRVm8ZTmEuP_15ingest_baseline9summarizes8_0INtNtCs1C1lLj4PWSY_5alloc3vec3VecTjIB1W_Amj6_EjEEEB1c_
+     3.40%  [.] _RINvNtNtCsgHYyB3hU8Ec_3std3sys9backtrace28___rust_begin_short_backtraceRNCNvCskRVm8ZTmEuP_15ingest_baseline9summarizesc_0uEB1c_
+     2.46%  [.] __memcpy_avx_unaligned
+     1.67%  [k] page_fault
+     0.45%  [.] _RINvNtNtNtNtCsevLNFiNqfJP_4core5slice4sort6shared5pivot11median3_recmNvYmNtNtBa_3cmp10PartialOrd2ltECskRVm8ZTmEuP_15ingest_baseline
+     0.37%  [.] __memset_avx2
+     0.25%  [.] __memcmp_sse4_1
+     0.06%  [.] realloc
+     0.06%  [.] _RINvNtNtNtNtCsevLNFiNqfJP_4core5slice4sort8unstable9quicksort9quicksortjNCINvMB8_Sj16sort_unstable_byNCNvCskRVm8ZTmEuP_15ingest_baseline9summarizes5_0E0EB1F_
+     0.05%  [.] _int_malloc
+     0.04%  [.] _int_realloc
+##### cycles:u by srcline (top 45)
+     8.81%  main.rs:37
+     4.37%  main.rs:0
+     4.18%  main.rs:107
+     3.66%  main.rs:226
+     3.22%  main.rs:68
+     3.06%  mod.rs:573
+     2.66%  option.rs:0
+     2.65%  main.rs:489
+     2.53%  uint_macros.rs:2728
+     2.18%  main.rs:73
+     2.00%  index.rs:238
+     1.97%  main.rs:204
+     1.92%  main.rs:69
+     1.88%  main.rs:248
+     1.86%  main.rs:72
+     1.80%  main.rs:74
+     1.79%  mod.rs:664
+     1.67%  page_fault+18446603336221188096
+     1.61%  const_ptr.rs:871
+     1.52%  main.rs:170
+     1.46%  main.rs:257
+     1.35%  main.rs:61
+     1.32%  const_ptr.rs:955
+     1.28%  main.rs:198
+     1.19%  main.rs:190
+     1.15%  main.rs:498
+     1.15%  option.rs:765
+     1.14%  smallsort.rs:566
+     1.13%  mod.rs:1755
+     1.08%  const_ptr.rs:623
+     1.08%  main.rs:193
+     1.05%  index.rs:245
+     1.02%  cmp.rs:2144
+     0.99%  quicksort.rs:281
+     0.81%  main.rs:121
+     0.79%  main.rs:152
+     0.79%  main.rs:110
+     0.78%  mod.rs:2215
+     0.73%  smallsort.rs:541
+     0.72%  mut_ptr.rs:970
+     0.67%  main.rs:258
+     0.67%  main.rs:169
+     0.66%  smallsort.rs:560
+     0.65%  main.rs:259
+     0.63%  mod.rs:1865
+##### branch-misses:u by symbol
+    69.65%  [.] _RNvMs_CskRVm8ZTmEuP_15ingest_baselineNtB4_5State4scan
+    23.88%  [.] _RINvNtNtCsgHYyB3hU8Ec_3std3sys9backtrace28___rust_begin_short_backtraceRNCNvCskRVm8ZTmEuP_15ingest_baseline9summarizes8_0INtNtCs1C1lLj4PWSY_5alloc3vec3VecTjIB1W_Amj6_EjEEEB1c_
+     2.47%  [.] _RINvNtNtCsgHYyB3hU8Ec_3std3sys9backtrace28___rust_begin_short_backtraceRNCNvCskRVm8ZTmEuP_15ingest_baseline9summarizesc_0uEB1c_
+     2.29%  [.] __memcpy_avx_unaligned
+     0.64%  [.] __memcmp_sse4_1
+     0.49%  [.] _RINvNtNtNtNtCsevLNFiNqfJP_4core5slice4sort6shared5pivot11median3_recmNvYmNtNtBa_3cmp10PartialOrd2ltECskRVm8ZTmEuP_15ingest_baseline
+     0.09%  [.] _RINvNtNtNtNtCsevLNFiNqfJP_4core5slice4sort8unstable9quicksort9quicksortjNCINvMB8_Sj16sort_unstable_byNCNvCskRVm8ZTmEuP_15ingest_baseline9summarizes5_0E0EB1F_
+     0.07%  [.] _RNvCskRVm8ZTmEuP_15ingest_baseline4main
+     0.07%  [.] _dl_addr
+     0.07%  [.] _int_malloc
+     0.04%  [.] _RINvNtNtNtNtCsevLNFiNqfJP_4core5slice4sort6shared9smallsort12swap_if_lessjNCINvMB8_Sj16sort_unstable_byNCNvCskRVm8ZTmEuP_15ingest_baseline9summarizes5_0E0EB1H_
+     0.02%  [.] _int_realloc
+##### branch-misses:u by srcline (top 45)
+    12.24%  main.rs:37
+     6.94%  main.rs:170
+     6.33%  main.rs:107
+     5.40%  index.rs:238
+     4.76%  mod.rs:573
+     4.68%  mut_ptr.rs:970
+     4.13%  main.rs:190
+     3.51%  main.rs:257
+     2.80%  smallsort.rs:560
+     2.34%  index.rs:245
+     2.27%  main.rs:121
+     2.00%  main.rs:110
+     1.89%  main.rs:198
+     1.77%  smallsort.rs:541
+     1.69%  main.rs:169
+     1.68%  main.rs:0
+     1.68%  main.rs:517
+     1.63%  const_ptr.rs:871
+     1.51%  main.rs:193
+     1.39%  main.rs:259
+     1.38%  main.rs:204
+     1.37%  main.rs:258
+     1.15%  main.rs:152
+     1.10%  main.rs:156
+     0.97%  main.rs:61
+     0.89%  smallsort.rs:0
+     0.88%  uint_macros.rs:178
+     0.88%  main.rs:248
+     0.86%  smallsort.rs:566
+     0.85%  main.rs:104
+     0.81%  uint_macros.rs:2728
+     0.81%  select.rs:162
+     0.78%  mod.rs:1963
+     0.62%  main.rs:519
+     0.61%  const_ptr.rs:623
+     0.55%  mod.rs:2215
+     0.52%  main.rs:253
+     0.49%  pivot.rs:28
+     0.47%  main.rs:358
+     0.47%  main.rs:226
+     0.43%  mod.rs:664
+     0.43%  main.rs:195
+     0.37%  cmp.rs:2144
+     0.35%  option.rs:0
+     0.33%  mod.rs:1038

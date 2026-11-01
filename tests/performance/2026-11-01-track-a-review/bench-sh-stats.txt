@@ -1,0 +1,1 @@
+tools/bench.sh HEAD, cpuset 0-5, full-seed1, out on ext4, n=15: min 0.0744 p25 0.0806 median 0.0882 mean 0.0887 trimmed mean (drop min,max) 0.0873 mid-3-of-5 style n/a  max 0.1216 sd 0.0114 (max-min)/median 54%

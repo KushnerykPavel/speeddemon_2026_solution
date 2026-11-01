@@ -1,0 +1,81 @@
+{
+  "track": "a",
+  "tag": "speeddemon/cur-a:latest",
+  "build": {
+    "ok": true,
+    "build_s": 0.724,
+    "image_bytes": 30072294
+  },
+  "batches": [
+    [
+      {
+        "run_id": "run-f762190870f0",
+        "outside_s": 0.518,
+        "peak_bytes": 18399232,
+        "fs_diff": [],
+        "wall_s": 0.112204,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.4058,
+        "sha256": "7e632eb5e25d015275a769b992d8bd38f9489910b6afe14e3c030bcad4e0e5bc",
+        "ok": true
+      },
+      {
+        "run_id": "run-6b8ba74a2247",
+        "outside_s": 0.4669,
+        "peak_bytes": 18735104,
+        "fs_diff": [],
+        "wall_s": 0.081241,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.3857,
+        "sha256": "7e632eb5e25d015275a769b992d8bd38f9489910b6afe14e3c030bcad4e0e5bc",
+        "ok": true
+      },
+      {
+        "run_id": "run-09802b5e0d2f",
+        "outside_s": 0.4672,
+        "peak_bytes": 18579456,
+        "fs_diff": [],
+        "wall_s": 0.081791,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.3854,
+        "sha256": "7e632eb5e25d015275a769b992d8bd38f9489910b6afe14e3c030bcad4e0e5bc",
+        "ok": true
+      },
+      {
+        "run_id": "run-3fafaf0a5532",
+        "outside_s": 0.5179,
+        "peak_bytes": 19648512,
+        "fs_diff": [],
+        "wall_s": 0.082687,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.4352,
+        "sha256": "7e632eb5e25d015275a769b992d8bd38f9489910b6afe14e3c030bcad4e0e5bc",
+        "ok": true
+      },
+      {
+        "run_id": "run-758e30736f9b",
+        "outside_s": 0.5683,
+        "peak_bytes": 18378752,
+        "fs_diff": [],
+        "wall_s": 0.116912,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.4514,
+        "sha256": "7e632eb5e25d015275a769b992d8bd38f9489910b6afe14e3c030bcad4e0e5bc",
+        "ok": true
+      }
+    ]
+  ],
+  "gates": {
+    "correctness": true,
+    "timeout": true,
+    "sandbox": true
+  },
+  "T_s": 0.092227,
+  "M_bytes": 19648512,
+  "spread_ok": true
+}

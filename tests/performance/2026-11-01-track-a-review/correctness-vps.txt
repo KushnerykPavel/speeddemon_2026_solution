@@ -1,0 +1,43 @@
+data/sample-seed987654321/requests.log: 310000 lines, 22754977 bytes, 1.6 s
+ref tiny-seed20261101 0.09s
+OK   tiny-seed20261101 threads=1 sha=7fc7d92058e6af28 bytes=68204
+OK   tiny-seed20261101 threads=2 sha=7fc7d92058e6af28 bytes=68204
+OK   tiny-seed20261101 threads=3 sha=7fc7d92058e6af28 bytes=68204
+OK   tiny-seed20261101 threads=6 sha=7fc7d92058e6af28 bytes=68204
+OK   tiny-seed20261101 threads=12 sha=7fc7d92058e6af28 bytes=68204
+OK   tiny-seed20261101 threads=16 sha=7fc7d92058e6af28 bytes=68204
+ref sample-seed20261101 4.82s
+OK   sample-seed20261101 threads=1 sha=7bd3d3437dfb339e bytes=5258793
+OK   sample-seed20261101 threads=2 sha=7bd3d3437dfb339e bytes=5258793
+OK   sample-seed20261101 threads=3 sha=7bd3d3437dfb339e bytes=5258793
+OK   sample-seed20261101 threads=6 sha=7bd3d3437dfb339e bytes=5258793
+OK   sample-seed20261101 threads=12 sha=7bd3d3437dfb339e bytes=5258793
+OK   sample-seed20261101 threads=16 sha=7bd3d3437dfb339e bytes=5258793
+ref sample-seed987654321 4.82s
+OK   sample-seed987654321 threads=1 sha=9d9fbc4ed18b0ee9 bytes=5229642
+OK   sample-seed987654321 threads=2 sha=9d9fbc4ed18b0ee9 bytes=5229642
+OK   sample-seed987654321 threads=3 sha=9d9fbc4ed18b0ee9 bytes=5229642
+OK   sample-seed987654321 threads=6 sha=9d9fbc4ed18b0ee9 bytes=5229642
+OK   sample-seed987654321 threads=12 sha=9d9fbc4ed18b0ee9 bytes=5229642
+OK   sample-seed987654321 threads=16 sha=9d9fbc4ed18b0ee9 bytes=5229642
+ref full-seed20261101 44.68s
+OK   full-seed20261101 threads=1 sha=7e632eb5e25d0152 bytes=10246441
+OK   full-seed20261101 threads=2 sha=7e632eb5e25d0152 bytes=10246441
+OK   full-seed20261101 threads=3 sha=7e632eb5e25d0152 bytes=10246441
+OK   full-seed20261101 threads=6 sha=7e632eb5e25d0152 bytes=10246441
+OK   full-seed20261101 threads=12 sha=7e632eb5e25d0152 bytes=10246441
+OK   full-seed20261101 threads=16 sha=7e632eb5e25d0152 bytes=10246441
+ref edge-cases 0.12s
+OK   edge-cases threads=1 sha=07d401c5f5de6222 bytes=7195
+OK   edge-cases threads=2 sha=07d401c5f5de6222 bytes=7195
+OK   edge-cases threads=3 sha=07d401c5f5de6222 bytes=7195
+OK   edge-cases threads=6 sha=07d401c5f5de6222 bytes=7195
+OK   edge-cases threads=12 sha=07d401c5f5de6222 bytes=7195
+OK   edge-cases threads=16 sha=07d401c5f5de6222 bytes=7195
+ref empty 0.05s
+OK   empty threads=1 sha=e3b0c44298fc1c14 bytes=0
+OK   empty threads=2 sha=e3b0c44298fc1c14 bytes=0
+OK   empty threads=3 sha=e3b0c44298fc1c14 bytes=0
+OK   empty threads=6 sha=e3b0c44298fc1c14 bytes=0
+OK   empty threads=12 sha=e3b0c44298fc1c14 bytes=0
+OK   empty threads=16 sha=e3b0c44298fc1c14 bytes=0

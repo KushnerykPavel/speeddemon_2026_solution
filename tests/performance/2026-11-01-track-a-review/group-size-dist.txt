@@ -1,0 +1,6 @@
+groups 127023 records 3100000 mean group 24.4 median 6 max 9009
+groups of size <=8: 62.5% of groups, 10.3% of records
+groups of size <=32: 90.6% of groups, 28.0% of records
+groups of size <=128: 97.7% of groups, 45.3% of records
+groups of size <=1024: 99.7% of groups, 71.2% of records
+groups of size <=10000: 100.0% of groups, 100.0% of records

@@ -1,0 +1,57 @@
+[ perf record: Woken up 13 times to write data ]
+[ perf record: Captured and wrote 3.560 MB /tmp/sdrev.perf.data (90979 samples) ]
+    78.92%  bin-cur             
+    16.59%  [kernel.kallsyms]   
+     4.33%  libc.so.6           
+     0.14%  ld-linux-x86-64.so.2
+     0.01%  seq                 
+     0.01%  libgcc_s.so.1       
+     0.00%  dash                
+     0.00%  [vdso]              
+     0.00%  taskset             
+---
+    55.54%  [.] <ingest_baseline::State>::scan
+    20.06%  [.] std::sys::backtrace::__rust_begin_short_backtrace::<&ingest_baseline::summarize::{closure#10}, alloc::vec::Vec<(usize, alloc::vec::Vec<[u32; 6]>, usize)>>
+     2.83%  [.] __memmove_avx_unaligned_erms
+     2.73%  [.] std::sys::backtrace::__rust_begin_short_backtrace::<&ingest_baseline::summarize::{closure#14}, ()>
+     1.99%  [k] do_user_addr_fault
+     1.90%  [k] kernel_init_pages
+     0.98%  [k] _raw_spin_unlock_irqrestore
+     0.78%  [.] __memset_avx2_unaligned_erms
+     0.62%  [k] next_uptodate_folio
+     0.55%  [k] zap_present_ptes.constprop.0
+     0.39%  [.] core::slice::sort::shared::pivot::median3_rec::<u32, <u32 as core::cmp::PartialOrd>::lt>
+     0.37%  [k] _raw_spin_unlock_irq
+     0.35%  [k] folio_remove_rmap_ptes
+     0.34%  [k] try_charge_memcg
+     0.34%  [k] mod_memcg_lruvec_state
+     0.30%  [k] smp_call_function_many_cond
+     0.30%  [k] __rmqueue_pcplist
+     0.29%  [k] get_mem_cgroup_from_mm
+     0.28%  [k] folio_add_file_rmap_ptes
+     0.27%  [k] lruvec_stat_mod_folio
+     0.27%  [k] mas_walk
+     0.24%  [k] lock_vma_under_rcu
+     0.21%  [k] filemap_map_pages
+     0.19%  [k] __handle_mm_fault
+     0.18%  [k] native_write_msr
+     0.18%  [k] mod_node_page_state
+     0.18%  [k] _raw_spin_lock
+     0.17%  [k] __rcu_read_lock
+     0.14%  [k] set_pte_range
+     0.14%  [k] xas_load
+     0.13%  [.] _int_malloc
+     0.13%  [k] handle_softirqs
+     0.12%  [k] __x2apic_send_IPI_mask
+     0.12%  [k] __css_rstat_updated
+     0.12%  [k] filemap_map_folio_range
+     0.11%  [k] folios_put_refs
+     0.11%  [k] __alloc_frozen_pages_noprof
+     0.11%  [k] handle_mm_fault
+     0.10%  [k] percpu_counter_add_batch
+     0.09%  [k] __rcu_read_unlock
+
+    99.44%  bin-cur
+     0.35%  taskset
+     0.15%  sh     
+     0.05%  seq    

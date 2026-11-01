@@ -1,0 +1,133 @@
+--- /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/cur/track-a/src/main.rs	2026-11-01 11:59:27
++++ /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/inst/src/main.rs	2026-11-01 12:08:31
+@@ -5,6 +5,16 @@
+ use std::sync::OnceLock;
+ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering::Relaxed};
+ use std::thread;
++use std::time::Instant;
++static T0: OnceLock<Instant> = OnceLock::new();
++static CNT: AtomicU64 = AtomicU64::new(0);
++static SCAT: AtomicU64 = AtomicU64::new(0);
++static SEL: AtomicU64 = AtomicU64::new(0);
++static PARSE_BUSY: AtomicU64 = AtomicU64::new(0);
++static REL: AtomicU64 = AtomicU64::new(0);
++static TXT_BUSY: AtomicU64 = AtomicU64::new(0);
++fn mark(l: &str) { if std::env::var_os("SD_STAGES").is_some() { eprintln!("STAGE {} {}", l, T0.get().unwrap().elapsed().as_micros()); } }
++fn us(a: &AtomicU64) -> u64 { a.load(Relaxed) / 1000 }
+ 
+ // The spec fixes every timestamp between 2026-10-30T18 and 2026-11-02T17 (72 hours).
+ const HOURS: usize = 72;
+@@ -413,7 +423,9 @@
+     };
+     let room = data.len() / 37 / CAP + HOURS + 2;
+     let next = AtomicUsize::new(0);
++    mark("parse_start");
+     let states = run(workers, || {
++        let tb = Instant::now();
+         let mut state = State::new(room);
+         while let Some(&(start, end)) = chunks.get(next.fetch_add(1, Relaxed)) {
+             match start {
+@@ -429,11 +441,13 @@
+                 }
+             }
+         }
++        PARSE_BUSY.fetch_add(tb.elapsed().as_nanos() as u64, Relaxed);
+         Ok::<State, &'static str>(state)
+     })
+     .into_iter()
+     .collect::<Result<Vec<_>, _>>()?;
+ 
++    mark("parse_end");
+     // Endpoint ranks in byte order, which is the order of the output lines.
+     let mut order: Vec<usize> = (0..SLOTS)
+         .filter(|&i| names.names[i].get().is_some())
+@@ -456,6 +470,7 @@
+             .collect::<Vec<_>>(),
+         AtomicBool::new(false),
+     );
++    mark("rank_end");
+     let next = AtomicUsize::new(0);
+     let mut hours: Vec<(usize, Vec<Row>, usize)> = run(workers, || {
+         let (mut done, mut count, mut errors) = (Vec::new(), vec![0_u32; ne + 1], vec![0_u32; ne]);
+@@ -482,6 +497,7 @@
+                     )
+                 })
+             };
++            let t1 = Instant::now();
+             count.fill(0);
+             errors.fill(0);
+             for (slot, error, _) in records() {
+@@ -491,17 +507,23 @@
+             for e in 0..ne {
+                 count[e + 1] += count[e];
+             }
++            CNT.fetch_add(t1.elapsed().as_nanos() as u64, Relaxed);
++            let t2 = Instant::now();
+             cursor.copy_from_slice(&count[..ne]);
+             for (slot, _, latency) in records() {
+                 let e = rank[slot as usize] as usize;
+                 lats[cursor[e] as usize] = latency;
+                 cursor[e] += 1;
+             }
++            SCAT.fetch_add(t2.elapsed().as_nanos() as u64, Relaxed);
+             finished[hour].store(true, Relaxed);
++            let t4 = Instant::now();
+             if !releasing.swap(true, Relaxed) {
+                 release(&states, &finished);
+                 releasing.store(false, Relaxed);
+             }
++            REL.fetch_add(t4.elapsed().as_nanos() as u64, Relaxed);
++            let t3 = Instant::now();
+             let (mut rows, mut size) = (Vec::new(), 0);
+             for e in 0..ne {
+                 let group = &mut lats[count[e] as usize..count[e + 1] as usize];
+@@ -530,14 +552,17 @@
+                     .sum::<usize>();
+                 rows.push(row);
+             }
++            SEL.fetch_add(t3.elapsed().as_nanos() as u64, Relaxed);
+             done.push((hour, rows, size));
+         }
+     })
+     .concat();
++    mark("hours_end");
+     hours.sort_unstable_by_key(|&(hour, ..)| hour);
+     // The records are no longer needed; free them before the output's pages are charged.
+     release(&states, &finished);
+     drop(states);
++    mark("drop_states_end");
+ 
+     // Text: the output file is sized from the exact line sizes and mapped, and every thread
+     // formats its hours straight into it.
+@@ -554,6 +579,7 @@
+         .iter()
+         .scan(0, |at, h| Some(std::mem::replace(at, *at + h.2)))
+         .collect();
++    mark("text_start");
+     let (base, next) = (base as usize, AtomicUsize::new(0));
+     run(workers, || {
+         let mut text = Vec::new();
+@@ -596,6 +622,7 @@
+             };
+         }
+     });
++    mark("text_end");
+     Ok(())
+ }
+ 
+@@ -615,6 +642,7 @@
+         }
+     }
+ 
++    T0.set(Instant::now()).ok();
+     tune_memory();
+     let data = map_file(data.join("requests.log"))?;
+     fs::create_dir_all(&out)?;
+@@ -626,5 +654,7 @@
+         .open(out.join("summary.txt"))?;
+     summarize(data, workers, &file)?;
+     // Skip unmapping the input and the output.
++    mark("before_exit");
++    if std::env::var_os("SD_STAGES").is_some() { eprintln!("SUMS_US parse_busy {} count {} scatter {} select {} release {}", us(&PARSE_BUSY), us(&CNT), us(&SCAT), us(&SEL), us(&REL)); }
+     std::process::exit(0);
+ }

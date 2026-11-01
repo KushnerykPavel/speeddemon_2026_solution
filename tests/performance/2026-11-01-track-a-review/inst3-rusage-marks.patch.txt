@@ -1,0 +1,12 @@
+--- /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/inst/src/main.rs	2026-11-01 12:08:31
++++ /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/inst3/src/main.rs	2026-11-01 12:28:19
+@@ -13,7 +13,8 @@
+ static PARSE_BUSY: AtomicU64 = AtomicU64::new(0);
+ static REL: AtomicU64 = AtomicU64::new(0);
+ static TXT_BUSY: AtomicU64 = AtomicU64::new(0);
+-fn mark(l: &str) { if std::env::var_os("SD_STAGES").is_some() { eprintln!("STAGE {} {}", l, T0.get().unwrap().elapsed().as_micros()); } }
++unsafe extern "C" { fn getrusage(who: i32, usage: *mut [i64; 18]) -> i32; }
++fn mark(l: &str) { if std::env::var_os("SD_STAGES").is_some() { let mut r = [0_i64; 18]; unsafe { getrusage(0, &mut r) }; eprintln!("STAGE {} {}", l, T0.get().unwrap().elapsed().as_micros()); eprintln!("RU {} user_us={} sys_us={} minflt={}", l, r[0] * 1_000_000 + r[1], r[2] * 1_000_000 + r[3], r[8]); } }
+ fn us(a: &AtomicU64) -> u64 { a.load(Relaxed) / 1000 }
+ 
+ // The spec fixes every timestamp between 2026-10-30T18 and 2026-11-02T17 (72 hours).

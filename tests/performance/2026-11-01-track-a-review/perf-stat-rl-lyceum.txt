@@ -1,0 +1,108 @@
+=== cur threads=1 taskset=2 events=cycles:u,cycles:k,instructions:u,instructions:k
+       551,460,661      cycles:u                                                      ( +-  0.22% )
+       117,904,624      cycles:k                                                      ( +-  0.52% )
+     1,118,337,562      instructions:u            #    2.03  insn per cycle           ( +-  0.00% )
+        88,483,325      instructions:k            #    0.75  insn per cycle           ( +-  0.10% )
+       0.200211199 seconds time elapsed                                          ( +-  1.83% )
+=== cur threads=1 taskset=2 events=branches:u,branch-misses:u,cache-references:u,cache-misses:u
+       158,824,290      branches:u                                                    ( +-  0.00% )
+         6,031,364      branch-misses:u           #    3.80% of all branches          ( +-  0.05% )
+        13,982,453      cache-references:u                                            ( +-  0.53% )
+         6,596,662      cache-misses:u            #   47.178 % of all cache refs      ( +-  0.03% )
+       0.258764758 seconds time elapsed                                          ( +- 12.96% )
+=== cur threads=1 taskset=2 events=task-clock,context-switches,page-faults,cpu-migrations
+        175.004484      task-clock (msec)         #    0.850 CPUs utilized            ( +-  1.90% )
+                14      context-switches          #    0.079 K/sec                    ( +-  4.29% )
+            11,276      page-faults               #    0.064 M/sec                    ( +-  0.00% )
+                 1      cpu-migrations            #    0.005 K/sec                    ( +- 11.11% )
+       0.205882567 seconds time elapsed                                          ( +-  4.10% )
+=== prevgen threads=1 taskset=2 events=cycles:u,cycles:k,instructions:u,instructions:k
+       590,714,657      cycles:u                                                      ( +-  0.20% )
+       118,494,744      cycles:k                                                      ( +-  0.49% )
+     1,168,701,048      instructions:u            #    1.98  insn per cycle           ( +-  0.00% )
+        88,671,752      instructions:k            #    0.75  insn per cycle           ( +-  0.13% )
+       0.210477699 seconds time elapsed                                          ( +-  3.32% )
+=== prevgen threads=1 taskset=2 events=branches:u,branch-misses:u,cache-references:u,cache-misses:u
+       159,974,566      branches:u                                                    ( +-  0.00% )
+         6,130,821      branch-misses:u           #    3.83% of all branches          ( +-  0.02% )
+        13,967,755      cache-references:u                                            ( +-  0.55% )
+         6,608,921      cache-misses:u            #   47.316 % of all cache refs      ( +-  0.08% )
+       0.205397516 seconds time elapsed                                          ( +-  1.67% )
+=== prevgen threads=1 taskset=2 events=task-clock,context-switches,page-faults,cpu-migrations
+        181.496567      task-clock (msec)         #    0.884 CPUs utilized            ( +-  1.19% )
+                14      context-switches          #    0.077 K/sec                    ( +-  5.08% )
+            11,276      page-faults               #    0.062 M/sec                    ( +-  0.01% )
+                 1      cpu-migrations            #    0.006 K/sec                  
+       0.205230613 seconds time elapsed                                          ( +-  1.75% )
+=== prev threads=1 taskset=2 events=cycles:u,cycles:k,instructions:u,instructions:k
+       588,232,830      cycles:u                                                      ( +-  0.22% )
+       118,600,435      cycles:k                                                      ( +-  0.49% )
+     1,136,582,715      instructions:u            #    1.93  insn per cycle           ( +-  0.00% )
+        88,663,932      instructions:k            #    0.75  insn per cycle           ( +-  0.31% )
+       0.218246312 seconds time elapsed                                          ( +-  4.57% )
+=== prev threads=1 taskset=2 events=branches:u,branch-misses:u,cache-references:u,cache-misses:u
+       162,556,128      branches:u                                                    ( +-  0.00% )
+         6,047,852      branch-misses:u           #    3.72% of all branches          ( +-  0.04% )
+        13,936,839      cache-references:u                                            ( +-  0.42% )
+         6,613,698      cache-misses:u            #   47.455 % of all cache refs      ( +-  0.17% )
+       0.211153267 seconds time elapsed                                          ( +-  2.83% )
+=== prev threads=1 taskset=2 events=task-clock,context-switches,page-faults,cpu-migrations
+        182.140042      task-clock (msec)         #    0.864 CPUs utilized            ( +-  1.92% )
+                14      context-switches          #    0.080 K/sec                    ( +-  1.85% )
+            11,275      page-faults               #    0.062 M/sec                    ( +-  0.00% )
+                 1      cpu-migrations            #    0.005 K/sec                  
+       0.210803814 seconds time elapsed                                          ( +-  3.79% )
+=== cur threads=8 taskset=0-7 events=cycles:u,cycles:k,instructions:u,instructions:k
+       811,517,706      cycles:u                                                      ( +-  0.34% )
+       186,448,600      cycles:k                                                      ( +-  1.68% )
+     1,119,472,045      instructions:u            #    1.38  insn per cycle           ( +-  0.01% )
+       100,723,060      instructions:k            #    0.54  insn per cycle           ( +-  0.44% )
+       0.134982189 seconds time elapsed                                          ( +- 10.54% )
+=== cur threads=8 taskset=0-7 events=branches:u,branch-misses:u,cache-references:u,cache-misses:u
+       159,057,120      branches:u                                                    ( +-  0.01% )
+         6,050,650      branch-misses:u           #    3.80% of all branches          ( +-  0.17% )
+        15,579,519      cache-references:u                                            ( +-  0.58% )
+         6,939,661      cache-misses:u            #   44.543 % of all cache refs      ( +-  0.31% )
+       0.131281643 seconds time elapsed                                          ( +- 12.71% )
+=== cur threads=8 taskset=0-7 events=task-clock,context-switches,page-faults,cpu-migrations
+        609.812816      task-clock (msec)         #    4.632 CPUs utilized            ( +- 13.01% )
+               670      context-switches          #    0.001 M/sec                    ( +-  4.58% )
+            12,300      page-faults               #    0.020 M/sec                    ( +-  0.03% )
+                27      cpu-migrations            #    0.044 K/sec                    ( +- 27.16% )
+       0.131642777 seconds time elapsed                                          ( +- 11.09% )
+=== prevgen threads=8 taskset=0-7 events=cycles:u,cycles:k,instructions:u,instructions:k
+       879,387,652      cycles:u                                                      ( +-  0.27% )
+       191,090,294      cycles:k                                                      ( +-  1.51% )
+     1,169,670,698      instructions:u            #    1.33  insn per cycle           ( +-  0.01% )
+       100,181,447      instructions:k            #    0.52  insn per cycle           ( +-  0.38% )
+       0.126606117 seconds time elapsed                                          ( +- 16.02% )
+=== prevgen threads=8 taskset=0-7 events=branches:u,branch-misses:u,cache-references:u,cache-misses:u
+       160,094,399      branches:u                                                    ( +-  0.01% )
+         6,120,332      branch-misses:u           #    3.82% of all branches          ( +-  0.22% )
+        15,909,145      cache-references:u                                            ( +-  1.00% )
+         7,073,466      cache-misses:u            #   44.462 % of all cache refs      ( +-  1.00% )
+       0.132119621 seconds time elapsed                                          ( +- 15.07% )
+=== prevgen threads=8 taskset=0-7 events=task-clock,context-switches,page-faults,cpu-migrations
+        583.828135      task-clock (msec)         #    4.414 CPUs utilized            ( +- 16.73% )
+               710      context-switches          #    0.001 M/sec                    ( +-  9.45% )
+            12,296      page-faults               #    0.021 M/sec                    ( +-  0.03% )
+                26      cpu-migrations            #    0.044 K/sec                    ( +- 22.07% )
+       0.132254212 seconds time elapsed                                          ( +- 15.14% )
+=== prev threads=8 taskset=0-7 events=cycles:u,cycles:k,instructions:u,instructions:k
+       854,593,202      cycles:u                                                      ( +-  0.31% )
+       183,159,927      cycles:k                                                      ( +-  1.15% )
+     1,137,629,117      instructions:u            #    1.33  insn per cycle           ( +-  0.01% )
+       101,003,864      instructions:k            #    0.55  insn per cycle           ( +-  0.47% )
+       0.200814526 seconds time elapsed                                          ( +- 19.59% )
+=== prev threads=8 taskset=0-7 events=branches:u,branch-misses:u,cache-references:u,cache-misses:u
+       162,763,336      branches:u                                                    ( +-  0.01% )
+         6,052,336      branch-misses:u           #    3.72% of all branches          ( +-  0.14% )
+        15,771,785      cache-references:u                                            ( +-  0.60% )
+         6,958,943      cache-misses:u            #   44.123 % of all cache refs      ( +-  0.24% )
+       0.143890506 seconds time elapsed                                          ( +- 10.76% )
+=== prev threads=8 taskset=0-7 events=task-clock,context-switches,page-faults,cpu-migrations
+        744.899569      task-clock (msec)         #    4.791 CPUs utilized            ( +- 12.13% )
+               696      context-switches          #    0.934 K/sec                    ( +-  4.33% )
+            12,299      page-faults               #    0.017 M/sec                    ( +-  0.02% )
+                20      cpu-migrations            #    0.027 K/sec                    ( +- 16.54% )
+       0.155465157 seconds time elapsed                                          ( +- 11.68% )

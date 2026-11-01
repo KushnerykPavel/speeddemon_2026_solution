@@ -1,0 +1,27 @@
+== cpuset 1 threads 1
+ Performance counter stats for 'taskset -c 1 ./bin-cur --data /home/student/speed-demon-2026/data/rust-validation/a/full-seed1 --out /dev/shm/o2 --threads 1' (15 runs):
+            306.21 msec task-clock                                                              ( +-  2.54% )
+              9980      page-faults                                                             ( +-  0.00% )
+                66      context-switches                                                        ( +- 30.57% )
+                 1      cpu-migrations                                                        
+              9980      minor-faults                                                            ( +-  0.00% )
+                 0      major-faults                                                          
+       0.311200878 +- 0.007679723 seconds time elapsed  ( +-  2.47% )
+== cpuset 0-5 threads 6
+ Performance counter stats for 'taskset -c 0-5 ./bin-cur --data /home/student/speed-demon-2026/data/rust-validation/a/full-seed1 --out /dev/shm/o2 --threads 6' (15 runs):
+            348.96 msec task-clock                                                              ( +-  1.75% )
+             10755      page-faults                                                             ( +-  0.08% )
+                89      context-switches                                                        ( +-  3.86% )
+                 1      cpu-migrations                                                          ( +- 28.40% )
+             10755      minor-faults                                                            ( +-  0.08% )
+                 0      major-faults                                                          
+       0.073064153 +- 0.001303146 seconds time elapsed  ( +-  1.78% )
+== cpuset 0-5 threads 12
+ Performance counter stats for 'taskset -c 0-5 ./bin-cur --data /home/student/speed-demon-2026/data/rust-validation/a/full-seed1 --out /dev/shm/o2 --threads 12' (15 runs):
+            345.07 msec task-clock                                                              ( +-  1.56% )
+             11490      page-faults                                                             ( +-  0.10% )
+               298      context-switches                                                        ( +- 13.65% )
+                 6      cpu-migrations                                                          ( +-  6.67% )
+             11490      minor-faults                                                            ( +-  0.10% )
+                 0      major-faults                                                          
+       0.073718857 +- 0.001633732 seconds time elapsed  ( +-  2.22% )

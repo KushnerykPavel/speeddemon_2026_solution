@@ -1,0 +1,9 @@
+{"track": "a", "gates": {"correctness": true, "timeout": true, "sandbox": true}, "T_s": 0.092227, "M_bytes": 19648512, "spread_ok": true}
+{"track": "a", "gates": {"correctness": true, "timeout": true, "sandbox": true}, "T_s": 0.088395, "M_bytes": 19419136, "spread_ok": true}
+{"track": "a", "gates": {"correctness": true, "timeout": true, "sandbox": true}, "T_s": 0.083658, "M_bytes": 19726336, "spread_ok": true}
+{"track": "a", "gates": {"correctness": true, "timeout": true, "sandbox": true}, "T_s": 0.086302, "M_bytes": 18264064, "spread_ok": true}
+hres/full-seed1.json batches 1 final walls [0.083791, 0.08287, 0.090065, 0.092122, 0.085049] peaks MB [18.07, 18.26, 18.23, 18.15, 18.12] T 0.086302 M 18264064
+hres/full-seed20261101-b1.json batches 1 final walls [0.112204, 0.081241, 0.081791, 0.082687, 0.116912] peaks MB [18.4, 18.74, 18.58, 19.65, 18.38] T 0.092227 M 19648512
+hres/full-seed20261101-b2.json batches 1 final walls [0.095492, 0.073357, 0.087769, 0.099752, 0.081925] peaks MB [18.98, 19.42, 18.64, 18.74, 18.97] T 0.088395 M 19419136
+hres/full-seed20261101-b3.json batches 1 final walls [0.108996, 0.073537, 0.082029, 0.080894, 0.088052] peaks MB [18.63, 19.73, 18.86, 19.28, 19.34] T 0.083658 M 19726336
+hres/full-seed20261101-cpuset0-5.json batches 1 final walls [0.065066, 0.091007, 0.084166, 0.071181, 0.092123] peaks MB [18.87, 18.56, 19.39, 19.16, 18.46] T 0.082118 M 19394560

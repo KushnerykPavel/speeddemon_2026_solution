@@ -1,0 +1,81 @@
+{
+  "track": "a",
+  "tag": "speeddemon/cur-a:latest",
+  "build": {
+    "ok": true,
+    "build_s": 0.561,
+    "image_bytes": 30072294
+  },
+  "batches": [
+    [
+      {
+        "run_id": "run-040b12103d40",
+        "outside_s": 0.5177,
+        "peak_bytes": 18071552,
+        "fs_diff": [],
+        "wall_s": 0.083791,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.4339,
+        "sha256": "495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3",
+        "ok": true
+      },
+      {
+        "run_id": "run-e44c1a7c1f62",
+        "outside_s": 0.4687,
+        "peak_bytes": 18264064,
+        "fs_diff": [],
+        "wall_s": 0.08287,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.3858,
+        "sha256": "495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3",
+        "ok": true
+      },
+      {
+        "run_id": "run-8767796b89c9",
+        "outside_s": 0.4667,
+        "peak_bytes": 18227200,
+        "fs_diff": [],
+        "wall_s": 0.090065,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.3767,
+        "sha256": "495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3",
+        "ok": true
+      },
+      {
+        "run_id": "run-b97feb207877",
+        "outside_s": 0.5163,
+        "peak_bytes": 18145280,
+        "fs_diff": [],
+        "wall_s": 0.092122,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.4242,
+        "sha256": "495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3",
+        "ok": true
+      },
+      {
+        "run_id": "run-7ecf0991fbb6",
+        "outside_s": 0.5171,
+        "peak_bytes": 18120704,
+        "fs_diff": [],
+        "wall_s": 0.085049,
+        "exit_code": 0,
+        "signal": 0,
+        "timing_gap_s": 0.432,
+        "sha256": "495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3",
+        "ok": true
+      }
+    ]
+  ],
+  "gates": {
+    "correctness": true,
+    "timeout": true,
+    "sandbox": true
+  },
+  "T_s": 0.086302,
+  "M_bytes": 18264064,
+  "spread_ok": true
+}

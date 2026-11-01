@@ -1,0 +1,11 @@
+--- /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/inst/src/main.rs	2026-11-01 12:08:31
++++ /private/tmp/claude-501/-Users-pavelkushneryk-Documents-vsprojects-kaggle-notebooks-speed-demon/d677158c-0054-480f-a0b0-5adb9f0fccd5/scratchpad/inst2/src/main.rs	2026-11-01 12:23:23
+@@ -13,7 +13,7 @@
+ static PARSE_BUSY: AtomicU64 = AtomicU64::new(0);
+ static REL: AtomicU64 = AtomicU64::new(0);
+ static TXT_BUSY: AtomicU64 = AtomicU64::new(0);
+-fn mark(l: &str) { if std::env::var_os("SD_STAGES").is_some() { eprintln!("STAGE {} {}", l, T0.get().unwrap().elapsed().as_micros()); } }
++fn mark(l: &str) { if std::env::var_os("SD_STAGES").is_some() { let t = T0.get().unwrap().elapsed().as_micros(); let cur = fs::read_to_string("/sys/fs/cgroup/memory.current").unwrap_or_default(); let st = fs::read_to_string("/sys/fs/cgroup/memory.stat").unwrap_or_default(); let g = |k: &str| st.lines().find_map(|x| x.strip_prefix(k).map(|v| v.trim().to_string())).unwrap_or_default(); let pk = fs::read_to_string("/sys/fs/cgroup/memory.peak").unwrap_or_default(); eprintln!("STAGE {} {}", l, t); eprintln!("MEM {} current={} peak={} anon={} file={}", l, cur.trim(), pk.trim(), g("anon "), g("file ")); } }
+ fn us(a: &AtomicU64) -> u64 { a.load(Relaxed) / 1000 }
+ 
+ // The spec fixes every timestamp between 2026-10-30T18 and 2026-11-02T17 (72 hours).

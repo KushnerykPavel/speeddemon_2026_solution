@@ -1,0 +1,34 @@
+## A/B cur(HEAD 6d5802b, haswell+AVX2) vs prev(5878e1d, generic), docker board-like, 6 vCPU cpuset 0-5, out on tmpfs, 20 alternating rounds
+sdrev/cur n=20 min 0.0665 p25 0.0774 med 0.0843 mean 0.0865 trimmed(drop 1 ea) 0.0858 mid-3-of-5-style n/a  p75 0.0950 max 0.1181 sd 0.0128  (max-min)/med 61%  peak max 19.22 MB
+sdrev/prev n=20 min 0.0634 p25 0.0775 med 0.0870 mean 0.0851 trimmed(drop 1 ea) 0.0855 mid-3-of-5-style n/a  p75 0.0929 max 0.0998 sd 0.0098  (max-min)/med 42%  peak max 19.58 MB
+paired diff sdrev/cur - sdrev/prev per round: median 0.0010 mean 0.0014  (negative = sdrev/cur faster); A faster in 9/20 rounds
+bootstrap 95% CI of median paired diff: [-0.0105, 0.0130]
+sha set {'495ca09682b9'}
+
+## same, out on ext4 bind mount (tools/bench.sh style)
+sdrev/cur n=20 min 0.0683 p25 0.0813 med 0.0858 mean 0.0869 trimmed(drop 1 ea) 0.0866 mid-3-of-5-style n/a  p75 0.0990 max 0.1107 sd 0.0109  (max-min)/med 49%  peak max 19.87 MB
+sdrev/prev n=20 min 0.0725 p25 0.0780 med 0.0832 mean 0.0847 trimmed(drop 1 ea) 0.0841 mid-3-of-5-style n/a  p75 0.0924 max 0.1073 sd 0.0089  (max-min)/med 42%  peak max 19.73 MB
+paired diff sdrev/cur - sdrev/prev per round: median 0.0038 mean 0.0022  (negative = sdrev/cur faster); A faster in 8/20 rounds
+bootstrap 95% CI of median paired diff: [-0.0068, 0.0144]
+sha set {'495ca09682b9'}
+
+## same, 1 thread on cpu 3, tmpfs out
+sdrev/cur n=20 min 0.3003 p25 0.3080 med 0.3215 mean 0.3238 trimmed(drop 1 ea) 0.3232 mid-3-of-5-style n/a  p75 0.3346 max 0.3584 sd 0.0164  (max-min)/med 18%  peak max 16.54 MB
+sdrev/prev n=20 min 0.2966 p25 0.3181 med 0.3226 mean 0.3240 trimmed(drop 1 ea) 0.3242 mid-3-of-5-style n/a  p75 0.3378 max 0.3495 sd 0.0150  (max-min)/med 16%  peak max 16.29 MB
+paired diff sdrev/cur - sdrev/prev per round: median 0.0048 mean -0.0003  (negative = sdrev/cur faster); A faster in 7/20 rounds
+bootstrap 95% CI of median paired diff: [-0.0108, 0.0140]
+sha set {'495ca09682b9'}
+
+## stage timing (ms, medians), instrumented copy
+scaling-threads1.jsonl       n=12 thr=1 wall med  323.6 ms (min 261.1) | pre 0.3 parse 215.5 rank 0.5 hours 76.4 mid 0.2 text 26.5 post 0.4 | exec+exit 2.8 ms
+scaling-threads2.jsonl       n=12 thr=2 wall med  188.6 ms (min 176.2) | pre 0.4 parse 123.5 rank 0.7 hours 44.7 mid 0.3 text 14.3 post 0.5 | exec+exit 3.1 ms
+scaling-threads4.jsonl       n=12 thr=4 wall med  110.9 ms (min 100.1) | pre 0.7 parse 67.6 rank 0.7 hours 27.0 mid 0.4 text 8.3 post 0.5 | exec+exit 3.6 ms
+scaling-threads6.jsonl       n=12 thr=6 wall med   88.6 ms (min 69.7) | pre 0.9 parse 54.5 rank 0.7 hours 20.8 mid 0.5 text 6.1 post 0.5 | exec+exit 3.3 ms
+stages-tmpfs-threads6.jsonl  n=20 thr=6 wall med   87.9 ms (min 70.8) | pre 1.0 parse 54.9 rank 0.6 hours 20.9 mid 0.4 text 6.2 post 0.5 | exec+exit 3.4 ms
+stages-tmpfs-threads12.jsonl n=20 thr=12 wall med   85.0 ms (min 73.5) | pre 1.3 parse 48.7 rank 0.6 hours 21.0 mid 0.7 text 7.5 post 0.5 | exec+exit 3.1 ms
+stages-docker-threads6.jsonl n=20 thr=6 wall med   84.5 ms (min 74.7) | pre 0.8 parse 49.2 rank 0.7 hours 19.8 mid 0.5 text 9.3 post 0.5 | exec+exit 3.3 ms
+stages-docker-threads12.jsonl n=20 thr=12 wall med   93.2 ms (min 76.0) | pre 1.8 parse 55.3 rank 0.6 hours 20.9 mid 0.7 text 9.2 post 0.5 | exec+exit 4.1 ms
+
+## native vs docker (sd-timer, same binary)
+native 20 min 0.0740 p25 0.0805 med 0.0835 mean 0.0857 max 0.1047
+docker 20 min 0.0660 p25 0.0790 med 0.0858 mean 0.0851 max 0.1059

@@ -1,0 +1,30 @@
+--- /home/student/speed-demon-2026/harness/harness/run_submission.py	2026-10-29 19:20:20.442920146 +0000
++++ hharness/run_submission.py	2026-11-01 11:20:01.752951497 +0000
+@@ -171,7 +171,6 @@
+         # Nothing from the image may start a second process or pick the timer's user: the timer is
+         # the only root process in the container, and only it may write /sd.
+         "--no-healthcheck", "--user=0:0",
+-        f"--cgroup-parent=/{CGROUP_PARENT}/{run_id}",
+         f"--cpuset-cpus={args.cpuset}", "--cpuset-mems=0",
+         "--memory=8g", "--memory-swap=8g", "--pids-limit=512",
+         "--network=none", "--read-only", "--tmpfs", "/tmp:rw,size=1g,exec",
+@@ -183,8 +182,8 @@
+         "-v", f"{os.path.abspath(sd_dir)}:/sd",
+         "-v", f"{os.path.dirname(os.path.abspath(timer_bin))}:/sd-bin:ro",
+         "-e", f"TRACK={track}",
+-        "--entrypoint", f"/sd-bin/{os.path.basename(timer_bin)}",
+-        tag, "/sd/timing.json", NOBODY, NOBODY, "--", *cmd,
++        "--entrypoint", "/bin/sh",
++        tag, "-c", "/sd-bin/%s /sd/timing.json %s %s -- %s; rc=$?; cat /sys/fs/cgroup/memory.peak > /sd/peak.txt; exit $rc" % (os.path.basename(timer_bin), NOBODY, NOBODY, " ".join(cmd)),
+     ]
+     started = time.monotonic()
+     proc = subprocess.Popen(docker_run, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+@@ -207,7 +206,7 @@
+         if line.strip() and line.split(maxsplit=1)[-1] not in MOUNT_POINTS
+     ]
+     sh(["docker", "rm", "-fv", name], check=False)
+-    peak = cgroups.peak_and_remove(run_id)
++    peak = int(open(os.path.join(sd_dir, "peak.txt")).read().split()[0]) if os.path.exists(os.path.join(sd_dir, "peak.txt")) else 0
+ 
+     result = {"run_id": run_id, "outside_s": round(outside_s, 4), "peak_bytes": peak, "fs_diff": fs_diff}
+     timing_path = os.path.join(sd_dir, "timing.json")
