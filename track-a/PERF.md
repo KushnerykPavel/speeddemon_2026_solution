@@ -147,3 +147,50 @@ reference cache. No failed data was included in either timing summary.
 Raw logs, exact before/after source and manifests, hashes, CPU/compiler details,
 runner, failure and retry procedure are archived in
 [`tests/performance/2026-10-30-ingest-dense-groups`](../tests/performance/2026-10-30-ingest-dense-groups/README.md).
+
+
+## Step 6 — most recent hour ID cache, 2026-11-01 (local, kept)
+
+Ingestion is ~92% of processing in a coarse VPS phase diagnostic. A one-entry
+`(hour, ID)` cache replaces repeated dictionary lookups with exact comparison;
+misses use the unchanged lookup. Arbitrary record ordering remains correct.
+Eight Rust source lines added (approximate S including Dockerfile 183 → 191).
+No parser, quantile, dependency or compiler change.
+
+Native Linux x86-64 VPS, CPU 2, pinned offline Rust release builds, warm input,
+alternating AB/BA order. Full seed 1: 1.18864 → 1.05518 s (−11.23%, ten measured
+runs each); repeat 1.23853 → 1.12672 s (−9.03%, six each). Mean after dropping
+one min/max per version. Spreads 24.2%/11.4% and 8.7%/19.4%, so the precise
+size remains uncertain. Sample seeds 7/42 improved 11.6%/12.8%. Synthetic
+alternating-hour input regressed 9.7%, then 4.0% in repeat; shuffled input moved
+−2.8% (noise), constant-hour input −16.5%. Kept for observed locality across
+seeds, with the miss-heavy tradeoff recorded. No universal speedup claim.
+
+Separate peak RSS: 26.28–26.50 MB before, 26.35–26.50 MB after (three each),
+no material change; not cgroup memory.peak. Initial driver RSS inherited its
+own high-water mark and is excluded. At unchanged M, observed T and approximate
+S imply K ×1.0546 / ×1.0417. No official score or board Run ID yet.
+
+All twelve official/synthetic cases match Python; full output retains SHA-256
+`495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3`.
+Every benchmark output is checked. Nine optimized Rust tests, formatting and
+Clippy pass. Added tests cover cache hits/misses/revisits and invalid input
+preserving state; three independent design reviews approved. No commit/push.
+[Ten-hypothesis ranking](../docs/optimization-plateau-2026-11-01.md) and
+[complete experiment evidence](../tests/performance/2026-10-31-ingest-hour-cache/README.md).
+
+## Step 7 — mmap + parallel chunked ingestion, 2026-11-01 (local macOS check, not yet on board)
+
+Plan: [top-10 plan](../docs/track-a-top10-plan-2026-11-01.md). Input is mapped read-only and
+split into up to 12 newline-aligned chunks; scoped threads aggregate each chunk into private
+groups with the unchanged per-record code. Endpoint and hour lists are merged by sorted union and
+every hour is finalized in parallel (concatenate the workers' latencies for each group, sort,
+format); hour texts are written in order and the process exits without freeing. THP off and
+`mallopt` as in Track D. `--threads N` overrides the worker count.
+
+Local Apple-silicon check only (full seed 1, warm cache): 0.14–0.19 s at 6–10 threads,
+`user` 0.56–0.65 s. Output sha256 `495ca096…81cd3` identical at 1/2/6/10 threads; tiny/sample
+seeds 1/7/42, edge cases and empty input equal the Python reference. Ten Rust tests pass
+(new: chunk coverage, ordered parallel results), Clippy clean. Anon memory about 40 MB (RSS
+including the mapped input is 280 MB). VPS sweep, cgroup memory and the board run ID are still
+to be recorded; no board claim is made.

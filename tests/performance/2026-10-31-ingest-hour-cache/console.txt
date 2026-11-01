@@ -1,0 +1,51 @@
+REMOTE_DIR /tmp/ingest-hour-ab-_4gt3c1q
+   Compiling ingest-baseline v0.1.0 (/work/before)
+    Finished `release` profile [optimized] target(s) in 6.17s
+   Compiling ingest-baseline v0.1.0 (/work/track-a)
+    Finished `release` profile [optimized] target(s) in 5.81s
+
+running 9 tests
+test parser_tests::empty_input_and_blank_records ... ok
+test parser_tests::endpoint_ids_remain_valid_as_hours_and_endpoints_arrive ... ok
+test parser_tests::numeric_boundaries_and_error_statuses ... ok
+test parser_tests::read_errors_are_not_treated_as_eof ... ok
+test parser_tests::hour_cache_handles_runs_transitions_and_revisits ... ok
+test parser_tests::rejected_records_do_not_change_hour_cache_or_groups ... ok
+test parser_tests::rejects_malformed_records ... ok
+test parser_tests::every_buffer_boundary_and_line_ending ... ok
+test parser_tests::record_longer_than_production_buffer ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+PASS empty e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+PASS edge-cases 07d401c5f5de6222c82f9e5d342220e64a23027db8daf1d311ca5318821ff4f2
+PASS tiny-seed1 c24fa507c963eaeac9224fd8435019b4f4e8c002ece7e32f316681a3957eb92f
+PASS tiny-seed7 4ba05ab1a7a257e847c25beded9bf3cc658fb1d41f398b84a8a983a7b91f026d
+PASS tiny-seed42 5f7611f0f34b3cdfee59ca627d66d19b53b9c8ff13127b2f2073ff13c9583429
+PASS sample-seed1 ca6311bbeb536fa55d85265bf6fd3d24cc9586f13de1ac73bd2a23ac3893aac3
+PASS sample-seed7 39bfccc5334c93cbe0c762f5e6c3300e91ca2e266567561da3176c038cee49f7
+PASS sample-seed42 835c36377118af19264750c9b1031225ead44a8555e913c22d31a827dbe486c8
+PASS full-seed1 495ca09682b9673ef836a506496177680bb4a3af54255174befddb1f83481cd3
+PASS alternating-seed3 d2ace8eee7e879dd41a01f095fc7b2721ba42ced6b88df2e46dae607ab358226
+PASS shuffled-seed19 599739b2313750447d8e46250215a1ab3d4e7576581303f9bdb25ef20591cb4b
+PASS same-hour-seed101 b3d57b89dc8de13a21960ee98ceb9c5ebc62b0c1c945b0fb165376cc414d16c5
+{"case": "full-seed1", "variant": "before", "round": 0, "warmup": true, "seconds": 1.1441933522000909, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 0, "warmup": true, "seconds": 1.0495812250301242, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 1, "warmup": false, "seconds": 1.0256378185003996, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 1, "warmup": false, "seconds": 1.1350625324994326, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 2, "warmup": false, "seconds": 1.2181403515860438, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 2, "warmup": false, "seconds": 1.0178157482296228, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 3, "warmup": false, "seconds": 1.0391257712617517, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 3, "warmup": false, "seconds": 1.1329846670851111, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 4, "warmup": false, "seconds": 1.1465985514223576, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 4, "warmup": false, "seconds": 1.0514387022703886, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 5, "warmup": false, "seconds": 1.072832178324461, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 5, "warmup": false, "seconds": 1.1084257289767265, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 6, "warmup": false, "seconds": 1.2330788783729076, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 6, "warmup": false, "seconds": 1.0949556855484843, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 7, "warmup": false, "seconds": 1.073141518048942, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 7, "warmup": false, "seconds": 1.181852056644857, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "before", "round": 8, "warmup": false, "seconds": 1.1831552190706134, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 8, "warmup": false, "seconds": 1.1279774578288198, "rss_bytes": 284209152}
+{"case": "full-seed1", "variant": "after", "round": 9, "warmup": false, "seconds": 1.066459902562201, "rss_bytes": 284209152}

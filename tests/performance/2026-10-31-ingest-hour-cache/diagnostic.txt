@@ -1,0 +1,16 @@
+REMOTE_DIR /tmp/ingest-hour-on7kswwh
+   Compiling ingest-baseline v0.1.0 (/work/before)
+    Finished `release` profile [optimized] target(s) in 5.83s
+   Compiling ingest-baseline v0.1.0 (/work/profile)
+    Finished `release` profile [optimized] target(s) in 6.42s
+LOCALITY tiny-seed1 1000 152
+LOCALITY sample-seed1 310000 872
+LOCALITY sample-seed7 310000 850
+LOCALITY sample-seed42 310000 874
+LOCALITY full-seed1 3100000 1054
+PHASE 1.217527794 0.093187704
+PHASE 1.052340349 0.09252745
+PHASE 1.031604676 0.112873789
+PHASE 1.174436122 0.116516935
+PHASE 1.138672731 0.092467814
+LOAD (0.90185546875, 0.55078125, 0.75732421875)

@@ -4,8 +4,6 @@ include!("../track-a/src/main.rs");
 #[cfg(test)]
 mod parser_tests {
     use super::*;
-    use std::io::{self, Cursor, Read};
-
     fn group<'a>(groups: &'a Groups, hour: &[u8; 13], endpoint: &str) -> &'a Group {
         &groups.rows[groups.hours[hour]][groups.endpoints[endpoint]]
     }
@@ -51,7 +49,7 @@ mod parser_tests {
     }
 
     #[test]
-    fn every_buffer_boundary_and_line_ending() {
+    fn line_endings_and_final_line() {
         for ending in ["\n", "\r\n"] {
             for final_ending in ["", ending] {
                 let input = format!(
@@ -59,42 +57,60 @@ mod parser_tests {
                      2026-11-01T00:00:00.000000Z POST /api/v1 599 4294967295{ending}\
                      2026-10-31T23:00:00.000000Z GET /api 500 10{final_ending}"
                 );
-                // Every possible split of the first row, including CR|LF and digit splits.
-                for capacity in 1..=input.len() + 1 {
-                    let mut reader =
-                        BufReader::with_capacity(capacity, Cursor::new(input.as_bytes()));
-                    let groups = read_groups(&mut reader).unwrap();
-                    assert_eq!(groups.hours.len(), 2);
-                    let first = group(&groups, b"2026-10-31T23", "/api");
-                    assert_eq!(first.latencies, [0, 10]);
-                    assert_eq!(first.errors, 1);
-                    let second = group(&groups, b"2026-11-01T00", "/api/v1");
-                    assert_eq!(second.latencies, [u32::MAX]);
-                    assert_eq!(second.errors, 1);
-                }
+                let groups = read_chunk(input.as_bytes()).unwrap();
+                assert_eq!(groups.hours.len(), 2);
+                let first = group(&groups, b"2026-10-31T23", "/api");
+                assert_eq!(first.latencies, [0, 10]);
+                assert_eq!(first.errors, 1);
+                let second = group(&groups, b"2026-11-01T00", "/api/v1");
+                assert_eq!(second.latencies, [u32::MAX]);
+                assert_eq!(second.errors, 1);
             }
         }
     }
 
     #[test]
+    fn chunks_cover_input_on_line_boundaries() {
+        let input: Vec<u8> = (0..50)
+            .flat_map(|i| format!("line{i}\n").into_bytes())
+            .collect();
+        for workers in [1, 2, 3, 7, 12, 40] {
+            let chunks = line_chunks(&input, workers);
+            assert!(chunks.len() <= workers.min(12));
+            assert_eq!(chunks.concat(), input);
+            assert!(chunks.iter().all(|c| c.ends_with(b"\n")));
+        }
+        assert!(line_chunks(b"", 4).is_empty());
+        assert_eq!(line_chunks(b"no newline", 4), [b"no newline".as_slice()]);
+    }
+
+    #[test]
+    fn parallel_returns_results_in_index_order() {
+        for workers in [1, 3, 12] {
+            assert_eq!(
+                parallel(20, workers, |i| i * i),
+                (0..20).map(|i| i * i).collect::<Vec<_>>()
+            );
+        }
+        assert!(parallel(0, 4, |i| i).is_empty());
+    }
+
+    #[test]
     fn empty_input_and_blank_records() {
-        let mut empty = BufReader::with_capacity(1, Cursor::new(b""));
-        assert!(read_groups(&mut empty).unwrap().hours.is_empty());
+        assert!(read_chunk(b"").unwrap().hours.is_empty());
         for input in [b"\n".as_slice(), b"\r\n", b"incomplete"] {
-            let mut reader = BufReader::with_capacity(1, Cursor::new(input));
-            assert!(read_groups(&mut reader).is_err());
+            assert!(read_chunk(input).is_err());
         }
     }
 
     #[test]
-    fn record_longer_than_production_buffer() {
+    fn very_long_record() {
         let endpoint = format!("/{}", "x".repeat(128 * 1024));
         let input = format!(
             "2026-10-31T23:59:59.999999Z GET {endpoint} 500 7\r\n\
              2026-10-31T23:59:59.999999Z GET /next 600 8\n"
         );
-        let mut reader = BufReader::with_capacity(64 * 1024, Cursor::new(input.as_bytes()));
-        let groups = read_groups(&mut reader).unwrap();
+        let groups = read_chunk(input.as_bytes()).unwrap();
         assert_eq!(groups.endpoints.len(), 2);
         assert_eq!(group(&groups, b"2026-10-31T23", &endpoint).latencies, [7]);
         assert_eq!(group(&groups, b"2026-10-31T23", "/next").latencies, [8]);
@@ -107,7 +123,7 @@ mod parser_tests {
                       2026-11-01T00:00:00.000000Z GET /aa 599 3\n\
                       2026-11-01T00:00:00.000000Z GET /z 500 4\n\
                       2026-10-31T23:00:00.000000Z GET /aa 200 5\n";
-        let groups = read_groups(&mut BufReader::with_capacity(7, &input[..])).unwrap();
+        let groups = read_chunk(input).unwrap();
         assert_eq!(groups.endpoints.len(), 3);
         assert_eq!(groups.hours.len(), 2);
         assert_eq!(group(&groups, b"2026-11-01T00", "/z").latencies, [1, 4]);
@@ -119,15 +135,48 @@ mod parser_tests {
     }
 
     #[test]
-    fn read_errors_are_not_treated_as_eof() {
-        struct BrokenReader;
-        impl Read for BrokenReader {
-            fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
-                Err(io::Error::other("injected read failure"))
-            }
+    fn hour_cache_handles_runs_transitions_and_revisits() {
+        let mut groups = Groups::default();
+        // Include every-record misses, long runs, month rollover, and new endpoints.
+        for (index, hour) in [23, 0, 23, 0, 0, 0, 23, 23, 0].into_iter().enumerate() {
+            let timestamp = if hour == 23 {
+                "2026-10-31T23"
+            } else {
+                "2026-11-01T00"
+            };
+            let endpoint = if index % 2 == 0 { "/a" } else { "/b" };
+            let line = format!("{timestamp}:00:00.000000Z GET {endpoint} 500 {index}");
+            add_record(&mut groups, line.as_bytes()).unwrap();
         }
-        let mut reader = BufReader::new(BrokenReader);
-        let error = read_groups(&mut reader).err().unwrap();
-        assert!(error.to_string().contains("injected read failure"));
+        assert_eq!(groups.hours.len(), 2);
+        assert_eq!(groups.rows.len(), 2);
+        for (hour, endpoint, latencies) in [
+            (b"2026-10-31T23", "/a", vec![0, 2, 6]),
+            (b"2026-10-31T23", "/b", vec![7]),
+            (b"2026-11-01T00", "/a", vec![4, 8]),
+            (b"2026-11-01T00", "/b", vec![1, 3, 5]),
+        ] {
+            let group = group(&groups, hour, endpoint);
+            assert_eq!(group.latencies, latencies);
+            assert_eq!(group.errors, latencies.len() as u64);
+        }
+    }
+
+    #[test]
+    fn rejected_records_do_not_change_hour_cache_or_groups() {
+        let mut groups = Groups::default();
+        let valid = b"2026-10-31T23:00:00.000000Z GET /a 200 7";
+        let invalid = b"2026-11-01T00:00:00.000000Z GET /new 500 4294967296";
+        assert!(add_record(&mut groups, invalid).is_err());
+        assert!(groups.last_hour.is_none());
+        assert!(groups.hours.is_empty());
+        add_record(&mut groups, valid).unwrap();
+        let cached = groups.last_hour;
+        assert!(add_record(&mut groups, invalid).is_err());
+        assert_eq!(groups.last_hour, cached);
+        assert_eq!(groups.hours.len(), 1);
+        assert_eq!(groups.endpoints.len(), 1);
+        add_record(&mut groups, valid).unwrap();
+        assert_eq!(group(&groups, b"2026-10-31T23", "/a").latencies, [7, 7]);
     }
 }

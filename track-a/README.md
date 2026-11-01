@@ -4,21 +4,19 @@ The task, the input files and the exact output format are in the [spec](https://
 
 ## Approach
 
-Rust port of the organisers' Python reference. Scan byte records directly in a
-64 KiB read buffer using `fill_buf`/`consume`; copy only records crossing buffer
-boundaries into one reusable byte vector. Find field separators without temporary
-strings and parse decimal status/latency with overflow checks. Support LF, CRLF,
-and a final record without a newline. Intern each distinct endpoint once and assign
-stable numeric IDs to endpoints and UTC hours. Store groups in per-hour vectors
-indexed by endpoint ID; grow each row independently as new endpoints arrive.
-Sort only the unique hours and endpoint names for output, skipping empty groups.
-Sort each group's latencies and emit exact nearest-rank percentiles and integer
-error rates. No endpoint catalogue or fixed calendar range is hard-coded.
-No parallelism, memory mapping or selection algorithm yet. The spec guarantees
-fixed-width valid UTC timestamps, so no date dependency is needed.
+Rust port of the organisers' Python reference. The log is mapped read-only and split into up
+to 12 newline-aligned chunks. Scoped std threads parse their chunk byte-wise (no temporary
+strings), intern endpoints, assign numeric hour IDs (with a most-recent-hour cache) and keep
+per-hour vectors indexed by endpoint ID. After the join, endpoint names and hours are merged by
+sorted union and each hour is finalized on a worker: that hour's latencies from all chunks are
+concatenated per endpoint, sorted, and nearest-rank percentiles and integer error rates are
+formatted. Hour texts are written in order and the process exits without freeing. Linux THP is
+disabled and glibc's mmap threshold fixed so memory returns to the kernel. LF, CRLF and a final
+record without newline are supported; no endpoint catalogue or calendar range is hard-coded.
+No selection algorithm or SIMD yet. The spec guarantees fixed-width valid UTC timestamps.
 
 Build: `cargo build --release --offline --locked`.
-Run: `target/release/ingest-baseline --data /data --out /out`.
+Run: `target/release/ingest-baseline --data /data --out /out` (`--threads N` overrides the worker count, capped at 12).
 The container defaults to `/data` and `/out`.
 
 ## Dependencies
@@ -27,5 +25,5 @@ None.
 
 ## With another 24 hours
 
-Measure parsing, grouping and sorting separately; consider parallel parsing,
-a contiguous latency arena and exact selection for large groups.
+Fixed-layout parsing with a direct hour index, a custom endpoint table, a contiguous latency
+arena with exact selection and hand-written number formatting (see the top-10 plan in `docs/`).
