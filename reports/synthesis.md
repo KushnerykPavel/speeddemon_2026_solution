@@ -88,3 +88,11 @@ rl-lyceum `perf stat`, full seed 1, 1 thread, haswell build, fresh builds (an ea
 cargo build because rsync preserved mtimes; discarded): base 1,205.4 M instr / 167.1 ms vs lean 1,100.0 M (-8.7%) / 162.3 ms (-3%).
 VPS docker 3x9 runs: T 0.0897/0.0985/0.0835 vs 0.0860/0.0918/0.0860 s (noise), M 19.26/19.68/19.45 vs 18.98/19.57/19.08 MB.
 Risk: behaviour on malformed input is now undefined (wrong output or abort, no memory-unsafe slices); the spec lets us assume it.
+
+## Tail-copy removal (zero-padded mapping): neutral, committed locally only
+`map_file` reserves an anonymous zero-filled region `SLACK` bytes (rounded to pages) longer than the file and maps
+the file over its start (MAP_FIXED), so the parser may read `SLACK` bytes past the end; `summarize` no longer
+copies the last lines into a padded buffer or special-cases a tail chunk. main.rs counted lines 513 -> 508 (-5).
+6 tests pass (test `leak` pads like the mapping), clippy clean, 9 datasets byte-identical at 1/3/12 threads.
+VPS docker A/B 3x9 runs, base `807ceec` vs candidate: T 0.0877/0.0805/0.0865 vs 0.0932/0.0892/0.0850 s,
+M 19.71/19.29/19.56 vs 19.82/19.39/19.72 MB: no gain visible. Worth about +0.03 pt through S; not pushed.

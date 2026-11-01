@@ -60,7 +60,7 @@ fn hash_word(hash: u64, w: u64) -> u64 {
     (hash.rotate_left(5) ^ w).wrapping_mul(0x517c_c1b7_2722_0a95)
 }
 
-// The `length` (1 to 10) decimal digits at `at`; the caller guarantees `SLACK` readable bytes.
+// The `length` (1 to 10) decimal digits at `at`; `SLACK` bytes past the input are readable.
 unsafe fn number(at: *const u8, length: usize) -> u64 {
     if length < 8 {
         let t = (unsafe { load(at) } ^ (0x30 * LANES)) & ((1_u64 << (8 * length)) - 1);
@@ -167,7 +167,7 @@ impl State {
         pos: usize,
         end: usize,
     ) -> Result<(), &'static str> {
-        assert!(pos <= end && end + SLACK <= data.len());
+        assert!(pos <= end && end <= data.len());
         let (mut p, stop) = unsafe { (data.as_ptr().add(pos), data.as_ptr().add(end)) };
         let (mut stamp, mut hour) = (0, 0);
         let (mut block, mut mask) = (p, 0_u64);
@@ -229,6 +229,13 @@ impl State {
     }
 }
 
+// MAP_PRIVATE | MAP_ANONYMOUS.
+const ANONYMOUS: i32 = if cfg!(target_os = "linux") {
+    0x22
+} else {
+    0x1002
+};
+
 // The competition target and local development hosts use 64-bit Unix off_t.
 unsafe extern "C" {
     fn madvise(address: *mut u8, length: usize, advice: i32) -> i32;
@@ -279,7 +286,16 @@ fn map_file(path: PathBuf) -> std::io::Result<&'static [u8]> {
     if length == 0 {
         return Ok(&[]);
     }
-    let address = unsafe { mmap(std::ptr::null_mut(), length, 1, 2, file.as_raw_fd(), 0) };
+    // The file goes over the start of a zero-filled reservation that is `SLACK` or more bytes
+    // longer, so the parser may read that far past the end.
+    let reserve = (length + SLACK).next_multiple_of(4096);
+    let address = unsafe {
+        let address = mmap(std::ptr::null_mut(), reserve, 1, ANONYMOUS, -1, 0);
+        match address as isize {
+            -1 => address,
+            _ => mmap(address, length, 1, 0x12, file.as_raw_fd(), 0),
+        }
+    };
     if address as isize == -1 {
         return Err(std::io::Error::last_os_error());
     }
@@ -356,21 +372,7 @@ fn release(states: &[State], finished: &[AtomicBool]) {
 }
 
 fn summarize(data: &'static [u8], workers: usize, out: &File) -> Result<(), Box<dyn Error>> {
-    // The parser reads up to `SLACK` bytes past a chunk, so the last few lines are copied
-    // into a zero-padded buffer and parsed from there.
-    let cut = match data.len().checked_sub(512).filter(|_| data.len() >= 1024) {
-        Some(from) => data[from..]
-            .iter()
-            .position(|&b| b == b'\n')
-            .map_or(data.len(), |i| from + i + 1),
-        None => 0,
-    };
-    let mut tail = data[cut..].to_vec();
-    let tail_len = tail.len();
-    tail.resize(tail_len + SLACK, 0);
-    let tail: &'static [u8] = Box::leak(tail.into_boxed_slice());
-    let mut chunks = line_chunks(&data[..cut], workers * 8);
-    chunks.push((usize::MAX, tail_len));
+    let chunks = line_chunks(data, workers * 8);
 
     // Parse: each thread files 4-byte records by hour; endpoints go to the shared table.
     let names = Names {
@@ -382,18 +384,13 @@ fn summarize(data: &'static [u8], workers: usize, out: &File) -> Result<(), Box<
     let states = run(workers, || {
         let mut state = State::new(room);
         while let Some(&(start, end)) = chunks.get(next.fetch_add(1, Relaxed)) {
-            match start {
-                usize::MAX => state.scan(&names, tail, 0, end)?,
-                _ => {
-                    state.scan(&names, data, start, end)?;
-                    // Keep a page at each end: the neighbouring piece's parser reads past its end.
-                    let (from, to) = (
-                        data.as_ptr().wrapping_add(start),
-                        data.as_ptr().wrapping_add(end),
-                    );
-                    drop_pages(from.wrapping_add(8192), to.wrapping_sub(8192));
-                }
-            }
+            state.scan(&names, data, start, end)?;
+            // Keep a page at each end: the neighbouring piece's parser reads past its end.
+            let (from, to) = (
+                data.as_ptr().wrapping_add(start),
+                data.as_ptr().wrapping_add(end),
+            );
+            drop_pages(from.wrapping_add(8192), to.wrapping_sub(8192));
         }
         Ok::<State, &'static str>(state)
     })

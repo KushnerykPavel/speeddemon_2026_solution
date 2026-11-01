@@ -6,8 +6,11 @@ mod parser_tests {
     use super::*;
     use std::collections::BTreeMap;
 
-    fn leak(bytes: Vec<u8>) -> &'static [u8] {
-        Box::leak(bytes.into_boxed_slice())
+    // Like the mapped input: `SLACK` zero bytes are readable past the end.
+    fn leak(mut bytes: Vec<u8>) -> &'static [u8] {
+        let length = bytes.len();
+        bytes.resize(length + SLACK, 0);
+        &Box::leak(bytes.into_boxed_slice())[..length]
     }
 
     fn run_all(input: &[u8], workers: usize) -> Result<Vec<u8>, String> {
