@@ -5,12 +5,14 @@ use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
-use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, AtomicUsize};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize};
 use std::thread;
 
 const BOM: &[u8] = b"\xEF\xBB\xBF";
-/// Name table slots; the table counts as full at half of them (the generator has ~100,000 names).
+/// Name table slots; the table counts as full at half of them (the generator has ~100,000 names),
+/// so dense name ids stay below 2^(SLOT_BITS - 1).
 const SLOT_BITS: u32 = 18;
+const IDS: usize = 1 << (SLOT_BITS - 1);
 
 unsafe extern "C" {
     fn mmap(
@@ -53,40 +55,36 @@ fn map_file(path: &Path) -> std::io::Result<&'static [u8]> {
     Ok(unsafe { std::slice::from_raw_parts(address, length) })
 }
 
-/// Word-at-a-time multiplicative hash.
-fn hash(bytes: &[u8]) -> u64 {
-    let mut chunks = bytes.chunks_exact(8);
-    let mut state = bytes.len() as u64;
-    for chunk in &mut chunks {
-        let word = u64::from_le_bytes(chunk.try_into().unwrap());
-        state = (state.rotate_left(5) ^ word).wrapping_mul(0x517c_c1b7_2722_0a95);
-    }
-    let mut tail = [0; 8];
-    tail[..chunks.remainder().len()].copy_from_slice(chunks.remainder());
-    (state.rotate_left(5) ^ u64::from_le_bytes(tail)).wrapping_mul(0x517c_c1b7_2722_0a95)
+/// The bytes of `name` as little-endian words, the last one padded with zeros.
+fn words(name: &[u8]) -> impl Iterator<Item = u64> + '_ {
+    name.chunks(8).map(|chunk| {
+        let mut word = [0; 8];
+        word[..chunk.len()].copy_from_slice(chunk);
+        u64::from_le_bytes(word)
+    })
 }
 
 /// Distinct names, shared by all threads without locks. Names are kept in their raw (still
 /// escaped) form, which is one-to-one with the value. A thread claims a free slot by swapping its
-/// tag from 0 to 1, copies the name into the arena, then publishes the tag (the hash with the top
-/// bit set). A name's id is its slot.
+/// tag from 0 to 1, copies the name's words into the arena, then publishes the tag (a hash with
+/// the top bit set). A name's id is its insertion number.
 struct Table {
     tags: Vec<AtomicU64>,
     spans: Vec<AtomicU64>,
-    arena: &'static [AtomicU8],
+    arena: &'static [AtomicU64],
     next: AtomicUsize,
     used: AtomicUsize,
 }
 
 impl Table {
-    fn new(arena: usize) -> Self {
+    fn new(bytes: usize) -> Self {
         let slots = 1 << SLOT_BITS;
         // Zeroed on demand by the kernel: only the pages names are copied to are charged.
-        let arena = Box::leak(vec![0_u8; arena].into_boxed_slice());
+        let arena = Box::leak(vec![0_u64; bytes / 8 + 1].into_boxed_slice());
         Self {
             tags: (0..slots).map(|_| AtomicU64::new(0)).collect(),
             spans: (0..slots).map(|_| AtomicU64::new(0)).collect(),
-            // SAFETY: same size and alignment, and the bytes are only used through atomics now.
+            // SAFETY: same size and alignment, and the words are only used through atomics now.
             arena: unsafe { std::slice::from_raw_parts(arena.as_ptr().cast(), arena.len()) },
             next: AtomicUsize::new(0),
             used: AtomicUsize::new(0),
@@ -95,27 +93,31 @@ impl Table {
 
     /// Returns the name's id, or `None` once the table is half full.
     fn id(&self, name: &[u8]) -> Option<usize> {
-        let tag = hash(name) | 1 << 63;
+        let hash = words(name).fold(name.len() as u64, |state, word| {
+            (state.rotate_left(5) ^ word).wrapping_mul(0x517c_c1b7_2722_0a95)
+        });
+        let tag = hash | 1 << 63;
         let mask = (1 << SLOT_BITS) - 1;
-        let mut slot = (tag >> 20) as usize & mask;
+        let mut slot = (hash >> 20) as usize & mask;
         loop {
             let mut seen = self.tags[slot].load(Acquire);
             if seen == 0 {
-                if self.used.load(Relaxed) >= mask / 2 || name.len() >= 1 << 24 {
+                if self.used.load(Relaxed) >= IDS || name.len() >= 1 << 16 {
                     return None;
                 }
                 if self.tags[slot]
                     .compare_exchange(0, 1, Acquire, Acquire)
                     .is_ok()
                 {
-                    let at = self.next.fetch_add(name.len(), Relaxed);
-                    for (cell, &byte) in self.arena[at..at + name.len()].iter().zip(name) {
-                        cell.store(byte, Relaxed);
+                    let at = self.next.fetch_add(name.len().div_ceil(8), Relaxed);
+                    for (cell, word) in self.arena[at..].iter().zip(words(name)) {
+                        cell.store(word, Relaxed);
                     }
-                    self.spans[slot].store((at as u64) << 24 | name.len() as u64, Relaxed);
-                    self.used.fetch_add(1, Relaxed);
+                    let id = self.used.fetch_add(1, Relaxed);
+                    let span = (at as u64) << 33 | (id as u64) << 16 | name.len() as u64;
+                    self.spans[slot].store(span, Relaxed);
                     self.tags[slot].store(tag, Release);
-                    return Some(slot);
+                    return Some(id);
                 }
                 seen = self.tags[slot].load(Acquire);
             }
@@ -125,14 +127,14 @@ impl Table {
             }
             if seen == tag {
                 let span = self.spans[slot].load(Relaxed);
-                let (at, length) = ((span >> 24) as usize, (span & 0xFF_FFFF) as usize);
-                if length == name.len()
-                    && self.arena[at..at + length]
+                let at = (span >> 33) as usize;
+                if span & 0xFFFF == name.len() as u64
+                    && self.arena[at..]
                         .iter()
-                        .zip(name)
-                        .all(|(cell, &byte)| cell.load(Relaxed) == byte)
+                        .zip(words(name))
+                        .all(|(cell, word)| cell.load(Relaxed) == word)
                 {
-                    return Some(slot);
+                    return Some((span >> 16 & 0x1_FFFF) as usize);
                 }
             }
             slot = (slot + 1) & mask;
@@ -322,14 +324,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         .position(|&byte| byte == b'\n')
         .map_or(file.len(), |at| at + 1)..];
     let table = Table::new(body.len());
-    let words = (1 << SLOT_BITS) / 64;
-    let names: Vec<AtomicU64> = (0..groups * words).map(|_| AtomicU64::new(0)).collect();
     let full = AtomicBool::new(false);
     let group_of = |region: u64| {
         country
             .get(region as usize)
             .map_or(groups - 1, |&group| group as usize)
     };
+    let words = IDS / 64;
+    let names: Vec<AtomicU64> = (0..groups * words).map(|_| AtomicU64::new(0)).collect();
     let parts: Vec<Vec<Group>> = thread::scope(|scope| {
         let handles: Vec<_> = chunks(body, workers)
             .into_iter()
@@ -350,9 +352,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             group.name_bytes += name_length as u64;
                             group.note_bytes += note_length as u64;
                             match table.id(name) {
-                                Some(slot) => {
-                                    _ = names[index * words + slot / 64]
-                                        .fetch_or(1 << (slot % 64), Relaxed)
+                                Some(id) => {
+                                    _ = names[index * words + id / 64]
+                                        .fetch_or(1 << (id % 64), Relaxed)
                                 }
                                 None => full.store(true, Relaxed),
                             }
