@@ -397,10 +397,6 @@ fn build_graph(bytes: &[u8], workers: usize) -> io::Result<Graph> {
     Ok(Graph::new(offsets, edges, heavy, packing))
 }
 
-/// Vertices per blob: a breadth-first ball this size keeps a search's
-/// neighbourhood in few cache lines, unlike one ring-by-ring region.
-const BLOB: usize = 512;
-
 /// Renumbers vertices so searches touch nearby memory. Every worker grows
 /// breadth-first regions from unclaimed roots in its own slice of old IDs and
 /// claims each vertex with a compare-and-swap on `worker << bits | position + 1`
@@ -428,24 +424,14 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
     let regions: Vec<(Vec<u32>, Vec<u32>)> = thread::scope(|scope| {
         let handles: Vec<_> = (0..workers)
             .map(|worker| {
-                let (graph, claim, claims) = (&graph, &claim, &claims);
+                let (graph, claim) = (&graph, &claim);
                 scope.spawn(move || {
                     let (mut order, mut degrees) = (Vec::new(), Vec::new());
-                    let mut roots = nodes * worker / workers..nodes * (worker + 1) / workers;
-                    let mut seed = None;
-                    loop {
-                        // A blob starts at the edge of the previous one, else at the
-                        // next unclaimed root of this worker's slice.
-                        let id = |position: usize| worker << bits | (position + 1);
-                        let start = match seed.take() {
-                            Some(next) if claim(next, id(order.len())) => next,
-                            _ => match roots.find(|&root| claim(root, id(order.len()))) {
-                                Some(root) => root,
-                                None => break,
-                            },
-                        };
-                        let first = order.len();
-                        order.push(start as u32);
+                    for root in nodes * worker / workers..nodes * (worker + 1) / workers {
+                        if !claim(root, worker << bits | (order.len() + 1)) {
+                            continue;
+                        }
+                        order.push(root as u32);
                         while degrees.len() < order.len() {
                             // Breadth-first reads are random: ask for rows ahead.
                             if let Some(&ahead) = order.get(degrees.len() + 8) {
@@ -457,12 +443,8 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
                             let node = order[degrees.len()] as usize;
                             degrees.push(graph.offsets[node + 1] - graph.offsets[node]);
                             for (target, _) in graph.row(node) {
-                                if order.len() - first < BLOB {
-                                    if claim(target as usize, id(order.len())) {
-                                        order.push(target);
-                                    }
-                                } else if claims[target as usize].load(Relaxed) == 0 {
-                                    seed = Some(target as usize);
+                                if claim(target as usize, worker << bits | (order.len() + 1)) {
+                                    order.push(target);
                                 }
                             }
                         }

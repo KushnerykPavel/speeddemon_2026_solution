@@ -26,6 +26,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 20 (re-sample) | Same track code, record-only commit (`2012f4e`) | run-abe73b97cc7d | 0.203360 | 79.261696 | **65.160080** |
 | 21 | `Graph::row` back on `enumerate()`, Dial rejected (`21df4fd`) | run-711cf3f5f6f1 | 0.206146 | 79.745024 | 64.981435 |
 | 23 | Chained BFS blobs of 512 (`cae88c9`) | run-81554f49a3d1 | 0.198285 | 79.855616 | 65.339497 |
+| 23 (re-sample) | Same blob binary, record-only commit (`61d9b2a`) | run-403e26bcde98 | 0.222510 | 79.708160 | 64.096032 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -781,7 +782,7 @@ increments contended and the old graph lived longer. Both were rejected.
 Evidence: [search tail](../tests/performance/2026-11-01-traverse-search-tail/README.md),
 [transpose](../tests/performance/2026-11-01-traverse-transpose/README.md).
 
-## Step 23 — chained BFS blobs (VPS neutral, board +0.18)
+## Step 23 — chained BFS blobs (no gain, reverted)
 
 Cache Me and FlyHigh publish gains from replacing one ring-by-ring BFS region
 per worker with chained balls of 512 (or 64) vertices. On the VPS the search
@@ -795,3 +796,20 @@ Step 23 board result: `run-81554f49a3d1`, commit `cae88c9`, all gates passed.
 best sample, inside the ±4% single-run spread (S +13 included). A record-only
 commit gives the second sample. Evidence:
 [official blobs result](../tests/performance/2026-11-01-board-blobs-results/README.md).
+
+Step 23 re-sample: the same blob binary scored `run-403e26bcde98`, **0.222510
+s, 79.708160 MB, S=736, 64.096032 points**. Blob samples average 0.210 s,
+step 20's two samples 0.208 s: no gain, S +13. Single board runs of one
+binary have spanned 0.198–0.223 s, so only gains well above 10% can be seen
+in one run. Blobs are reverted to the step 21 code. Evidence:
+[official blobs result](../tests/performance/2026-11-01-board-blobs-results/README.md).
+
+## Step 24 — profile-guided optimization (VPS measurement, rejected)
+
+Profile trained on generator seeds 11, 12 (full) and 3, 5 (sample), excluding
+seed 1; built with `-C profile-use`; measured on the held-out full seed 1.
+Time change: 0.0% at 1 thread, +0.1% at 3, +2.8% at 6, −3.5% at 12 (spread
+15–36%). The work is bound by cache misses, not by branches, so PGO does not
+help; it also needs a binary `pgo.profdata` rebuilt after every source change.
+Not adopted. Evidence:
+[PGO](../tests/performance/2026-11-01-traverse-pgo/README.md).
