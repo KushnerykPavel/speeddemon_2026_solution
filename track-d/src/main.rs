@@ -148,6 +148,31 @@ unsafe extern "C" {
 unsafe extern "C" {
     fn prctl(option: i32, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i32;
     fn mallopt(parameter: i32, value: i32) -> i32;
+    fn madvise(address: *mut u8, length: usize, advice: i32) -> i32;
+}
+
+/// Allows or forbids transparent huge pages for memory first touched from now on.
+fn allow_huge_pages(allow: bool) {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        prctl(41, u64::from(!allow), 0, 0, 0);
+    }
+    let _ = allow;
+}
+
+/// Asks for 2 MB pages behind an array that is about to be written in full and
+/// then searched: fewer TLB misses, no extra resident memory. Linux only.
+fn huge_pages<T>(array: &mut Vec<T>) {
+    #[cfg(target_os = "linux")]
+    unsafe {
+        const MADV_HUGEPAGE: i32 = 14;
+        let start = (array.as_mut_ptr() as usize).next_multiple_of(4096);
+        let end = array.as_ptr() as usize + array.capacity() * size_of::<T>();
+        if end > start {
+            madvise(start as *mut u8, end - start, MADV_HUGEPAGE);
+        }
+    }
+    let _ = array;
 }
 
 /// Keeps memory that is no longer used out of the cgroup peak. Asks Linux for
@@ -458,8 +483,10 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
             .map(|handle| handle.join().unwrap())
             .collect()
     });
+    allow_huge_pages(true);
     let mut node_base = vec![0];
     let mut new_offsets = Vec::with_capacity(nodes + 1);
+    huge_pages(&mut new_offsets);
     new_offsets.push(0_u32);
     for (order, degrees) in &regions {
         node_base.push(node_base.last().unwrap() + order.len() as u32);
@@ -474,6 +501,7 @@ fn reorder_graph(graph: Graph, queries: &mut [(usize, usize)], workers: usize) -
         node_base[(id >> bits) as usize] + (id & mask) - 1
     };
     let mut new_edges = vec![0; new_offsets[nodes] as usize];
+    huge_pages(&mut new_edges);
     let heavy = Mutex::new(Vec::new());
     thread::scope(|scope| {
         // Regions can differ widely in size, so work is dealt out in equal pieces.
@@ -542,6 +570,7 @@ fn transpose(graph: &Graph, workers: usize) -> Graph {
         degrees[target as usize].fetch_add(1, Relaxed);
     });
     let mut offsets = vec![0_u32; nodes + 1];
+    huge_pages(&mut offsets);
     for (i, degree) in degrees.into_iter().enumerate() {
         offsets[i + 1] = offsets[i] + degree.into_inner();
     }
@@ -550,6 +579,7 @@ fn transpose(graph: &Graph, workers: usize) -> Graph {
         .map(|&offset| AtomicU32::new(offset))
         .collect();
     let mut edges = vec![0; graph.edges.len()];
+    huge_pages(&mut edges);
     let slots = AtomicPtr::new(edges.as_mut_ptr());
     let heavy = Mutex::new(Vec::new());
     for_each_edge(&|source, target, weight| {
@@ -778,6 +808,8 @@ impl Search<u32> {
 
 fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> Vec<Option<u64>> {
     let graphs = [graph, &transpose(graph, workers)];
+    // Search state is touched sparsely: back to 4 KB pages.
+    allow_huge_pages(false);
     let (wide, next) = (Mutex::new(None), AtomicUsize::new(0));
     let answers: Vec<_> = queries.iter().map(|_| AtomicU64::new(u64::MAX)).collect();
     thread::scope(|scope| {
