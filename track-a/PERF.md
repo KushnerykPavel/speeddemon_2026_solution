@@ -16,6 +16,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 9 | Exact-size hour-bucketed chunks, hash-only endpoint table, in-worker writes (`01bf7d2`) | run-3dde37561ccb | 0.044817 | 46.551040 | 71.672304 |
 | 10 | Per-chunk (hour, endpoint) grouping to plain u32 latencies; records freed before output (`db59a56`) | run-17eeea974461 | 0.044068 | 28.426240 | 73.545170 |
 | 11 | Newline-first SSE2 parse, hour run cache, parallel input unmapping, 2-digit numbers (`fbc79ec`) | run-3b925c36564d | 0.040816 | 30.248960 | 73.740362 |
+| 12 | `madvise(MADV_DONTNEED)` instead of `munmap` for parsed input pages (`8188235`) | run-220bc44d8e29 | 0.039775 | 30.396416 | 73.999749 |
+| 13 | Shared lock-free endpoint table, 4-byte records filed per hour in blocks released as hours finish, output formatted straight into the mapped file (`ea2ee34`) | run-7ad2f004409d | 0.034436 | 20.516864 | 77.236072 |
 
 Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
@@ -325,3 +327,20 @@ about 10%; instruction counts and the board did.
 * **Dead ends measured:** removing the endpoint byte comparison saved about 10% of parse time
   (kept; hash-only). O_DIRECT output cannot help (tmpfs). A/B on the shared hardware box
   was too noisy for wall time (spreads over 100%); only instruction counts were used there.
+
+## Steps 12–13 — Cache Me's design in Rust, 2026-11-01
+
+Source of the design: Cache Me's public Track A repo and PERF.md (MIT template; techniques only,
+re-written here), see [open solutions](../docs/track-a-open-solutions-2026-11-01.md). Step 12 was
+their `madvise` idea alone: board 0.0408 → 0.0398 s, far less than the 18% they saw because our
+other costs dominated. Step 13 replaced per-thread tables and per-chunk grouping with one shared
+table (a name's id is its slot, 64-bit hash of all bytes, no byte comparison), one u32 per record
+appended to 16 KB blocks per hour, group numbers and exact text sizes from the hour phase, and
+formatting into the mapped output from every thread. VPS: T 0.105 → 0.094 s, M 25.7 → 20.0 MB;
+board 0.0398 → 0.0344 s, 30.4 → 20.5 MB, +3.2 points.
+
+Where the time is now (hardware box, one thread, full seed 1): parse 0.82 G of 1.27 G
+instructions (265 per record, IPC 1.86 in user mode), hour phase 0.36 G, text 0.09 G; in a
+parse-only run the kernel is about 18% of cycles (page-cache mapping and unmapping). S is 550
+formatted lines against Cache Me's 334; rustfmt's layout makes the same design about 1.5x as long
+as their C++ (their own Rust port counted 341 lines against 271).
