@@ -14,6 +14,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 7 | Fixed-layout parser, custom endpoint table, per-hour sorted keys (`14001f9`) | run-7893403a45a6 | 0.072554 | 62.013440 | 66.208615 |
 | 8 | SWAR hour/latency, selection quantiles, streamed output (`70c6a36`) | run-2f867ed017e2 | 0.049657 | 46.960640 | 70.622489 |
 | 9 | Exact-size hour-bucketed chunks, hash-only endpoint table, in-worker writes (`01bf7d2`) | run-3dde37561ccb | 0.044817 | 46.551040 | 71.672304 |
+| 10 | Per-chunk (hour, endpoint) grouping to plain u32 latencies; records freed before output (`db59a56`) | run-17eeea974461 | 0.044068 | 28.426240 | 73.545170 |
+| 11 | Newline-first SSE2 parse, hour run cache, parallel input unmapping, 2-digit numbers (`fbc79ec`) | run-3b925c36564d | 0.040816 | 30.248960 | 73.740362 |
 
 Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
@@ -270,3 +272,56 @@ dominate. Endpoints are identified by a 64-bit hash of all bytes without a byte 
 (measured about 10% of single-thread parse); the plan is in
 [top-10 plan](../docs/track-a-top10-plan-2026-11-01.md). Next ideas, untested: 6-byte records,
 O_DIRECT output, SIMD endpoint scan, trimming S.
+
+
+## Research experiment — chunks ×8 → ×4, 2026-11-01 (not promoted)
+
+Independent historian/profiler/researcher reports reconciled before selection.
+Base `db59a56` already stores grouped u32 latencies and frees records before output;
+older six-byte storage advice is obsolete. Preserved dirty parallel-unmapping work.
+Built corrected exact-endpoint-equality baseline and candidate in an isolated managed
+worktree; the only optimization diff halves chunks per worker. No submission/push.
+
+Native alternating AB/BA, warm full seed 1, 16 measured runs/variant:
+VPS six workers **0.125089 → 0.124032 s (−0.85%)**;
+Lyceum eight workers **0.067857 → 0.065808 s (−3.02%)**.
+Paired bootstrap time-ratio intervals cross 1 on both hosts; samples are mixed/noisy,
+and VPS one-worker full input regressed 5.63%. Separate five-run fresh VPS restricted
+container peak **25.272320 → 24.711168 MB (−2.22%)**; Lyceum only has RSS.
+Equal formatted source size/dependencies. Conditional mixed-context VPS K ×1.00877,
+time-only interval 0.96880–1.04236; no official K/board improvement established.
+
+**Decision: inconclusive; reject candidate for promotion and retain ×8 reference.**
+All 108 reference comparisons passed (54/host), plus every timed/memory output and
+six Rust tests per variant per host, including forced endpoint collisions/growth/merge.
+Formatting passes; strict Clippy exposes one inherited precedence warning, and passes
+with only that lint allowed. Original solution source was not changed or merged.
+
+Exact baseline/candidate hashes, independent reports, conditions, raw runs, measurement
+limits and snapshots: [chunk experiment](../tests/performance/2026-11-01-track-a-chunks4/README.md).
+The latest logged board winner remains step 9 (`01bf7d2`); this round did not refresh
+board evidence. The older “Current best: step 5” paragraph describes an obsolete snapshot.
+
+## Steps 10–11 — memory floor and where the instructions go, 2026-11-01
+
+Method (three tiers, scripts in `tools/` and the research log in
+[`docs/track-a-research-2026-11-01.md`](../docs/track-a-research-2026-11-01.md)):
+`tools/bench.sh` runs the track on the VPS in docker with the board's flags, sd-timer wall time
+and the container's `memory.peak`; a Linux box with hardware counters gave instructions per
+record and callgrind line attribution. VPS times (6 vCPU Haswell) did not resolve changes under
+about 10%; instruction counts and the board did.
+
+* **M.** The board's `/out` is a tmpfs, so the 10.1 MB `summary.txt` is charged to `memory.peak`
+  (measured: `file=10.1 MB` in the cgroup at exit). Keeping 8-byte keys alive while writing
+  made M the sum of both. Step 10 stores 4 bytes per record (plain u32 latencies grouped by
+  hour and endpoint per chunk, plus a run table), computes the quantiles into 24-byte rows,
+  frees the records, and only then formats and writes: VPS M 42.7 → 25.7 MB, board 46.6 → 28.4 MB.
+* **T.** Step 11 found line ends 64 bytes at a time and parsed the latency, status and endpoint
+  end backwards from them. Instructions per record barely moved (1.40 G → 1.37 G for the full
+  run on one thread): callgrind shows the cost is spread over many small pieces (endpoint
+  lookup about 33, hashing 20, number parsing 40, grouping passes about 35, output formatting about
+  9% of all instructions) rather than one hot loop. Board T 0.0441 → 0.0408 s, but S rose
+  486 → 544 (formatted code lines), so points moved only 73.55 → 73.74.
+* **Dead ends measured:** removing the endpoint byte comparison saved about 10% of parse time
+  (kept; hash-only). O_DIRECT output cannot help (tmpfs). A/B on the shared hardware box
+  was too noisy for wall time (spreads over 100%); only instruction counts were used there.
