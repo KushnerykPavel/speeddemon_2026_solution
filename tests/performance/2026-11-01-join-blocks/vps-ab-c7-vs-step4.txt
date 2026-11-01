@@ -1,0 +1,6 @@
+c7 T(trimmed mean) 0.2455 s  min 0.2114  M(max) 17.66 MB  hashes {'d8088b1cd42b'}
+c5 T(trimmed mean) 0.2911 s  min 0.2531  M(max) 17.69 MB  hashes {'d8088b1cd42b'}
+c7 T(trimmed mean) 0.2373 s  min 0.2062  M(max) 17.80 MB  hashes {'d8088b1cd42b'}
+c5 T(trimmed mean) 0.2729 s  min 0.2286  M(max) 17.83 MB  hashes {'d8088b1cd42b'}
+
+[exited with code 0]

@@ -12,12 +12,17 @@ Rust, standard library only. `records.csv` and `regions.csv` are mapped read-onl
   A chunk starts after an LF followed by an optional BOM, digits and a comma. Under the generator's
   guarantees (spec 2.2), a line inside a quoted note never looks like that, so every chunk starts at a
   record.
-- **Parsing.** Each thread parses its records with a byte-level state machine that follows spec 2.1:
+- **Parsing.** Each thread reads its chunk 64 bytes at a time. SIMD compares give bit masks of `"`, `,` and
+  LF; a prefix XOR of the quote mask marks the bytes inside quotes (a `""` pair toggles twice), and the
+  commas and LFs outside quotes separate the fields (spec 2.1):
   - a BOM at a record start is skipped;
-  - a quoted field ends at a `"` not followed by another `"`;
+  - unquoted fields never contain `"`, so a field with k quotes has a value `1 + k/2` bytes shorter
+    than its raw bytes;
   - CRLF and LF both end a record, and the final terminator may be missing.
-  
-  Field ends are found 8 bytes at a time (SWAR). The amount becomes exact integer cents. Each thread keeps per-group counts, sums, min/max and byte totals.
+
+  The amount becomes exact integer cents. Each thread keeps per-group counts, sums, min/max and byte totals.
+- **Batches.** Records are handled 32 at a time: while a batch fills, each name's table slot and each
+  region's group entry are prefetched, so the cache misses of the batch overlap.
 - **Distinct names.** One lock-free open-addressing table (2^18 slots) is shared by all threads. Names are
   kept in their raw quoted form, which is one-to-one with the unescaped value, so nothing is unescaped:
   - a thread claims a slot with a compare-and-swap on its tag, copies the bytes into an append-only arena,
@@ -29,7 +34,8 @@ Rust, standard library only. `records.csv` and `regions.csv` are mapped read-onl
   Past half the slots (over 131,000 names; the generator has about 100,000) a slow exact pass with hash sets
   counts instead.
 - **Regions.** Country codes (three capital letters) map through a 26³ table to their rank, which is also
-  the output order; `_UNMATCHED` comes last.
+  the output order; `_UNMATCHED` comes last. The region-to-group table uses one byte per region when the
+  groups fit.
 
 Output equals the Python reference on generated tiny and sample datasets for seeds 1–3, full datasets for seeds 1–2, and on the
 spec's worked example and edge-case rules, at 1 to 12 threads.
@@ -43,4 +49,4 @@ None.
 
 ## With another 24 hours
 
-Wider SIMD field scanning, fewer bitset cache misses, a cheaper table probe, and a smaller region table.
+A smaller name table (8-byte slots), fewer bitset cache misses, and faster number conversion.

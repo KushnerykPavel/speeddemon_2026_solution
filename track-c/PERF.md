@@ -10,6 +10,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 3 | Dense name ids (half-size bitsets); the arena compares 8-byte words (`5105fc0`) | run-cf05c9b4105c | 0.109433 | 18.759680 | 61.801278 |
 | 4 | SWAR field scan; slot tag and span interleaved (`c1299a8`) | run-e9164c284dcd | 0.138005 | 19.054592 | 59.131135 |
 | 4 | Same code, resampled (`bd28aab`) | run-36d47f614eeb | 0.104650 | 18.587648 | 62.242777 |
+| 5 | 64-byte block parser; batched name lookups and region lookups with prefetch; one-byte region table | pending | | | |
 
 ## Step 1 — first Rust version, 2026-11-01
 
@@ -76,3 +77,34 @@ Board: `run-e9164c284dcd`, 0.138 s, 19.05 MB, S 394, 59.13 points (−2.67). Thi
 There was one board sample per version, so the same code was resampled (`bd28aab`, documentation only):
 `run-36d47f614eeb`, 0.1047 s, 18.59 MB, S 394, **62.24 points** (+0.44 over step 3). The 0.138 s run was an
 outlier; step 4 is kept.
+
+## Step 5 — block parser and batched lookups, 2026-11-01
+
+Switching parts off one at a time on the VPS (1 thread, step 4's successor c6) gave the costs: parsing,
+number conversion and aggregates ≈ 444 ms, region-to-group lookup ≈ 120 ms (a random read in a 2 MB
+table), name hash ≈ 45 ms, name table and group bitsets ≈ 440 ms. Every record pays two or three
+dependent cache misses, one at a time. Three changes:
+
+1. **Block parser.** Each 64-byte block yields bit masks of `"`, `,` and LF (SSE2 on x86-64, NEON on
+   the Mac). A prefix XOR of the quote mask marks the bytes inside quotes (a `""` pair toggles twice),
+   so the commas and LFs outside it are the separators. Unquoted fields never contain `"` (spec 2.1),
+   so a field holding k quotes is quoted and its value is `1 + k/2` bytes shorter than the raw field.
+2. **Batches of 32 records.** While a batch fills, the name's table slot and the region's group entry
+   are prefetched; the flush updates the aggregates, looks the names up, prefetches the bitset words,
+   then ORs the bits. The misses of 32 records overlap.
+3. **One-byte region table** when the groups fit (240 countries + `_UNMATCHED`; two bytes otherwise):
+   1 MB instead of 2 MB.
+
+VPS, board-like protocol, full seed 1, all outputs `d8088b1cd42b…`:
+
+| Variant | T (s) | M (MB) |
+|---|---|---:|
+| step 4 | 0.291 / 0.273 | 17.7 / 17.8 |
+| 1 + 2 | 0.246 / 0.237 | 17.7 / 17.8 |
+| 1 + 2 | 0.251 / 0.249 | 17.7 / 17.8 |
+| **1 + 2 + 3** | 0.249 / 0.242 | 16.8 / 16.9 |
+
+Rows 1–2 and rows 3–4 are separate alternating pairs. Parse-phase medians (12 runs): 1 thread
+1420 → 986 ms, 6 threads 246 → 221 ms. A `target-cpu=haswell` build was within noise and is not used.
+Same 10-dataset check at 1/2/3/5/8/12 threads; the two-byte table path, forced, also matches.
+Raw numbers: `tests/performance/2026-11-01-join-blocks/`.

@@ -90,14 +90,26 @@ impl Table {
         }
     }
 
-    /// Returns the name's id, or `None` once the table is half full.
-    fn id(&self, name: &[u8]) -> Option<usize> {
-        let hash = words(name).fold(name.len() as u64, |state, word| {
+    fn hash(name: &[u8]) -> u64 {
+        words(name).fold(name.len() as u64, |state, word| {
             (state.rotate_left(5) ^ word).wrapping_mul(0x517c_c1b7_2722_0a95)
-        });
+        })
+    }
+
+    fn slot(hash: u64) -> usize {
+        (hash >> 20) as usize & ((1 << SLOT_BITS) - 1)
+    }
+
+    /// Starts loading the slot a lookup of `hash` probes first.
+    fn prefetch(&self, hash: u64) {
+        prefetch(&self.slots[Self::slot(hash)]);
+    }
+
+    /// Returns the id of `name` (whose hash is `hash`), or `None` once the table is half full.
+    fn id(&self, name: &[u8], hash: u64) -> Option<usize> {
         let tag = hash | 1 << 63;
         let mask = (1 << SLOT_BITS) - 1;
-        let mut slot = (hash >> 20) as usize & mask;
+        let mut slot = Self::slot(hash);
         loop {
             let mut seen = self.slots[slot][0].load(Acquire);
             if seen == 0 {
@@ -141,6 +153,24 @@ impl Table {
     }
 }
 
+/// Asks the CPU to start loading `value`'s cache line.
+fn prefetch<T>(value: &T) {
+    let address: *const T = value;
+    #[cfg(target_arch = "x86_64")]
+    // SAFETY: a prefetch never faults.
+    unsafe {
+        std::arch::x86_64::_mm_prefetch(address.cast(), std::arch::x86_64::_MM_HINT_T0);
+    }
+    #[cfg(target_arch = "aarch64")]
+    // SAFETY: a prefetch never faults and touches no registers but its input.
+    unsafe {
+        std::arch::asm!("prfm pldl1keep, [{0}]", in(reg) address, options(nostack, readonly, preserves_flags));
+    }
+}
+
+/// Records whose names are looked up together, so their cache misses overlap.
+const BATCH: usize = 32;
+
 /// Running aggregates of one group.
 #[derive(Clone, Copy)]
 struct Group {
@@ -167,37 +197,44 @@ impl Default for Group {
     }
 }
 
-/// Index of the first `target` byte at or after `at`, eight bytes at a time. The lowest byte the
-/// zero-byte test flags is always a true match.
-fn find(bytes: &[u8], mut at: usize, target: u8) -> usize {
-    const LOW: u64 = 0x0101_0101_0101_0101;
-    while let Some(chunk) = bytes.get(at..at + 8) {
-        let word = u64::from_le_bytes(chunk.try_into().unwrap()) ^ (LOW * u64::from(target));
-        let found = word.wrapping_sub(LOW) & !word & (LOW << 7);
-        if found != 0 {
-            return at + found.trailing_zeros() as usize / 8;
-        }
-        at += 8;
+/// Bit masks of the `"`, `,` and LF bytes in a 64-byte block (bit i is byte i).
+#[cfg(target_arch = "x86_64")]
+fn masks(block: &[u8; 64]) -> [u64; 3] {
+    use std::arch::x86_64::*;
+    // SAFETY: SSE2 is part of x86-64, and every load is inside the block.
+    unsafe {
+        let lanes = [0, 16, 32, 48].map(|at| _mm_loadu_si128(block.as_ptr().add(at).cast()));
+        [b'"', b',', b'\n'].map(|byte| {
+            let target = _mm_set1_epi8(byte as i8);
+            lanes.iter().enumerate().fold(0, |mask, (lane, &bytes)| {
+                let found = _mm_movemask_epi8(_mm_cmpeq_epi8(bytes, target)) as u16;
+                mask | u64::from(found) << (16 * lane)
+            })
+        })
     }
-    at + bytes[at..].iter().position(|&byte| byte == target).unwrap()
 }
 
-/// Reads one field at `at`; returns its raw bytes (inside the quotes, `""` still doubled), its
-/// value's length and the index after the separator that follows it.
-fn field(bytes: &[u8], at: usize) -> (&[u8], usize, usize) {
-    if bytes.get(at) != Some(&b'"') {
-        let end = find(bytes, at, b',');
-        return (&bytes[at..end], end - at, end + 1);
+/// Bit masks of the `"`, `,` and LF bytes in a 64-byte block (bit i is byte i).
+#[cfg(target_arch = "aarch64")]
+fn masks(block: &[u8; 64]) -> [u64; 3] {
+    use std::arch::aarch64::*;
+    // SAFETY: NEON is part of AArch64, and every load is inside the block.
+    unsafe {
+        let bits = vld1q_u8([1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128].as_ptr());
+        let lanes = [0, 16, 32, 48].map(|at| vld1q_u8(block.as_ptr().add(at)));
+        [b'"', b',', b'\n'].map(|byte| {
+            let [a, b, c, d] = lanes.map(|bytes| vandq_u8(vceqq_u8(bytes, vdupq_n_u8(byte)), bits));
+            let sums = vpaddq_u8(vpaddq_u8(a, b), vpaddq_u8(c, d));
+            vgetq_lane_u64(vreinterpretq_u64_u8(vpaddq_u8(sums, sums)), 0)
+        })
     }
-    let (mut from, mut escapes) = (at + 1, 0);
-    loop {
-        let quote = find(bytes, from, b'"');
-        if bytes.get(quote + 1) != Some(&b'"') {
-            return (&bytes[at + 1..quote], quote - at - 1 - escapes, quote + 2);
-        }
-        escapes += 1;
-        from = quote + 2;
-    }
+}
+
+/// Decimal value of `text`'s digits; other bytes (the amount's `.`) are skipped.
+fn number(text: &[u8]) -> u64 {
+    text.iter()
+        .filter(|byte| byte.is_ascii_digit())
+        .fold(0, |value, &byte| value * 10 + u64::from(byte - b'0'))
 }
 
 /// Decimal digits from `at` up to `stop`; returns the value and the index after `stop`.
@@ -217,32 +254,65 @@ type Record<'a> = (u64, &'a [u8], usize, usize, u64, i64);
 
 /// Calls `visit` for every record in `bytes`, which starts at a record and ends after a
 /// terminator or at the end of the file.
+///
+/// Works 64 bytes at a time: a prefix XOR of the quote mask marks the bytes inside quotes (a `""`
+/// pair toggles twice), and the commas and LFs outside them separate the fields. Unquoted fields
+/// never contain `"` (spec 2.1), so a field with k quotes is quoted and its value is
+/// `1 + k / 2` bytes shorter than its raw form.
 fn records<'a>(bytes: &'a [u8], mut visit: impl FnMut(Record<'a>)) {
-    let mut at = 0;
-    while at < bytes.len() {
-        if bytes[at..].starts_with(BOM) {
-            at += 3;
+    let mut padded = [0; 64];
+    let (mut base, mut quotes, mut inside) = (0, 0, 0_u64);
+    let (mut field, mut start, mut start_quotes) = (0, 0, 0);
+    let mut record: Record = (0, &[], 0, 0, 0, 0);
+    // A field spans `start..end` and holds the quotes counted between `quotes.0` and `quotes.1`.
+    let mut end_field = |field: usize, (start, end): (usize, usize), quotes: (usize, usize), record: &mut Record<'a>| {
+        let raw = &bytes[start..end];
+        let quoted = quotes.1 - quotes.0;
+        let length = if quoted == 0 { raw.len() } else { raw.len() - 1 - quoted / 2 };
+        match field {
+            0 => record.0 = number(raw.strip_prefix(BOM).unwrap_or(raw)),
+            1 => {
+                record.1 = if quoted == 0 { raw } else { &raw[1..raw.len() - 1] };
+                record.2 = length;
+            }
+            2 => record.3 = length,
+            3 => record.4 = number(raw),
+            _ => {
+                let cents = number(raw) as i64;
+                record.5 = if raw.first() == Some(&b'-') { -cents } else { cents };
+                visit(*record);
+            }
         }
-        let (id, next) = digits(bytes, at, b',');
-        let (name, name_length, next) = field(bytes, next);
-        let (_, note_length, next) = field(bytes, next);
-        let (region, next) = digits(bytes, next, b',');
-        let negative = bytes[next] == b'-';
-        let (whole, next) = digits(bytes, next + usize::from(negative), b'.');
-        let cents = (whole * 100
-            + u64::from(bytes[next] - b'0') * 10
-            + u64::from(bytes[next + 1] - b'0')) as i64;
-        at = next + 2;
-        at += usize::from(bytes.get(at) == Some(&b'\r'));
-        at += usize::from(bytes.get(at) == Some(&b'\n'));
-        visit((
-            id,
-            name,
-            name_length,
-            note_length,
-            region,
-            if negative { -cents } else { cents },
-        ));
+    };
+    while base < bytes.len() {
+        let block: &[u8; 64] = match bytes.get(base..base + 64) {
+            Some(block) => block.try_into().unwrap(),
+            None => {
+                padded[..bytes.len() - base].copy_from_slice(&bytes[base..]);
+                &padded
+            }
+        };
+        let [quote, comma, newline] = masks(block);
+        let mut within = quote;
+        for shift in [1, 2, 4, 8, 16, 32] {
+            within ^= within << shift;
+        }
+        within ^= inside;
+        inside = ((within as i64) >> 63) as u64;
+        let mut separators = (comma | newline) & !within;
+        while separators != 0 {
+            let bit = separators.trailing_zeros();
+            separators &= separators - 1;
+            let end = base + bit as usize;
+            let end_quotes = quotes + (quote & ((1 << bit) - 1)).count_ones() as usize;
+            end_field(field, (start, end), (start_quotes, end_quotes), &mut record);
+            (field, start, start_quotes) = ((field + 1) % 5, end + 1, end_quotes);
+        }
+        quotes += quote.count_ones() as usize;
+        base += 64;
+    }
+    if field == 4 {
+        end_field(4, (start, bytes.len()), (start_quotes, quotes), &mut record);
     }
 }
 
@@ -320,15 +390,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let codes: Vec<usize> = (0..present.len()).filter(|&code| present[code]).collect();
     let groups = codes.len() + 1;
-    let mut country = vec![
-        codes.len() as u16;
-        rows.iter()
-            .map(|&(region, _)| region + 1)
-            .max()
-            .unwrap_or(0)
-    ];
+    // Group of each region id: one byte when the groups fit (the generator has 240 countries),
+    // two otherwise. Holes hold the `_UNMATCHED` group.
+    let regions = rows.iter().map(|&(region, _)| region + 1).max().unwrap_or(0);
+    let wide = groups > 256;
+    let mut narrow = vec![codes.len() as u8; if wide { 0 } else { regions }];
+    let mut country = vec![codes.len() as u16; if wide { regions } else { 0 }];
     for &(region, code) in &rows {
-        country[region] = codes.binary_search(&code).unwrap() as u16;
+        let group = codes.binary_search(&code).unwrap();
+        match wide {
+            false => narrow[region] = group as u8,
+            true => country[region] = group as u16,
+        }
     }
     // Records: skip a leading BOM and the header line.
     let records_file = map_file(&data.join("records.csv"))?;
@@ -339,23 +412,29 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_or(file.len(), |at| at + 1)..];
     let table = Table::new(body.len());
     let full = AtomicBool::new(false);
-    let group_of = |region: u64| {
-        country
-            .get(region as usize)
-            .map_or(groups - 1, |&group| group as usize)
-    };
+    let group_of = |region: u64| match wide {
+        false => narrow.get(region as usize).map(|&group| group as usize),
+        true => country.get(region as usize).map(|&group| group as usize),
+    }
+    .unwrap_or(groups - 1);
     let words = IDS / 64;
     let names: Vec<AtomicU64> = (0..groups * words).map(|_| AtomicU64::new(0)).collect();
     let parts: Vec<Vec<Group>> = thread::scope(|scope| {
         let handles: Vec<_> = chunks(body, workers)
             .into_iter()
             .map(|chunk| {
-                let (table, names, full, group_of) = (&table, &names, &full, &group_of);
+                let (table, names, full, group_of, narrow, country) =
+                    (&table, &names, &full, &group_of, &narrow, &country);
                 scope.spawn(move || {
                     let mut part = vec![Group::default(); groups];
-                    records(
-                        chunk,
-                        |(id, name, name_length, note_length, region, amount)| {
+                    // A batch's records and name hashes. While a batch fills, the region lookups
+                    // and the name table's slots are prefetched; the flush then reads them, and
+                    // ORs into the group bitsets once their words have been prefetched too.
+                    let mut batch: Vec<(Record, u64)> = Vec::with_capacity(BATCH);
+                    let flush = |batch: &mut Vec<(Record, u64)>, part: &mut [Group]| {
+                        let mut bits = [(0, 0); BATCH];
+                        for (bit, &(record, hash)) in bits.iter_mut().zip(batch.iter()) {
+                            let (id, name, name_length, note_length, region, amount) = record;
                             let index = group_of(region);
                             let group = &mut part[index];
                             group.count += 1;
@@ -365,15 +444,33 @@ fn main() -> Result<(), Box<dyn Error>> {
                             group.max = group.max.max(amount);
                             group.name_bytes += name_length as u64;
                             group.note_bytes += note_length as u64;
-                            match table.id(name) {
+                            match table.id(name, hash) {
                                 Some(id) => {
-                                    _ = names[index * words + id / 64]
-                                        .fetch_or(1 << (id % 64), Relaxed)
+                                    *bit = (index * words + id / 64, 1 << (id % 64));
+                                    prefetch(&names[bit.0]);
                                 }
                                 None => full.store(true, Relaxed),
                             }
-                        },
-                    );
+                        }
+                        for &(word, bit) in &bits[..batch.len()] {
+                            _ = names[word].fetch_or(bit, Relaxed);
+                        }
+                        batch.clear();
+                    };
+                    records(chunk, |record| {
+                        let region = record.4 as usize;
+                        match wide {
+                            false => narrow.get(region).map(prefetch),
+                            true => country.get(region).map(prefetch),
+                        };
+                        let hash = Table::hash(record.1);
+                        table.prefetch(hash);
+                        batch.push((record, hash));
+                        if batch.len() == BATCH {
+                            flush(&mut batch, &mut part);
+                        }
+                    });
+                    flush(&mut batch, &mut part);
                     part
                 })
             })
