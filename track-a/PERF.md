@@ -10,6 +10,10 @@ Every step from the reference to your final version, each with the live-board ru
 | 3 | Inline hour keys; borrowed endpoint lookup (`ff39a9a`) | Not in public history | 0.938535 | 50.634752 | 42.883192 |
 | 4 | Buffered byte parser (no board time win) (`a2217a2`) | Not in public history | 0.959642 | 49.434624 | 41.171803 |
 | 5 | Intern endpoints; numeric hour/endpoint IDs and vector groups (`531def7`) | run-12ff8c772294 | 0.876075 | 35.188736 | 43.339268 |
+| 6 | Hour ID cache + mmap + parallel chunked ingestion (`69aefa2`) | run-6d2d50ab6cf7 | 0.187192 | 53.919744 | 56.776445 |
+| 7 | Fixed-layout parser, custom endpoint table, per-hour sorted keys (`14001f9`) | run-7893403a45a6 | 0.072554 | 62.013440 | 66.208615 |
+| 8 | SWAR hour/latency, selection quantiles, streamed output (`70c6a36`) | run-2f867ed017e2 | 0.049657 | 46.960640 | 70.622489 |
+| 9 | Exact-size hour-bucketed chunks, hash-only endpoint table, in-worker writes (`01bf7d2`) | run-3dde37561ccb | 0.044817 | 46.551040 | 71.672304 |
 
 Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
@@ -194,3 +198,75 @@ seeds 1/7/42, edge cases and empty input equal the Python reference. Ten Rust te
 (new: chunk coverage, ordered parallel results), Clippy clean. Anon memory about 40 MB (RSS
 including the mapped input is 280 MB). VPS sweep, cgroup memory and the board run ID are still
 to be recorded; no board claim is made.
+
+### A7 VPS perf profiling — 2026-11-01
+
+Profiled current `69aefa2355f6166a7e20b83fd5bb9b02eaa28e34`, source SHA-256
+`7a81b23a5c4ce5d98da7d3a978fe2c2e33661a4b07808a773725399cb60cd286`,
+without changing implementation. Shared six-vCPU Haswell KVM, affinity 0–5,
+pinned offline Rust builds, warm full seed 1. Five unchanged-release runs/count,
+alternating forward/reverse worker order; trimmed means: 1 worker **1.193228 s**,
+2 **0.670827 s**, 6 **0.294095 s**, 12 **0.275626 s**. Whole process including
+output; container startup excluded. Six workers scale about 4.06× over one;
+six-versus-twelve is inconclusive amid 11–24% spreads and VPS oversubscription.
+This is within-A7 scaling, not a paired comparison with the serial cache source.
+
+Hardware PMU unavailable; used software perf counters and CPU-clock user
+sampling at 499 Hz over 15 runs each at one/six workers. Initial DWARF stacks
+were incomplete; retained as excluded evidence, followed by diagnostic debug=1
+builds with frame pointers/unwind tables. Accepted flamegraphs contain 9,044 /
+10,114 solution samples, zero lost/empty callchains. At six workers, observed
+inclusive CPU shares: ingestion 81.3%, parsing 35.3%, UTF-8 validation 8.6%,
+SipHash 12.3%, sorting 4.2%, formatting 3.1%. Categories overlap and represent
+user CPU, not wall-time phases. Frame-pointer builds change code generation;
+release timing above was measured separately with unchanged flags.
+
+Ten Rust tests and 18 exact reference comparisons pass (nine cases, one/six
+workers), with every timed/profiled output checked. Full hash unchanged.
+Separate diagnostic RSS 269,536 / 272,904 KiB includes mapped input; no cgroup
+peak or canonical S measurement, so no K/board claim. Next recommended isolated
+experiment: fixed-layout scalar parser; no implementation or worker default
+changed. [Raw evidence, commands, limitations and interactive flamegraphs](../tests/performance/2026-11-01-ingest-perf-flamegraphs/README.md).
+
+### A7 native hardware profiling on rl-lyceum — 2026-11-01
+
+Copied the unchanged `69aefa2355f6166a7e20b83fd5bb9b02eaa28e34` source
+(SHA-256 `7a81b23a5c4ce5d98da7d3a978fe2c2e33661a4b07808a773725399cb60cd286`)
+into `/home/rabat50/speed-demon-track-a-Eh6ThXY0` on `rl-lyceum`. Built and ran
+natively without Docker using existing root Rust 1.99.0. i7-7700, four cores /
+eight threads, affinity 0–7, kernel 4.15.0-142, glibc 2.23, perf 4.15.18.
+Ten Rust tests and 36 exact reference comparisons passed (nine cases at
+1/4/8/12 workers); full output hash unchanged. Source and existing work preserved.
+
+Five uninstrumented warm full-seed-1 runs/count, alternating forward/reverse
+1/2/4/8/12 order: medians **0.739274 / 0.361952 / 0.221070 / 0.178939 /
+0.230746 s**. Spawn-to-exit includes output; comparison excluded. Shared host,
+no CPU/frequency isolation; substantial outliers. Eight workers fastest observed;
+no default change or official performance claim.
+
+`sudo perf stat -r 3` succeeds for cycles, instructions, branches/misses,
+cache references/misses, L1 load/miss and dTLB misses, plus software counters.
+All selected counters counted. One/eight-worker user IPC **2.21 / 1.38**, branch
+misses **2.08% / 2.08%**. Root counter runs are separate from unprivileged timing.
+Single max-RSS observations 269,408 / 270,928 / 273,276 KiB at 1/4/8 workers
+include mapped input, not cgroup peak. No K estimate.
+
+Separate debug=1/frame-pointer build: `cycles:u`, requested 499 Hz, 25 runs at
+one/eight workers, every output hash checked. Zero reported lost samples;
+8,243 / 14,571 solution samples; unknown frames affect 2.35% / 10.29% of stacks,
+so attribution is limited. Eight-worker flat physical self shares include
+SipHash write 8.84%, HashMap get 8.80%, UTF-8 validation 8.65%, quicksort 3.99%.
+Inlining folds much parsing into worker wrappers. No optimization attempted.
+[Commands, raw evidence, conditions and readable flamegraphs](../tests/performance/2026-11-01-track-a-rl-lyceum/README.md).
+
+## Steps 6–9 summary — 2026-11-01 (board results)
+
+Board S rose 183 → 287 → 310 → 410 → 423 (formatted lines). Rank 102 → 91 → 72 → 66 → 64 of 111;
+the top-10 cutoff was about 84.4 points (T ≈ 0.0215 s, M ≈ 19 MB, S ≈ 334).
+Native Linux x86 (rl-lyceum, single thread) for step 9: 268 ms task-clock, 1.95 G instructions
+(2.19 IPC), 1.9% branch misses; about 74% of instructions are the parse phase. Memory did not
+fall with exact-size chunks (46.6 MB): the 10 MB output page cache and 24.8 MB of 8-byte keys
+dominate. Endpoints are identified by a 64-bit hash of all bytes without a byte comparison
+(measured about 10% of single-thread parse); the plan is in
+[top-10 plan](../docs/track-a-top10-plan-2026-11-01.md). Next ideas, untested: 6-byte records,
+O_DIRECT output, SIMD endpoint scan, trimming S.
