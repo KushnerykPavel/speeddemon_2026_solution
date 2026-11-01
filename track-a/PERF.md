@@ -21,7 +21,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 14 | `number()` takes the known digit count; S 550 → 544 (`5878e1d`) | Not in public history | 0.034197 | 20.942848 | 77.258170 |
 | 15 | AVX2 newline scan and `target-cpu=haswell` build; S 554 (`6d5802b`) | Not in public history | 0.031695 | 20.561920 | 78.103491 |
 | 16 | Rely on the spec's well-formed input: per-line validation removed; S 521 (`807ceec`) | run-90ca2d3d0a71 | 0.029539 | 20.766720 | 79.025363 |
-| 16 (re-sample) | Same code, rebuilt by a Track D record-only push (`d6900d5`); best of 5 board runs of this code, which average 0.0320 ± 0.0034 s and 78.21 ± 1.20 points | run-fd8ba455984c | 0.029442 | 20.619264 | **79.092022** |
+| 16 (re-sample) | Same code, rebuilt by a Track D record-only push (`d6900d5`); best of 6 board runs of this code, which average 0.0315 ± 0.0033 s | run-fd8ba455984c | 0.029442 | 20.619264 | 79.092022 |
+| 17 | Map the input over a zero-filled reservation instead of copying the tail; S 521 → 516 (`e9095f6`, cherry-pick of `539b15f`) | run-7fbd8d58705c | 0.029519 | 20.242432 | **79.175179** |
 
 Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
@@ -34,9 +35,9 @@ in a saved or current full feed; none are inferred.
 Raw evidence, all 18 attempts (including unchanged-track reruns), sources and
 provenance: [board results](../tests/performance/2026-10-31-board-results/README.md).
 
-Current best (feed 2026-11-01 16:50 UTC): step 16 code, `run-fd8ba455984c`,
-**0.029442 s / 20.619264 MB / S 521 / 79.092022 points**, rank 39 of 126. Five board runs of that
-code span 0.0294–0.0363 s (CV 10.7%), so single runs cannot resolve changes below about 20%.
+Current best (feed 2026-11-01 17:00 UTC): step 17, `run-7fbd8d58705c`,
+**0.029519 s / 20.242432 MB / S 516 / 79.175179 points**. Six board runs of the step 16 code
+span 0.0294–0.0363 s (CV about 10%), so single runs cannot resolve changes below about 20%.
 The paragraph below describes the first day's steps.
 Step 3 reduced time 13.67% and added 1.902348 points versus step 2. Step 4
 increased time 2.25% and lost 1.711389 points versus step 3, despite lower memory.
@@ -376,8 +377,16 @@ and [reports/synthesis.md](../reports/synthesis.md)):
   gather dominate the hour phase, not the selection.
 * **Fusing the hour and text phases:** −19 lines, time unchanged, but M +7.4 MB because output pages are charged
   while records are still held.
-* **Zero-padded mapping instead of copying the tail** (local commit `539b15f`, not pushed): −5 lines, no
-  measurable time or memory change.
+* (Kept as step 17, below.)
 
 Where the gap is: the top three teams run 0.016 s and 16–17 MB with S 315–371. Our run is about 2× slower
 with 1.4× the lines.
+
+## Step 17 — zero-padded mapping, 2026-11-01
+
+`map_file` reserves an anonymous zero-filled region `SLACK` bytes (rounded to pages) longer than the file and maps
+the file over its start (`MAP_FIXED`), so the parser may read past the end; `summarize` no longer copies the last
+lines into a padded buffer. VPS docker A/B (3 × 9 runs) showed no time or memory change; it is kept for S
+(521 → 516). Output byte-identical to step 16 on generated full seeds 1 and 7 at 1/3/12 threads (seed 1 SHA-256
+`495ca09682b9…`); 6 parser tests pass. Board: `run-7fbd8d58705c`, 0.029519 s, 20.24 MB, 79.18 points.
+Details: [reports/synthesis.md](../reports/synthesis.md).

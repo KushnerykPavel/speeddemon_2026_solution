@@ -4,8 +4,8 @@ The task, the input files and the exact output format are in the [spec](https://
 
 ## Result
 
-Board best: `run-fd8ba455984c`, 0.029442 s, 20.6 MB, S 521, no dependencies, 79.09 points. Five board
-runs of the final code average 0.0320 ± 0.0034 s (78.21 ± 1.20 points). Every step, its run ID and the
+Board best: `run-7fbd8d58705c`, 0.029519 s, 20.2 MB, S 516, no dependencies, 79.18 points. Board runs
+of one binary vary by about 10% in time. Every step, its run ID and the
 rejected experiments are in [PERF.md](PERF.md).
 
 ## Approach
@@ -14,7 +14,8 @@ Rust, standard library only, one pass over the mapped log, then two short parall
 follows Cache Me's public Track A solution (techniques only, rewritten).
 
 1. **Parse.** `requests.log` is mapped read-only and split into newline-aligned pieces, one per thread
-   (up to 12). Line ends are found 64 bytes at a time: two 32-byte AVX2 compares, with SSE2 and scalar
+   (up to 12). The file is mapped over a zero-filled reservation, so the parser may read past the end.
+   Line ends are found 64 bytes at a time: two 32-byte AVX2 compares, with SSE2 and scalar
    fallbacks. Each line is parsed backwards from its end, latency, status and endpoint, with fixed-layout
    offsets and word-sized loads. The spec guarantees well-formed input, so no per-line validation is done.
    The hour comes from the fixed-width timestamp (72 hours, a direct index), with a cache for runs of the
@@ -53,7 +54,6 @@ These were measured; details are in PERF.md.
 - Three-cursor interleaving: +14% instructions.
 - Selecting p50 first: no fewer instructions.
 - Fusing the hour and text phases: +7.4 MB.
-- A zero-padded mapping instead of copying the tail: no measurable change.
 - A native-CPU build before the AVX2 path: mixed sign within noise.
 
 ## With another 24 hours

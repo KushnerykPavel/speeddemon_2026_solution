@@ -4,8 +4,8 @@ The task, the input files and the exact output format are in the [spec](https://
 
 ## Result
 
-Board, 21 runs of the final code: T 0.2069 ± 0.0069 s (best 0.198594 s, `run-8040ef5bc533`),
-M 79.6 MB, S 723, no dependencies, 64.95 ± 0.35 points (best 65.39). Every step, its run ID and the
+Board, 21 runs of the final code: T 0.2069 ± 0.0069 s, M 79.6 MB, S 723, no dependencies,
+64.95 ± 0.35 points. Best sample: `run-5857d62f5472`, 0.198704 s, 79.2 MB, 65.41 points. Every step, its run ID and the
 rejected experiments are in [PERF.md](PERF.md).
 
 ## Approach

@@ -28,7 +28,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 23 | Chained BFS blobs of 512 (`cae88c9`) | run-81554f49a3d1 | 0.198285 | 79.855616 | 65.339497 |
 | 23 (re-sample) | Same blob binary, record-only commit (`61d9b2a`) | run-403e26bcde98 | 0.222510 | 79.708160 | 64.096032 |
 | 27 | Huge pages for the dense final graph arrays (`a86b62a`; mean of 3 samples 0.2145 s; reverted) | Not in public history | 0.196730 | 79.540224 | 65.385135 |
-| 21 (re-sample) | `21df4fd` code rebuilt by a Track A push (`14001f9`); best of 21 board runs of this binary, which average 0.2069 ± 0.0069 s and 64.95 ± 0.35 points | run-8040ef5bc533 | 0.198594 | 79.650816 | **65.391789** |
+| 21 (re-sample) | `21df4fd` code rebuilt by a Track A push (`14001f9`); 21 board runs of this binary to that point average 0.2069 ± 0.0069 s and 64.95 ± 0.35 points | run-8040ef5bc533 | 0.198594 | 79.650816 | 65.391789 |
+| 21 (re-sample) | Same `21df4fd` code after the step 27 revert, docs-only push (`b1926e0`); best board sample, not a new optimization | run-5857d62f5472 | 0.198704 | 79.192064 | **65.410862** |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
