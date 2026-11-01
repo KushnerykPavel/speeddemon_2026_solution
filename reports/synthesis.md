@@ -60,3 +60,31 @@ introselect's pivot behaviour differs from the 7.6n/4.7n model. The 8-thread pai
 and its script failed on output permissions; no conclusion drawn from it. Reverted; source is `6d5802b`.
 
 Per the synthesis rule: next step is STOP unless the user accepts a larger, riskier change (hypotheses 2 or 3).
+
+## Outcome of hypothesis 2 (fuse hours and text): REJECTED
+Candidate: each hour formats its text into a thread-local buffer straight after selection, publishes the exact
+size, waits (yield) for earlier hours' sizes and copies into the output mapped up front at an upper bound
+(`HOURS * sum(88 + name length)`, sparse), file cut to the real size at the end. Dropped the `Row` list, the size
+formula, the barrier, the second thread spawn and the final `release`/`drop(states)`. -19 source lines
+(527 vs 546 counted lines in main.rs), 7 tests pass, all 9 datasets byte-identical at 1/3/12 threads.
+VPS docker A/B, 3 alternating rounds x 9 runs, base `6d5802b` vs fused:
+T trimmed means 0.0942/0.0847/0.0883 s vs 0.0902/0.0820/0.0913 s (noise-level, ~-1%).
+M max: 19.82/19.51/19.88 MB vs 27.00/27.26/27.33 MB (+7.4 MB, about -1.4 pt at the board's M weight).
+Cause: output pages are now charged while the parsed records are still held (blocks are only released
+when their hours finish), so the two memory peaks add up instead of following each other. The profiler's note
+that the peaks are near equal predicted that gains from fusing would not show in M; here it made M worse.
+Rejected by the rule "M up more than 1 MB without a matching T gain". Patch kept at `$TMPDIR/fuse.patch`, source reverted to `6d5802b`.
+
+## Outcome of hypothesis 3 (rely on well-formed input): ACCEPTED as candidate, not on the board
+Spec `a-ingest.md` section 2: "Every line ends with a single LF, including the last. No CR, no empty lines ...
+a solution may assume well-formed input", ts exactly 27 bytes inside the 72-hour window, status 100-599 three
+digits, latency 0..4294967295 without leading zeros. Removed: CR handling, minimum line length, hour/month range
+check, method-length check, latency digit-count range and per-digit validation, status validation, endpoint
+non-empty check, `BAD`. Kept for memory safety: slot table bound ("too many endpoints"), bounded digit loop.
+Unit test for malformed records and CRLF / missing-final-LF variants removed (out of contract).
+Source: main.rs counted lines 546 -> 513 (-33). 6 tests pass, clippy clean, all 9 datasets byte-identical at
+1/3/12 threads (full seed 1 sha256 `495ca09682b9...`).
+rl-lyceum `perf stat`, full seed 1, 1 thread, haswell build, fresh builds (an earlier pair of runs reused a stale
+cargo build because rsync preserved mtimes; discarded): base 1,205.4 M instr / 167.1 ms vs lean 1,100.0 M (-8.7%) / 162.3 ms (-3%).
+VPS docker 3x9 runs: T 0.0897/0.0985/0.0835 vs 0.0860/0.0918/0.0860 s (noise), M 19.26/19.68/19.45 vs 18.98/19.57/19.08 MB.
+Risk: behaviour on malformed input is now undefined (wrong output or abort, no memory-unsafe slices); the spec lets us assume it.

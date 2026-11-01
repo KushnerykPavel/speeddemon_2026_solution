@@ -10,7 +10,6 @@ use std::thread;
 const HOURS: usize = 72;
 const DATES: [&str; 4] = ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"];
 const LANES: u64 = 0x0101_0101_0101_0101;
-const BAD: &str = "malformed log record";
 // Readable bytes the parser may touch past the end of a chunk.
 const SLACK: usize = 64;
 // Endpoint table slots (a seed has 1,842 endpoints) and the record layout: latency above
@@ -61,27 +60,15 @@ fn hash_word(hash: u64, w: u64) -> u64 {
     (hash.rotate_left(5) ^ w).wrapping_mul(0x517c_c1b7_2722_0a95)
 }
 
-// The `length` (1 to 10) decimal digits at `at` as a `u32`; the caller guarantees `SLACK`
-// readable bytes.
-unsafe fn number(at: *const u8, length: usize) -> Option<u64> {
+// The `length` (1 to 10) decimal digits at `at`; the caller guarantees `SLACK` readable bytes.
+unsafe fn number(at: *const u8, length: usize) -> u64 {
     if length < 8 {
         let t = (unsafe { load(at) } ^ (0x30 * LANES)) & ((1_u64 << (8 * length)) - 1);
-        if t & (0xf0 * LANES) != 0 || (t + 6 * LANES) & (0xf0 * LANES) != 0 {
-            return None;
-        }
         let t = (t << (8 * (8 - length))).wrapping_mul(2561) >> 8;
         let t = (t & 0x00ff_00ff_00ff_00ff).wrapping_mul(6_553_601) >> 16;
-        return Some((t & 0x0000_ffff_0000_ffff).wrapping_mul(42_949_672_960_001) >> 32);
+        return (t & 0x0000_ffff_0000_ffff).wrapping_mul(42_949_672_960_001) >> 32;
     }
-    let mut value = 0_u64;
-    for i in 0..length {
-        let d = unsafe { *at.add(i) }.wrapping_sub(b'0');
-        if d > 9 {
-            return None;
-        }
-        value = value * 10 + u64::from(d);
-    }
-    (value <= u64::from(u32::MAX)).then_some(value)
+    (0..length).fold(0, |v, i| v * 10 + u64::from(unsafe { *at.add(i) } - b'0'))
 }
 
 // 16 KB of one hour's records from one thread.
@@ -182,9 +169,9 @@ impl State {
     ) -> Result<(), &'static str> {
         assert!(pos <= end && end + SLACK <= data.len());
         let (mut p, stop) = unsafe { (data.as_ptr().add(pos), data.as_ptr().add(end)) };
-        let (mut stamp, mut hour) = (0, HOURS);
+        let (mut stamp, mut hour) = (0, 0);
         let (mut block, mut mask) = (p, 0_u64);
-        // SAFETY: a line starts inside the chunk and is at least 37 bytes long; every read
+        // SAFETY: every read
         // below stays within 64 bytes of a position inside the line or the chunk's end.
         unsafe {
             while p < stop {
@@ -201,49 +188,28 @@ impl State {
                     mask = newlines(block);
                     block = block.add(64);
                 };
-                let line_end = if newline > p && *newline.sub(1) == b'\r' {
-                    newline.sub(1)
-                } else {
-                    newline
-                };
-                if line_end.offset_from(p) < 37 {
-                    return Err(BAD);
-                }
                 let w = load(p.add(5));
                 // Records come in long runs of one hour: decode the hour only when it changes.
-                if w != stamp || hour >= HOURS {
+                if w != stamp {
                     let two = |at: u32| ((w >> at & 15) * 10 + (w >> (at + 8) & 15)) as i64;
                     hour = ((two(24) + 1 - 31 * (11 - two(0))) * 24 + two(48) - 18) as usize;
-                    if hour >= HOURS || !matches!(two(0), 10 | 11) {
-                        return Err(BAD);
-                    }
                     stamp = w;
                 }
-                let method = space_in(load(p.add(28))).filter(|&m| m > 0).ok_or(BAD)?;
+                let method = space_in(load(p.add(28))).unwrap_or(0);
                 let name = p.add(29 + method);
                 // The latency's digits end the line; find the space before them.
-                let x = load(line_end.sub(8)) ^ (0x20 * LANES);
+                let x = load(newline.sub(8)) ^ (0x20 * LANES);
                 let spaces = !(((x & (0x7f * LANES)) + (0x7f * LANES)) | x | (0x7f * LANES));
                 let mut digits = (spaces.leading_zeros() / 8) as usize;
                 if spaces == 0 {
                     digits = 8;
-                    while digits <= 10 && *line_end.sub(digits + 1) != b' ' {
+                    while digits <= 10 && *newline.sub(digits + 1) != b' ' {
                         digits += 1;
                     }
                 }
-                if !(1..=10).contains(&digits) {
-                    return Err(BAD);
-                }
-                let latency = number(line_end.sub(digits), digits).ok_or(BAD)?;
+                let latency = number(newline.sub(digits), digits);
                 // " SSS " precedes the digits: a space, three status digits, a space.
-                let tail = line_end.sub(digits + 5);
-                let x = (load(tail) ^ 0x20_3030_3020) & 0xff_ffff_ffff;
-                let bad = x & 0xff_0000_00ff
-                    | x & 0xf0f0_f000
-                    | ((x & 0x0f0f_0f00) + 0x0606_0600) & 0x1010_1000;
-                if bad != 0 || tail <= name {
-                    return Err(BAD);
-                }
+                let tail = newline.sub(digits + 5);
                 let (mut at, mut hash) = (name, 0);
                 while at.add(8) <= tail {
                     hash = hash_word(hash, load(at));
