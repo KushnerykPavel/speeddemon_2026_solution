@@ -26,7 +26,17 @@ unsafe fn load(at: *const u8) -> u64 {
 
 // Bit `i` of the result is set when byte `i` of the 64 bytes at `at` is a newline.
 unsafe fn newlines(at: *const u8) -> u64 {
-    #[cfg(target_arch = "x86_64")]
+    #[cfg(target_feature = "avx2")]
+    unsafe {
+        use std::arch::x86_64::*;
+        let newline = _mm256_set1_epi8(b'\n' as i8);
+        let part = |i: usize| {
+            let bytes = _mm256_loadu_si256(at.add(32 * i).cast());
+            _mm256_movemask_epi8(_mm256_cmpeq_epi8(bytes, newline)) as u32 as u64
+        };
+        part(0) | part(1) << 32
+    }
+    #[cfg(all(target_arch = "x86_64", not(target_feature = "avx2")))]
     unsafe {
         use std::arch::x86_64::*;
         let newline = _mm_set1_epi8(b'\n' as i8);

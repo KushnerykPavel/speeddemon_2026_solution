@@ -71,3 +71,39 @@ Their design is the template to follow for the remaining time; in Rust it would 
 design lands near 0.032 s and 341 lines, i.e. about 80 points, not top 10; the C++ route gave
 82 to 84 points on their code. Top 10 (84.5 points) needs the C++ design plus luck on the board's
 ±4%. A rewrite should be written in our own words and credit them in `README.md`/`PERF.md`.
+
+## Other contests checked (2026-11-01, read-only)
+
+Sources cloned/downloaded to the session scratchpad (`ext/`), not run.
+
+### SIGMOD 2016 shortest path (H_minor_free winner, uoa_team runner-up)
+Tarballs from `dsg.uwaterloo.ca/sigmod16contest/downloads/`. Both are bidirectional BFS on dynamic graphs
+(winner: batch the updated edges first so queries run lock-free in OpenMP threads; runner-up: adjacency
+lists with cache tuning, 23 threads, multiversioning). Nothing transfers to a log-aggregation pipeline.
+Only generic point: no locks on the hot path, which Track A already has (shared lock-free name table).
+
+### SIGMOD 2025 SortMergeJoins (TUM)
+The winning repository was not found (search shows only the contest template `umbra-db/contest-sigmod2025`,
+a single "initial commit", and `fxsc03/sigmod-25-contest`, also a template). Not verified, no technique
+extracted. Task is a join pipeline over columnar tables, so overlap with Track A would be limited to
+thread partitioning and memory handling anyway. Revisit if the team's repo link appears on the contest page.
+
+### 1BRC 2024 (`gunnarmorling/1brc`, `CalculateAverage_thomaswue.java` read in full)
+Fastest entry (1.535 s on the 8-core/32 GB board, 0.31 s on a 13900K), credits merged from five authors.
+
+| Technique | In thomaswue's entry | Our status |
+|---|---|---|
+| mmap input | yes | have |
+| work stealing, 2 MB segments | atomic cursor, `SEGMENT_SIZE=1<<21` | have (8 x workers pieces) |
+| child process so unmapping happens after the answer is out | `spawnWorker` | have the equivalent: `exit(0)` skips munmap and drops |
+| name hash from first 16 bytes, branchless short/long name, masks from tables | yes | rejected: collisions (we hash every byte, compare hashes only) |
+| 8-byte delimiter search by SWAR | yes | we use SSE2 64-byte masks |
+| branchless number parse | yes | have SWAR `number` |
+| **three independent cursors per thread, one segment split in 3, stepped in lockstep** | yes, explicit credit to cutting stalls | **new, untested** |
+
+The one new idea is interleaving: each thread parses three disjoint pieces of its segment in the same loop
+iteration so independent dependency chains overlap (loads, hash multiply, table lookup). Our parse runs at
+IPC 1.86 with ~265 instr/record, so there is headroom on paper. Costs: three newline-mask states instead of
+one, more registers, roughly +20 source lines; gain unmeasured, estimate 5-15% of the parse phase
+(parse is 64% of T). Not started; needs a prototype and an instruction/IPC measurement on rl-lyceum before
+any claim.

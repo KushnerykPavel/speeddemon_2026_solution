@@ -79,3 +79,35 @@ length or returns it (the `found != digits` check is gone); `match digits` becam
 Rejected: dropping `release`/`kept`/`finished` (about -22 lines, roughly +0.3 pt) raised M from 19.6 to
 23.5 MB on the VPS (about -0.8 pt), so it is a net loss. Other candidates are worth under 0.15 pt each
 (about 0.014 pt per line): `push_number` -> `write!` (slower text phase), tail copy -> padded mapping (-7 lines, riskier).
+
+## Three-cursor interleaving, 1BRC style (rejected)
+
+Prototype: `scan` splits its piece into 3 sub-pieces (`line_chunks`), each with its own `Cursor`
+(position, newline mask, cached hour); one loop iteration parses a line from each (`Cursor::line`, returns a
+small `Line` struct) and then hashes/looks up/files the three (`State::finish`).
+Correctness: 7 tests pass; all 9 datasets byte-identical at 1/3/12 threads (full seed 1 sha256 `495ca09682b9...`).
+Full run, 1 thread, rl-lyceum `perf stat`, baseline `5878e1d` vs prototype:
+
+| | instructions | task-clock |
+|---|---:|---:|
+| baseline | 1,277.7 M | 177 ms |
+| 3 cursors | 1,459.1-1,459.6 M (+14%) | 191.6 / 195.3 ms (+8..10%) |
+
+Instructions grew from `Line` passing and the extra cursor state (spills), and wall time did not
+improve; at ~265 instructions per record one line already fills most of the out-of-order window, so
+batching three lines in source order does not make the CPU overlap them. Java's JIT/Graal gain does
+not carry over. Not pushed; the patch was dropped with the branch. Third inconclusive/negative local
+experiment in a row (loops, S trim, interleaving): per `AGENTS.md` the next step is fresh independent
+research, not another local tweak.
+
+## AVX2 + target-cpu=haswell (accepted candidate, not yet on the board)
+
+Dockerfile builds with `RUSTFLAGS="-C target-cpu=haswell"`; `newlines` uses two 32-byte AVX2 compares when
+`target_feature = "avx2"` is on, else the SSE2 path (and a scalar path off x86), so the source still builds
+and passes tests everywhere (macOS tests use the fallback). No runtime dispatch: the binary needs AVX2/BMI2
+(any x86 since 2013); a CPU without them would die with SIGILL.
+rl-lyceum `perf stat`, full seed 1, 1 thread (baseline `5878e1d` = 1,256.0 M instr, 179 ms):
+flags only 1,223.4 M (-2.6%), 177-186 ms; flags + AVX2 newlines 1,206.0 M (-4.0%), 168.6 / 170.7 ms (-5%).
+VPS docker A/B (2x9 runs): 0.0871 / 0.0823 s vs 0.1003 / 0.0818 s, within noise; M 19.4-19.5 vs 19.2-19.3 MB.
+Output byte-identical: full seed 1 (9 VPS runs), edge-cases, sample-seed7, tiny-seed42, empty; 7 unit tests pass.
+Expected board effect about +0.3..0.5 pt (estimate).
