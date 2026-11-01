@@ -18,6 +18,10 @@ Every step from the reference to your final version, each with the live-board ru
 | 11 | Newline-first SSE2 parse, hour run cache, parallel input unmapping, 2-digit numbers (`fbc79ec`) | run-3b925c36564d | 0.040816 | 30.248960 | 73.740362 |
 | 12 | `madvise(MADV_DONTNEED)` instead of `munmap` for parsed input pages (`8188235`) | run-220bc44d8e29 | 0.039775 | 30.396416 | 73.999749 |
 | 13 | Shared lock-free endpoint table, 4-byte records filed per hour in blocks released as hours finish, output formatted straight into the mapped file (`ea2ee34`) | run-7ad2f004409d | 0.034436 | 20.516864 | 77.236072 |
+| 14 | `number()` takes the known digit count; S 550 → 544 (`5878e1d`) | Not in public history | 0.034197 | 20.942848 | 77.258170 |
+| 15 | AVX2 newline scan and `target-cpu=haswell` build; S 554 (`6d5802b`) | Not in public history | 0.031695 | 20.561920 | 78.103491 |
+| 16 | Rely on the spec's well-formed input: per-line validation removed; S 521 (`807ceec`) | run-90ca2d3d0a71 | 0.029539 | 20.766720 | 79.025363 |
+| 16 (re-sample) | Same code, rebuilt by a Track D record-only push (`d6900d5`); best of 5 board runs of this code, which average 0.0320 ± 0.0034 s and 78.21 ± 1.20 points | run-fd8ba455984c | 0.029442 | 20.619264 | **79.092022** |
 
 Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
@@ -30,9 +34,10 @@ in a saved or current full feed; none are inferred.
 Raw evidence, all 18 attempts (including unchanged-track reruns), sources and
 provenance: [board results](../tests/performance/2026-10-31-board-results/README.md).
 
-Current best: step 5, **0.876075 s / 35.188736 MB / 43.339268 points**.
-Latest rerun of the same Track A source at `b8e5bc1`: 0.906580 s / 35.127296 MB /
-42.975236 points, `run-b6806a903087`; this is not a new A optimization.
+Current best (feed 2026-11-01 16:50 UTC): step 16 code, `run-fd8ba455984c`,
+**0.029442 s / 20.619264 MB / S 521 / 79.092022 points**, rank 39 of 126. Five board runs of that
+code span 0.0294–0.0363 s (CV 10.7%), so single runs cannot resolve changes below about 20%.
+The paragraph below describes the first day's steps.
 Step 3 reduced time 13.67% and added 1.902348 points versus step 2. Step 4
 increased time 2.25% and lost 1.711389 points versus step 3, despite lower memory.
 Step 5 reduced time 8.71% and added 2.167465 points versus step 4.
@@ -344,3 +349,35 @@ instructions (265 per record, IPC 1.86 in user mode), hour phase 0.36 G, text 0.
 parse-only run the kernel is about 18% of cycles (page-cache mapping and unmapping). S is 550
 formatted lines against Cache Me's 334; rustfmt's layout makes the same design about 1.5x as long
 as their C++ (their own Rust port counted 341 lines against 271).
+
+## Steps 14–16 — fewer lines, wider scans, no validation, 2026-11-01
+
+Measurement: `perf stat` instruction counts on rl-lyceum (one thread, full seed 1) decide; VPS wall time
+and single board runs are too noisy (board CV 10.7% for one binary). Output byte-identical on all 9 datasets
+at 1/3/12 threads for every kept step (full seed 1 SHA-256 `495ca09682b9…`).
+
+* **Step 14 (`5878e1d`).** `number()` gets the digit count it already knows: −6 source lines, board
+  S 550 → 544, 77.26 points.
+* **Step 15 (`6d5802b`).** Dockerfile builds with `-C target-cpu=haswell`; `newlines` uses two 32-byte AVX2
+  compares when AVX2 is on (SSE2 and scalar fallbacks remain). Instructions 1,256.0 M → 1,206.0 M (−4.0%),
+  169–171 ms vs 179 ms on one thread. Board 0.0342 → 0.0317 s, 78.10 points. Needs AVX2/BMI2 at run time
+  (any x86 since 2013); no runtime dispatch.
+* **Step 16 (`807ceec`).** Spec section 2 says a solution may assume well-formed input, so CR handling,
+  minimum line length, range checks, status and latency validation were removed; the slot-table bound and the
+  bounded digit loop stay for memory safety. Instructions −8.7% (1,205.4 M → 1,100.0 M), main.rs 546 → 513
+  counted lines, board S 521. Board 0.0295 s, 79.03 points; four later reruns of the same code
+  (0.0294–0.0363 s) are recorded above. Malformed input is now out of contract (wrong output or abort, no
+  out-of-bounds access).
+
+Rejected (details and raw numbers in [docs/track-a-research-2026-11-01.md](../docs/track-a-research-2026-11-01.md)
+and [reports/synthesis.md](../reports/synthesis.md)):
+* **Three-cursor interleaving** (1BRC style): +14% instructions, +8–10% time.
+* **Selection order** (p50 first, then p95/p99 above it): +0.1 to +1.1% instructions; the counting sort and
+  gather dominate the hour phase, not the selection.
+* **Fusing the hour and text phases:** −19 lines, time unchanged, but M +7.4 MB because output pages are charged
+  while records are still held.
+* **Zero-padded mapping instead of copying the tail** (local commit `539b15f`, not pushed): −5 lines, no
+  measurable time or memory change.
+
+Where the gap is: the top three teams run 0.016 s and 16–17 MB with S 315–371. Our run is about 2× slower
+with 1.4× the lines.
