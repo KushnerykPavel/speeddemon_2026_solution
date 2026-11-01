@@ -8,7 +8,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 1 | Rust: mmap, parallel chunked parsing, per-thread aggregates and name tables, bitset merge (`10cd331`) | run-9f6461f49b69 | 0.464127 | 98.603008 | 39.531957 |
 | 2 | One shared lock-free name table and per-group atomic bitsets; 4 KB pages (`prctl`) (`f04f17a`) | run-8e1b33711a41 | 0.109347 | 22.814720 | 60.968410 |
 | 3 | Dense name ids (half-size bitsets); the arena compares 8-byte words (`5105fc0`) | run-cf05c9b4105c | 0.109433 | 18.759680 | 61.801278 |
-| 4 | SWAR field scan; slot tag and span interleaved | pending | | | |
+| 4 | SWAR field scan; slot tag and span interleaved (`c1299a8`) | run-e9164c284dcd | 0.138005 | 19.054592 | 59.131135 |
 
 ## Step 1 — first Rust version, 2026-11-01
 
@@ -71,3 +71,6 @@ VPS, same protocol, alternating, 9 runs each, two rounds, full seed 1, all outpu
 
 About −7.5% time in both rounds, memory unchanged. Locally, output equals the reference on all 10 datasets at
 1/2/3/5/8/12 threads (60 runs). Raw numbers: `tests/performance/2026-11-01-join-swar/`.
+Board: `run-e9164c284dcd`, 0.138 s, 19.05 MB, S 394, 59.13 points (−2.67). This contradicts the VPS result.
+There is one board sample per version and the board's run-to-run noise on this track is unmeasured, so the
+same code is being resampled before deciding.
