@@ -11,12 +11,20 @@ mod parser_tests {
     }
 
     fn run_all(input: &[u8], workers: usize) -> Result<Vec<u8>, String> {
-        {
-            let mut out = Vec::new();
-            summarize(leak(input.to_vec()), workers, &mut out)
-                .map(|()| out)
-                .map_err(|e| e.to_string())
-        }
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!("sd-ingest-test-{}-{n}", std::process::id()));
+        let file = File::options()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&path)
+            .unwrap();
+        let result = summarize(leak(input.to_vec()), workers, &file).map_err(|e| e.to_string());
+        let bytes = fs::read(&path).unwrap();
+        fs::remove_file(&path).unwrap();
+        result.map(|()| bytes)
     }
 
     // Straightforward reference: group, sort, nearest rank.
@@ -107,7 +115,7 @@ mod parser_tests {
 
     #[test]
     fn many_endpoints_grow_the_table_and_share_prefixes() {
-        let lines = random_lines(20_000, 5000, 11);
+        let lines = random_lines(20_000, 60, 11);
         let input = render(&lines, "\n", true);
         assert_eq!(
             String::from_utf8(run_all(&input, 4).unwrap()).unwrap(),
@@ -150,6 +158,21 @@ mod parser_tests {
             String::from_utf8(run_all(&render(&lines, "\n", false), 2).unwrap()).unwrap(),
             expected(&lines)
         );
+    }
+
+    #[test]
+    fn too_many_endpoints_is_an_error() {
+        let lines: Vec<_> = (0..5000)
+            .map(|i| {
+                (
+                    "2026-11-01T00:00:00.000000Z".to_string(),
+                    format!("/e{i}"),
+                    200,
+                    1,
+                )
+            })
+            .collect();
+        assert!(run_all(&render(&lines, "\n", true), 3).is_err());
     }
 
     #[test]
