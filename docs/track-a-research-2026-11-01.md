@@ -61,3 +61,11 @@ four loads, compares and movemasks per probe, plus the slot indirection, against
 multiply-rotate steps. Cache Me's version uses 32-byte AVX2 compares (two per name) and their
 gain was against `memcmp`, not against a hash-only table. Reverted; the hash-only table with the
 full-byte hash stays (collision-free on 300 generator seeds).
+
+## Hour phase: plain loops instead of iterator chains (rejected, no effect)
+
+Replaced the `flat_map`/`chain` record iterator with a `visit` helper (nested `for` loops, closure inlined).
+Full run, 1 thread, rl-lyceum `perf stat`: 1,277,840,205 instructions (iterators) vs 1,277,696,543 (loops),
+task-clock 176.9 vs 177.7 ms. The compiler already produced the same loops; VPS wall A/B (2x9 runs each)
+was within noise (0.092/0.094 vs 0.087/0.099 s). Reverted. The ~117 instr/record in the hour phase is the
+counting sort and selection work itself, not iterator overhead.
