@@ -302,7 +302,7 @@ impl State {
 
 // The competition target and local development hosts use 64-bit Unix off_t.
 unsafe extern "C" {
-    fn munmap(address: *mut u8, length: usize) -> i32;
+    fn madvise(address: *mut u8, length: usize, advice: i32) -> i32;
     fn mmap(
         address: *mut u8,
         length: usize,
@@ -343,9 +343,10 @@ fn map_file(path: PathBuf) -> std::io::Result<&'static [u8]> {
     Ok(unsafe { std::slice::from_raw_parts(address, length) })
 }
 
-// Unmaps the whole pages inside the parsed chunk `data[start..end]`, keeping one page at
+// Drops the whole pages inside the parsed chunk `data[start..end]`, keeping one page at
 // each end because a neighbouring chunk's parser may read past its end. Doing it here, in
-// parallel, spares the kernel one serial teardown of the whole mapping at exit.
+// parallel, spares the kernel one serial teardown of the whole mapping at exit. (MADV_DONTNEED takes
+// the address-space lock shared, unlike munmap, so other threads' page faults go on.)
 fn release(data: &[u8], start: usize, end: usize) {
     const PAGE: usize = 16384; // a multiple of every supported page size
     let (from, to) = (
@@ -353,7 +354,7 @@ fn release(data: &[u8], start: usize, end: usize) {
         (end / PAGE).saturating_sub(1) * PAGE,
     );
     if to > from {
-        unsafe { munmap(data.as_ptr().add(from) as *mut u8, to - from) };
+        unsafe { madvise(data.as_ptr().add(from) as *mut u8, to - from, 4) };
     }
 }
 
