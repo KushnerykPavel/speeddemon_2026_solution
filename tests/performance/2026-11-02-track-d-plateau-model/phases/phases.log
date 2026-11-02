@@ -1,0 +1,199 @@
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02-phases:/work -e RUSTFLAGS=-C target-cpu=native -w /work/src/oursd rust:1-slim-trixie@sha25
+   Compiling traverse-baseline v0.1.0 (/work/src/oursd)
+    Finished `release` profile [optimized] target(s) in 8.59s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02-phases:/work -w /work/src/hvd gcc:15@sha256:eb5e64286ad47187b32bda75c6b6916166ecb41da56559
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02-phases:/work -w /work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 0 0.5635
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 0 0.3094
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 1 0.2848
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 1 0.4734
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 2 0.5531
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 2 0.2909
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 3 0.3204
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 3 0.5889
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 4 0.4973
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 4 0.3234
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 5 0.2929
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 5 0.5329
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 6 0.5584
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 6 0.2807
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 7 0.3461
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 7 0.5105
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 6 8 0.4932
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 8 0.3322
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 0 0.5311
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 0 0.3089
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 1 0.2961
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 1 0.5265
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 2 0.5077
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 2 0.3427
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 3 0.2737
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 3 0.4898
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 4 0.463
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 4 0.3235
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 5 0.3619
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 5 0.5077
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 6 0.5157
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 6 0.2982
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 7 0.3619
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 7 0.4849
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN oursd 12 8 0.5537
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 12 8 0.3084
+SUMMARY={
+ "oursd-6": {
+  "total_s_median": 0.521682252,
+  "last_mark_s_median": 0.5136955000000001,
+  "phases": {
+   "load": {
+    "wall_ms": 104.70100000000001,
+    "cpu_ms": 458.3935
+   },
+   "queries": {
+    "wall_ms": 0.49499999999999544,
+    "cpu_ms": 0.4559999999999842
+   },
+   "reorder": {
+    "wall_ms": 136.965,
+    "cpu_ms": 624.4185
+   },
+   "transpose": {
+    "wall_ms": 62.07699999999999,
+    "cpu_ms": 233.35149999999993
+   },
+   "search": {
+    "wall_ms": 195.541,
+    "cpu_ms": 1113.4205
+   },
+   "output": {
+    "wall_ms": 3.136,
+    "cpu_ms": 3.1599999999998296
+   }
+  }
+ },
+ "hvd-6": {
+  "total_s_median": 0.306659343,
+  "last_mark_s_median": 0.297854,
+  "phases": {
+   "parse": {
+    "wall_ms": 61.656000000000006,
+    "cpu_ms": 278.847
+   },
+   "rows": {
+    "wall_ms": 20.989,
+    "cpu_ms": 118.74549999999999
+   },
+   "forward": {
+    "wall_ms": 95.2495,
+    "cpu_ms": 439.85949999999997
+   },
+   "reverse": {
+    "wall_ms": 28.146500000000003,
+    "cpu_ms": 132.18300000000005
+   },
+   "search": {
+    "wall_ms": 94.00250000000001,
+    "cpu_ms": 526.6575
+   },
+   "output": {
+    "wall_ms": 0.5005000000000148,
+    "cpu_ms": 0.4235000000000211
+   }
+  }
+ },
+ "oursd-12": {
+  "total_s_median": 0.5076642815,
+  "last_mark_s_median": 0.498079,
+  "phases": {
+   "load": {
+    "wall_ms": 96.957,
+    "cpu_ms": 455.3465
+   },
+   "queries": {
+    "wall_ms": 0.40499999999999564,
+    "cpu_ms": 0.3800000000000192
+   },
+   "reorder": {
+    "wall_ms": 122.44050000000001,
+    "cpu_ms": 613.0645
+   },
+   "transpose": {
+    "wall_ms": 60.32349999999999,
+    "cpu_ms": 235.3535
+   },
+   "search": {
+    "wall_ms": 207.0825,
+    "cpu_ms": 1145.4035
+   },
+   "output": {
+    "wall_ms": 3.110500000000016,
+    "cpu_ms": 3.082500000000099
+   }
+  }
+ },
+ "hvd-12": {
+  "total_s_median": 0.315913285,
+  "last_mark_s_median": 0.3084625,
+  "phases": {
+   "parse": {
+    "wall_ms": 59.3535,
+    "cpu_ms": 267.557
+   },
+   "rows": {
+    "wall_ms": 22.596999999999998,
+    "cpu_ms": 118.07200000000003
+   },
+   "forward": {
+    "wall_ms": 99.9465,
+    "cpu_ms": 453.98550000000006
+   },
+   "reverse": {
+    "wall_ms": 27.1445,
+    "cpu_ms": 137.10300000000004
+   },
+   "search": {
+    "wall_ms": 95.82350000000001,
+    "cpu_ms": 554.0365
+   },
+   "output": {
+    "wall_ms": 0.43949999999998157,
+    "cpu_ms": 0.3684999999998828
+   }
+  }
+ }
+}

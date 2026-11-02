@@ -1,0 +1,50 @@
+{
+ "ours": {
+  "edge-cases": "2e9871bba1d5",
+  "full-seed1": "a23dbdf0a3e4",
+  "no-edges": "506e2bfd1165",
+  "no-queries": "e3b0c44298fc",
+  "sample-seed1": "a4c76ed030bc",
+  "sample-seed42": "e003ecd1553a",
+  "sample-seed7": "88bf36c94620",
+  "tiny-seed1": "ecaca77d3221",
+  "tiny-seed42": "fbfcc9488170",
+  "tiny-seed7": "70595ddd5a56"
+ },
+ "cacheme": {
+  "edge-cases": "2e9871bba1d5",
+  "full-seed1": "a23dbdf0a3e4",
+  "no-edges": "506e2bfd1165",
+  "no-queries": "e3b0c44298fc",
+  "sample-seed1": "a4c76ed030bc",
+  "sample-seed42": "e003ecd1553a",
+  "sample-seed7": "88bf36c94620",
+  "tiny-seed1": "ecaca77d3221",
+  "tiny-seed42": "fbfcc9488170",
+  "tiny-seed7": "70595ddd5a56"
+ },
+ "flyhigh": {
+  "edge-cases": "2e9871bba1d5",
+  "full-seed1": "a23dbdf0a3e4",
+  "no-edges": "506e2bfd1165",
+  "no-queries": "e3b0c44298fc",
+  "sample-seed1": "a4c76ed030bc",
+  "sample-seed42": "e003ecd1553a",
+  "sample-seed7": "88bf36c94620",
+  "tiny-seed1": "ecaca77d3221",
+  "tiny-seed42": "fbfcc9488170",
+  "tiny-seed7": "70595ddd5a56"
+ },
+ "hv": {
+  "edge-cases": "2e9871bba1d5",
+  "full-seed1": "a23dbdf0a3e4",
+  "no-edges": "506e2bfd1165",
+  "no-queries": "e3b0c44298fc",
+  "sample-seed1": "a4c76ed030bc",
+  "sample-seed42": "e003ecd1553a",
+  "sample-seed7": "88bf36c94620",
+  "tiny-seed1": "ecaca77d3221",
+  "tiny-seed42": "fbfcc9488170",
+  "tiny-seed7": "70595ddd5a56"
+ }
+}

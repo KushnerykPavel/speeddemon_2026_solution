@@ -1,0 +1,87 @@
+{
+  "cpuset": "0-5",
+  "rounds_excluding_warmup": 10,
+  "order": "alternating",
+  "thp": {
+    "enabled": "always [madvise] never",
+    "defrag": "always defer defer+madvise [madvise] never",
+    "kernel": "7.0.0-28-generic"
+  },
+  "method": "round 0 discarded; trimmed mean (drop min/max) of remaining rounds",
+  "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+  "results": {
+    "12": {
+      "before": {
+        "trimmed_mean_s": 0.496556944125,
+        "median_s": 0.4944176645,
+        "spread_percent": 14.26053330760022,
+        "user_s_median": 2.2437405,
+        "sys_s_median": 0.2507165,
+        "minflt_median": 48129.0,
+        "max_cgroup_peak_bytes": 78753792
+      },
+      "engine": {
+        "trimmed_mean_s": 0.437434945625,
+        "median_s": 0.4368490655,
+        "spread_percent": 20.954274477213364,
+        "user_s_median": 1.8933274999999998,
+        "sys_s_median": 0.260702,
+        "minflt_median": 50559.0,
+        "max_cgroup_peak_bytes": 89387008
+      },
+      "change_percent_trimmed_mean": -11.906388421207337,
+      "paired_change_percent_median": -11.864858424531171,
+      "paired_engine_faster_rounds": "10/10"
+    },
+    "6": {
+      "before": {
+        "trimmed_mean_s": 0.498602263625,
+        "median_s": 0.491573136,
+        "spread_percent": 20.614300253666883,
+        "user_s_median": 2.1528405,
+        "sys_s_median": 0.245048,
+        "minflt_median": 47306.0,
+        "max_cgroup_peak_bytes": 78012416
+      },
+      "engine": {
+        "trimmed_mean_s": 0.45919988362499997,
+        "median_s": 0.459035514,
+        "spread_percent": 19.338513002003044,
+        "user_s_median": 1.867426,
+        "sys_s_median": 0.248189,
+        "minflt_median": 48841.0,
+        "max_cgroup_peak_bytes": 78077952
+      },
+      "change_percent_trimmed_mean": -7.902567411854877,
+      "paired_change_percent_median": -10.641960078273721,
+      "paired_engine_faster_rounds": "8/10"
+    }
+  },
+  "diag": {
+    "diag-before": {
+      "expanded": [
+        0
+      ],
+      "search_cpu_s_median": 1.075918,
+      "load_s_median": 0.101365,
+      "reorder_s_median": 0.13685,
+      "transpose_s_median": 0.05599600000000002,
+      "search_s_median": 0.191708,
+      "total_s_median": 0.489786
+    },
+    "diag-engine": {
+      "expanded": [
+        7434931,
+        7434932,
+        7434934,
+        7434938
+      ],
+      "search_cpu_s_median": 0.8965050000000001,
+      "load_s_median": 0.102436,
+      "reorder_s_median": 0.125871,
+      "transpose_s_median": 0.058686000000000016,
+      "search_s_median": 0.15494399999999997,
+      "total_s_median": 0.448255
+    }
+  }
+}

@@ -1,0 +1,101 @@
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02-nb:/work -w /work/src/hvnb gcc:15@sha256:eb5e64286ad47187b32bda75c6b6916166ecb41da56559b8b
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02-nb:/work -w /work/src/hvd gcc:15@sha256:eb5e64286ad47187b32bda75c6b6916166ecb41da56559b8b0
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02-nb:/work -w /work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844f
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 0 0.3766
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 0 0.3105
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 1 0.3095
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 1 0.3481
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 2 0.3486
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 2 0.3231
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 3 0.3076
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 3 0.3496
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 4 0.3579
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 4 0.3195
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 5 0.2801
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 5 0.3446
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 6 0.3951
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 6 0.3754
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 7 0.2994
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 7 0.3564
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvnb 6 8 0.3462
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v
+RUN hvd 6 8 0.3482
+SUMMARY={
+ "hvnb-6": {
+  "total_s_median": 0.3490875405,
+  "last_mark_s_median": 0.339065,
+  "phases": {
+   "parse": {
+    "wall_ms": 64.5655,
+    "cpu_ms": 278.18350000000004
+   },
+   "rows": {
+    "wall_ms": 19.538499999999992,
+    "cpu_ms": 102.269
+   },
+   "forward": {
+    "wall_ms": 105.23949999999999,
+    "cpu_ms": 496.0494999999999
+   },
+   "reverse": {
+    "wall_ms": 36.26649999999999,
+    "cpu_ms": 173.06499999999997
+   },
+   "search": {
+    "wall_ms": 119.95850000000002,
+    "cpu_ms": 690.4085
+   },
+   "output": {
+    "wall_ms": 0.4664999999999808,
+    "cpu_ms": 0.4009999999999847
+   }
+  }
+ },
+ "hvd-6": {
+  "total_s_median": 0.314457966,
+  "last_mark_s_median": 0.3060155,
+  "phases": {
+   "parse": {
+    "wall_ms": 60.678,
+    "cpu_ms": 283.0095
+   },
+   "rows": {
+    "wall_ms": 23.123,
+    "cpu_ms": 116.65150000000001
+   },
+   "forward": {
+    "wall_ms": 94.086,
+    "cpu_ms": 448.75
+   },
+   "reverse": {
+    "wall_ms": 28.8645,
+    "cpu_ms": 141.37500000000009
+   },
+   "search": {
+    "wall_ms": 99.41699999999999,
+    "cpu_ms": 564.3969999999998
+   },
+   "output": {
+    "wall_ms": 0.5055000000000198,
+    "cpu_ms": 0.3940000000001165
+   }
+  }
+ }
+}

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/student/sd-calib-2026-11-02-phases/phases_nb.py", line 13, in <module>
+    for p in [root, *root.rglob('*')]: p.chmod(0o777)
+                                       ~~~~~~~^^^^^^^
+  File "/usr/lib/python3.14/pathlib/__init__.py", line 1028, in chmod
+    os.chmod(self, mode, follow_symlinks=follow_symlinks)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted: '/home/student/sd-calib-2026-11-02-phases/out/hvd-6/distances.txt'

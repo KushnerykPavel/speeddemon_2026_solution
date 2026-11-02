@@ -1,0 +1,342 @@
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02:/work -e RUSTFLAGS=-C target-cpu=native -w /work/src/ours rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --locked
+   Compiling traverse-baseline v0.1.0 (/work/src/ours)
+    Finished `release` profile [optimized] target(s) in 8.41s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02:/work -e RUSTFLAGS=-C target-cpu=native -w /work/src/flyhigh rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline
+   Compiling solution v0.1.0 (/work/src/flyhigh)
+    Finished `release` profile [optimized] target(s) in 8.79s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02:/work -e RUSTFLAGS=-C target-cpu=native -w /work/src/cacheme rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline
+   Compiling traverse v0.1.0 (/work/src/cacheme)
+    Finished `release` profile [optimized] target(s) in 8.04s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02:/work -w /work/src/hv gcc:15@sha256:eb5e64286ad47187b32bda75c6b6916166ecb41da56559b8b09e0001748d2cce g++ -O3 -std=c++17 -pthread -flto -static -s -o traverse d_traverse.cpp
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02:/work -w /work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc --edition=2024 -O measure.rs -o measure
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02:/work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc -Vv
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -v /home/student/sd-calib-2026-11-02:/work gcc:15@sha256:eb5e64286ad47187b32bda75c6b6916166ecb41da56559b8b09e0001748d2cce g++ --version
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+CORRECT={"ours": {"edge-cases": "2e9871bba1d5", "full-seed1": "a23dbdf0a3e4", "no-edges": "506e2bfd1165", "no-queries": "e3b0c44298fc", "sample-seed1": "a4c76ed030bc", "sample-seed42": "e003ecd1553a", "sample-seed7": "88bf36c94620", "tiny-seed1": "ecaca77d3221", "tiny-seed42": "fbfcc9488170", "tiny-seed7": "70595ddd5a56"}, "cacheme": {"edge-cases": "2e9871bba1d5", "full-seed1": "a23dbdf0a3e4", "no-edges": "506e2bfd1165", "no-queries": "e3b0c44298fc", "sample-seed1": "a4c76ed030bc", "sample-seed42": "e003ecd1553a", "sample-seed7": "88bf36c94620", "tiny-seed1": "ecaca77d3221", "tiny-seed42": "fbfcc9488170", "tiny-seed7": "70595ddd5a56"}, "flyhigh": {"edge-cases": "2e9871bba1d5", "full-seed1": "a23dbdf0a3e4", "no-edges": "506e2bfd1165", "no-queries": "e3b0c44298fc", "sample-seed1": "a4c76ed030bc", "sample-seed42": "e003ecd1553a", "sample-seed7": "88bf36c94620", "tiny-seed1": "ecaca77d3221", "tiny-seed42": "fbfcc9488170", "tiny-seed7": "70595ddd5a56"}, "hv": {"edge-cases": "2e9871bba1d5", "full-seed1": "a23dbdf0a3e4", "no-edges": "506e2bfd1165", "no-queries": "e3b0c44298fc", "sample-seed1": "a4c76ed030bc", "sample-seed42": "e003ecd1553a", "sample-seed7": "88bf36c94620", "tiny-seed1": "ecaca77d3221", "tiny-seed42": "fbfcc9488170", "tiny-seed7": "70595ddd5a56"}}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=0 0.4780
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=0 0.4527
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=0 0.4611
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=0 0.3080
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=1 0.5371
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=1 0.3359
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=1 0.4313
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=1 0.4391
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=2 0.3579
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=2 0.3103
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=2 0.5061
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=2 0.4290
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=3 0.4244
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=3 0.4257
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=3 0.4832
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=3 0.2968
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=4 0.4935
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=4 0.4483
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=4 0.4441
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=4 0.3088
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=5 0.4721
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=5 0.2725
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=5 0.4457
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=5 0.4137
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=6 0.4342
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=6 0.3612
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=6 0.4633
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=6 0.3673
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=7 0.4168
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=7 0.4059
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=7 0.5163
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=7 0.2962
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=8 0.4747
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=8 0.4111
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=8 0.4531
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=8 0.3081
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=9 0.4762
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=9 0.3053
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=9 0.4475
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=9 0.4144
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN flyhigh w=12 r=10 0.3946
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN hv w=12 r=10 0.3142
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN ours w=12 r=10 0.5285
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=12 -v /home/student/speed-demon-2026/data/rus
+RUN cacheme w=12 r=10 0.4152
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=0 0.4230
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=0 0.3753
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=0 0.3883
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=0 0.2979
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=1 0.4674
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=1 0.2781
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=1 0.3343
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=1 0.4434
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=2 0.4182
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=2 0.3245
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=2 0.5005
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=2 0.3792
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=3 0.4634
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=3 0.4258
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=3 0.5170
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=3 0.2984
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=4 0.5090
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=4 0.4441
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=4 0.4078
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=4 0.3051
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=5 0.5104
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=5 0.2616
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=5 0.4683
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=5 0.3961
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=6 0.3627
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=6 0.2898
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=6 0.4929
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=6 0.4753
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=7 0.4383
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=7 0.3661
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=7 0.4815
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=7 0.2970
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=8 0.5843
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=8 0.3938
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=8 0.4123
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=8 0.2708
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=9 0.4993
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=9 0.2675
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=9 0.4196
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=9 0.4059
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN flyhigh w=6 r=10 0.3793
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN hv w=6 r=10 0.3119
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN ours w=6 r=10 0.5214
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-calib-2026-11-02:/work -e SD_THREADS=6 -v /home/student/speed-demon-2026/data/rust
+RUN cacheme w=6 r=10 0.4038
+SUMMARY={
+ "cpuset": "0-5",
+ "rounds_excluding_warmup": 10,
+ "board_best_or_mean_s": {
+  "ours": 0.1986,
+  "cacheme": 0.1677,
+  "flyhigh": 0.1507,
+  "hv": 0.1103
+ },
+ "results": {
+  "12": {
+   "ours": {
+    "trimmed_mean_s": 0.49382072175,
+    "median_s": 0.4883707055,
+    "spread_percent": 15.912146471813804,
+    "user_s_median": 2.1544175,
+    "sys_s_median": 0.25471849999999996,
+    "minflt_median": 48117.5,
+    "max_cgroup_peak_mb": 78.934016
+   },
+   "cacheme": {
+    "trimmed_mean_s": 0.41926637975,
+    "median_s": 0.4148038765,
+    "spread_percent": 22.04901015068814,
+    "user_s_median": 1.900109,
+    "sys_s_median": 0.171541,
+    "minflt_median": 36430.0,
+    "max_cgroup_peak_mb": 70.803456
+   },
+   "flyhigh": {
+    "trimmed_mean_s": 0.42982352687500003,
+    "median_s": 0.43273057400000003,
+    "spread_percent": 26.601691528542215,
+    "user_s_median": 1.9189720000000001,
+    "sys_s_median": 0.2584125,
+    "minflt_median": 55215.0,
+    "max_cgroup_peak_mb": 82.604032
+   },
+   "hv": {
+    "trimmed_mean_s": 0.30944736425,
+    "median_s": 0.3084421135,
+    "spread_percent": 32.514010126409175,
+    "user_s_median": 1.380547,
+    "sys_s_median": 0.19670749999999998,
+    "minflt_median": 42082.5,
+    "max_cgroup_peak_mb": 66.576384
+   },
+   "ratio_vs_ours_vps": {
+    "ours": 1.0,
+    "cacheme": 0.849025488975443,
+    "flyhigh": 0.8704039906462269,
+    "hv": 0.6266390830125184
+   },
+   "ratio_vs_ours_board": {
+    "ours": 1.0,
+    "cacheme": 0.8444108761329304,
+    "flyhigh": 0.7588116817724069,
+    "hv": 0.5553877139979859
+   }
+  },
+  "6": {
+   "ours": {
+    "trimmed_mean_s": 0.5039795615,
+    "median_s": 0.5047324375,
+    "spread_percent": 24.998454520163627,
+    "user_s_median": 2.2112559999999997,
+    "sys_s_median": 0.252217,
+    "minflt_median": 47262.0,
+    "max_cgroup_peak_mb": 78.524416
+   },
+   "cacheme": {
+    "trimmed_mean_s": 0.411521951875,
+    "median_s": 0.40485443200000004,
+    "spread_percent": 29.840409030473026,
+    "user_s_median": 1.8249885000000001,
+    "sys_s_median": 0.176894,
+    "minflt_median": 34916.0,
+    "max_cgroup_peak_mb": 64.7168
+   },
+   "flyhigh": {
+    "trimmed_mean_s": 0.41270557825,
+    "median_s": 0.415274248,
+    "spread_percent": 40.06583419354071,
+    "user_s_median": 1.8005165,
+    "sys_s_median": 0.2384285,
+    "minflt_median": 53555.5,
+    "max_cgroup_peak_mb": 81.801216
+   },
+   "hv": {
+    "trimmed_mean_s": 0.28983648775,
+    "median_s": 0.2934209845,
+    "spread_percent": 24.055358853292617,
+    "user_s_median": 1.278625,
+    "sys_s_median": 0.1686585,
+    "minflt_median": 39185.5,
+    "max_cgroup_peak_mb": 63.991808
+   },
+   "ratio_vs_ours_vps": {
+    "ours": 1.0,
+    "cacheme": 0.8165449222785596,
+    "flyhigh": 0.8188934825484981,
+    "hv": 0.5750957179441095
+   },
+   "ratio_vs_ours_board": {
+    "ours": 1.0,
+    "cacheme": 0.8444108761329304,
+    "flyhigh": 0.7588116817724069,
+    "hv": 0.5553877139979859
+   }
+  }
+ }
+}

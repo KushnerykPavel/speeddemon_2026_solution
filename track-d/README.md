@@ -37,14 +37,24 @@ at 12; `--threads N` overrides it):
 5. **Queries.** Workers claim queries from an atomic counter; answers are stored by index, so the output
    keeps input order. `s == t` returns 0. A source with no out-edge, or a target with no in-edge (an empty
    reverse row), returns `-1` without a search. Otherwise the search runs forward from `s` and backward from
-   `t`. It always grows the side with the smaller queue: choosing by the smaller key would let one side
-   flood the graph when the other side's first edge weighs close to 2^32. The best path length `μ` is
-   updated whenever an edge reaches a vertex the other side has labelled. The search stops once the two
-   queue minima sum to at least `μ`, or when a side is exhausted. Heaps hold one `u64` key, the distance
-   shifted above the vertex. Distances are `u32` in 1,024-vertex pages, assigned on first write and
-   recycled after each query, so worker memory follows the largest search. A relaxation that does not fit
-   `u32` is skipped. An answer below `u32::MAX` is still exact; otherwise the query reruns in one `u64`
-   search shared by all workers behind a mutex (4 of 2,000 seed-1 answers exceed `u32`).
+   `t`. Each step drains one distance bucket of the side that has expanded fewer vertices. A side queues
+   its labels in a ring of 2,048 buckets, each 128 units wide (keys beyond the ring wait in a small heap).
+   An entry is 4 bytes: the vertex, plus the low 7 bits of its distance. A drained bucket keeps at most
+   256 entries of capacity. A bucket is drained in insertion order, so the row and label of the entry
+   four places ahead are prefetched while the current one is expanded. Relaxation writes the label and
+   the queue entry without branching on whether the label improved. Inside a bucket a vertex can be
+   expanded before its final label. An improvement is queued again into the same bucket, so once a
+   bucket is drained every label below its end is final. The best path length `μ` is updated whenever
+   an edge reaches a vertex the other side has labelled. The search stops once the two sides' bucket
+   lower bounds sum to at least `μ`, or when a side is exhausted. Distances are `u32` in 1,024-vertex
+   pages, assigned on first write and recycled after each query, so worker memory follows the largest
+   search. Unassigned blocks read a shared blank page, so label reads never branch. A relaxation that
+   does not fit `u32` is skipped. An answer below `u32::MAX` is still exact. Otherwise the query reruns
+   as a one-way `u64` Dijkstra, one at a time behind a mutex; its zeroed label array is resident only
+   where the search goes. 4 of 2,000 seed-1 answers exceed `u32`. Graphs above 2^25 vertices are
+   rejected (the spec's graph has 1,740,512). Idea credit: HighVelocity's public Track D search (MIT).
+   We measured its bucket drain and prefetch on our VPS before writing this implementation
+   (PERF steps 29–30).
 
 Memory: on Linux the process asks for 4 KB pages (`prctl(PR_SET_THP_DISABLE)`), because the reserved and
 paged buffers are touched sparsely. With 2 MB pages one touched byte commits 2 MB, and the board measured

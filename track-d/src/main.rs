@@ -40,7 +40,8 @@ struct Packing {
 impl Packing {
     fn for_nodes(nodes: usize) -> io::Result<Self> {
         let head_bits = (usize::BITS - nodes.saturating_sub(1).leading_zeros()).max(1);
-        if head_bits >= 32 {
+        // A queued search entry holds a vertex and `WIDTH_BITS` more bits.
+        if head_bits > 32 - WIDTH_BITS {
             return Err(invalid("too many vertices"));
         }
         Ok(Self { head_bits })
@@ -562,200 +563,252 @@ fn transpose(graph: &Graph, workers: usize) -> Graph {
     Graph::new(offsets, edges, heavy, graph.packing)
 }
 
-/// Distance width used by one Dijkstra run; `MAX` marks unvisited vertices.
-trait Distance: Copy + Ord + Default + Into<u64> {
-    const MAX: Self;
-    /// Heap key ordered like `(distance, node)`.
-    type Key: Copy + Ord;
-    /// Adds an edge weight, or returns `None` if the sum does not fit below `MAX`.
-    fn relax(self, weight: u32) -> Option<Self>;
-    fn key(self, node: u32) -> Self::Key;
-    fn unkey(key: Self::Key) -> (Self, u32);
-}
-
-impl Distance for u32 {
-    const MAX: Self = u32::MAX;
-    /// Distance in the high half, node in the low half: one comparison per sift.
-    type Key = u64;
-    fn relax(self, weight: u32) -> Option<Self> {
-        self.checked_add(weight).filter(|&sum| sum != u32::MAX)
-    }
-    fn key(self, node: u32) -> u64 {
-        u64::from(self) << 32 | u64::from(node)
-    }
-    fn unkey(key: u64) -> (Self, u32) {
-        ((key >> 32) as u32, key as u32)
-    }
-}
-
-impl Distance for u64 {
-    const MAX: Self = u64::MAX;
-    type Key = (u64, u32);
-    fn relax(self, weight: u32) -> Option<Self> {
-        // Paths have fewer than 2^31 edges below 2^32 each, so sums stay below 2^63.
-        Some(self + u64::from(weight))
-    }
-    fn key(self, node: u32) -> (u64, u32) {
-        (self, node)
-    }
-    fn unkey(key: (u64, u32)) -> (Self, u32) {
-        key
-    }
-}
-
-/// Vertices per distance page (4 KB of `u32`). Renumbered searches are local,
-/// so a query touches few pages.
+/// Vertices per label page (4 KB of `u32`). Renumbered searches are local, so a
+/// query touches few pages.
 const PAGE: usize = 1 << 10;
-const NO_PAGE: u32 = u32::MAX;
 
-/// One direction of a bidirectional search. Distances live in pages that are
-/// assigned on first write and returned after each query, so memory follows
-/// the largest search instead of the vertex count.
-struct Side<D: Distance> {
+/// `u32` distance labels in pages assigned on first write and recycled after each
+/// query, so memory follows the largest search instead of the vertex count. Page
+/// 0 stays blank (all `MAX`) and every unassigned block points at it, so reads
+/// never branch.
+struct Labels {
     page_of_block: Vec<u32>,
-    pages: Vec<D>,
+    pages: Vec<u32>,
     used_blocks: Vec<u32>,
-    heap: BinaryHeap<Reverse<D::Key>>,
 }
 
-impl<D: Distance> Side<D> {
+impl Labels {
     fn new(nodes: usize) -> Self {
-        let page_of_block = vec![NO_PAGE; nodes.div_ceil(PAGE)];
         Self {
-            page_of_block,
-            pages: Vec::new(),
+            page_of_block: vec![0; nodes.div_ceil(PAGE)],
+            pages: vec![u32::MAX; PAGE],
             used_blocks: Vec::new(),
-            heap: BinaryHeap::new(),
         }
     }
 
-    fn distance(&self, node: u32) -> D {
-        match self.page_of_block[node as usize / PAGE] {
-            NO_PAGE => D::MAX,
-            page => self.pages[page as usize * PAGE + node as usize % PAGE],
-        }
+    fn index(&self, node: u32) -> usize {
+        self.page_of_block[node as usize / PAGE] as usize * PAGE + node as usize % PAGE
     }
 
-    fn reach(&mut self, node: u32, distance: D) {
+    fn get(&self, node: u32) -> u32 {
+        self.pages[self.index(node)]
+    }
+
+    /// The writable label of `node`, assigning its page first if needed.
+    fn slot(&mut self, node: u32) -> &mut u32 {
         let block = node as usize / PAGE;
-        if self.page_of_block[block] == NO_PAGE {
-            self.page_of_block[block] = self.used_blocks.len() as u32;
+        if self.page_of_block[block] == 0 {
             self.used_blocks.push(block as u32);
-            self.pages
-                .resize(self.pages.len().max(self.used_blocks.len() * PAGE), D::MAX);
+            self.page_of_block[block] = self.used_blocks.len() as u32;
+            let len = (self.used_blocks.len() + 1) * PAGE;
+            self.pages.resize(self.pages.len().max(len), u32::MAX);
         }
-        self.pages[self.page_of_block[block] as usize * PAGE + node as usize % PAGE] = distance;
-        self.heap.push(Reverse(distance.key(node)));
+        let index = self.index(node);
+        &mut self.pages[index]
     }
 
-    /// Smallest queued key; a stale key is still a valid lower bound.
-    fn top(&self) -> Option<u64> {
-        self.heap.peek().map(|&Reverse(key)| D::unkey(key).0.into())
-    }
-
-    /// Settles the next vertex and relaxes its edges in `graph`. Returns the
-    /// shortest path length through any edge that reaches a vertex `other` has
-    /// already labelled. Sums that do not fit `D` are skipped and flagged.
-    fn settle_next(&mut self, graph: &Graph, other: &Self, overflowed: &mut bool) -> u64 {
-        let Some(Reverse(key)) = self.heap.pop() else {
-            return u64::MAX;
-        };
-        let (distance, node) = D::unkey(key);
-        if distance > self.distance(node) {
-            return u64::MAX;
-        }
-        if let Some(&Reverse(next)) = self.heap.peek() {
-            graph.prefetch_row(D::unkey(next).1 as usize);
-        }
-        let mut meeting = u64::MAX;
-        for (next, weight) in graph.row(node as usize) {
-            let Some(candidate) = distance.relax(weight) else {
-                *overflowed = true;
-                continue;
-            };
-            let across = other.distance(next);
-            if across != D::MAX {
-                meeting = meeting.min(candidate.into() + across.into());
-            }
-            if candidate < self.distance(next) {
-                self.reach(next, candidate);
-            }
-        }
-        meeting
-    }
-
-    /// Clears the pages this query used and makes them available again.
     fn reset(&mut self) {
         for (page, &block) in self.used_blocks.iter().enumerate() {
-            self.page_of_block[block as usize] = NO_PAGE;
-            self.pages[page * PAGE..(page + 1) * PAGE].fill(D::MAX);
+            self.page_of_block[block as usize] = 0;
+            self.pages[(page + 1) * PAGE..(page + 2) * PAGE].fill(u32::MAX);
         }
         self.used_blocks.clear();
-        self.heap.clear();
     }
 }
 
-/// Bidirectional Dijkstra: forward from the source over `forward`, backward
-/// from the target over the reverse graph. Each step grows the side with the
-/// smaller queue, so a side that is about to run out (an island, a dead end)
-/// finishes first instead of letting the other side flood the graph.
-struct Search<D: Distance> {
-    forward: Side<D>,
-    backward: Side<D>,
+/// Bucket width (`2^WIDTH_BITS` distance units) and ring size of a `Ring`.
+const WIDTH_BITS: u32 = 7;
+const BUCKETS: usize = 1 << 11;
+/// Capacity a drained bucket keeps, so idle buckets hold little memory.
+const RETAIN: usize = 1 << 8;
+/// How many queued vertices ahead of the one being expanded get prefetched.
+const LOOKAHEAD: usize = 4;
+
+/// One direction of the `u32` search. Queued entries sit in a ring of distance
+/// buckets; keys beyond the ring wait in `far`. An entry is the vertex in the low
+/// `node_bits` with the low `WIDTH_BITS` of its distance above; its bucket gives
+/// the rest. A bucket is drained in insertion order, which lets the next few rows
+/// be prefetched. Inside a bucket a vertex may be expanded before its final
+/// label; an improvement is queued again into the same bucket, so once a bucket
+/// is drained every label below its end is final.
+struct Ring {
+    labels: Labels,
+    buckets: Vec<Vec<u32>>,
+    occupied: [u64; BUCKETS / 64],
+    near: usize,
+    far: BinaryHeap<Reverse<u64>>,
+    /// Bucket number (distance >> WIDTH_BITS) of the bucket being drained.
+    current: u32,
+    expanded: usize,
+    node_bits: u32,
+}
+
+impl Ring {
+    fn new(nodes: usize, node_bits: u32) -> Self {
+        Self {
+            labels: Labels::new(nodes),
+            buckets: (0..BUCKETS).map(|_| Vec::new()).collect(),
+            occupied: [0; BUCKETS / 64],
+            near: 0,
+            far: BinaryHeap::new(),
+            current: 0,
+            expanded: 0,
+            node_bits,
+        }
+    }
+
+    fn start(&mut self, node: u32) {
+        self.labels.reset();
+        for (word, bits) in self.occupied.iter_mut().enumerate() {
+            while *bits != 0 {
+                self.buckets[word * 64 + bits.trailing_zeros() as usize].clear();
+                *bits &= *bits - 1;
+            }
+        }
+        self.far.clear();
+        (self.near, self.current, self.expanded) = (0, 0, 0);
+        *self.labels.slot(node) = 0;
+        self.push(0, node, true);
+    }
+
+    /// Queues `node` at `distance` if `take`; the entry write itself is unconditional.
+    fn push(&mut self, distance: u32, node: u32, take: bool) {
+        if ((distance >> WIDTH_BITS) - self.current) as usize >= BUCKETS {
+            if take {
+                self.far.push(Reverse(u64::from(distance) << 32 | u64::from(node)));
+            }
+            return;
+        }
+        let index = (distance >> WIDTH_BITS) as usize % BUCKETS;
+        let entry = node | (distance % (1 << WIDTH_BITS)) << self.node_bits;
+        let bucket = &mut self.buckets[index];
+        bucket.reserve(1);
+        // SAFETY: `reserve` made room for one more entry; the length grows only
+        // when `take`, so an untaken entry stays outside the vector.
+        unsafe {
+            bucket.as_mut_ptr().add(bucket.len()).write(entry);
+            bucket.set_len(bucket.len() + usize::from(take));
+        }
+        self.occupied[index / 64] |= u64::from(take) << (index % 64);
+        self.near += usize::from(take);
+    }
+
+    /// Moves to the first nonempty bucket and returns the smallest distance it
+    /// can hold, or `None` when nothing is queued.
+    fn lower_bound(&mut self) -> Option<u32> {
+        if self.near == 0 {
+            let &Reverse(key) = self.far.peek()?;
+            self.current = (key >> 32) as u32 >> WIDTH_BITS;
+        } else {
+            let start = self.current as usize % BUCKETS;
+            let mut word = start / 64;
+            let mut bits = self.occupied[word] & (u64::MAX << (start % 64));
+            while bits == 0 {
+                word = (word + 1) % (BUCKETS / 64);
+                bits = self.occupied[word];
+            }
+            let index = word * 64 + bits.trailing_zeros() as usize;
+            self.current += (index.wrapping_sub(start) % BUCKETS) as u32;
+        }
+        while let Some(&Reverse(key)) = self.far.peek() {
+            let distance = (key >> 32) as u32;
+            if ((distance >> WIDTH_BITS) - self.current) as usize >= BUCKETS {
+                break;
+            }
+            self.far.pop();
+            self.push(distance, key as u32, true);
+        }
+        Some(self.current << WIDTH_BITS)
+    }
+
+    /// Expands every entry of the current bucket, including entries queued into
+    /// it meanwhile. `best` takes every path through an edge that reaches a vertex
+    /// `other` has labelled. Sums that do not fit `u32` are skipped and flagged.
+    fn drain(&mut self, graph: &Graph, other: &Labels, best: &mut u64, overflowed: &mut bool) {
+        let index = self.current as usize % BUCKETS;
+        let (base, mask) = (self.current << WIDTH_BITS, (1 << self.node_bits) - 1);
+        let mut k = 0;
+        while let Some(&entry) = self.buckets[index].get(k) {
+            if let Some(&ahead) = self.buckets[index].get(k + LOOKAHEAD) {
+                graph.prefetch_row((ahead & mask) as usize);
+                prefetch(&self.labels.pages[self.labels.index(ahead & mask)]);
+            }
+            k += 1;
+            let (node, distance) = (entry & mask, base | entry >> self.node_bits);
+            if self.labels.get(node) != distance {
+                continue;
+            }
+            self.expanded += 1;
+            for (next, weight) in graph.row(node as usize) {
+                let Some(candidate) = distance.checked_add(weight).filter(|&sum| sum != u32::MAX)
+                else {
+                    *overflowed = true;
+                    continue;
+                };
+                let across = other.get(next);
+                let through = u64::from(candidate) + u64::from(across);
+                *best = (*best).min(if across == u32::MAX { u64::MAX } else { through });
+                let label = self.labels.slot(next);
+                let take = candidate < *label;
+                *label = if take { candidate } else { *label };
+                self.push(candidate, next, take);
+            }
+        }
+        self.near -= k;
+        let bucket = &mut self.buckets[index];
+        bucket.clear();
+        bucket.shrink_to(RETAIN);
+        self.occupied[index / 64] &= !(1 << (index % 64));
+    }
+}
+
+/// Bidirectional `u32` search: forward from the source over `forward`, backward
+/// from the target over the reverse graph. Each step drains one bucket of the
+/// side that has expanded fewer vertices.
+struct Search {
+    forward: Ring,
+    backward: Ring,
     overflowed: bool,
 }
 
-/// `u64` search shared by all workers, allocated on the first query whose answer
-/// may not fit in `u32`. One lock-protected instance keeps memory at one array.
-type WideSearch = Mutex<Option<Search<u64>>>;
-
-impl<D: Distance> Search<D> {
-    fn new(nodes: usize) -> Self {
+impl Search {
+    fn new(nodes: usize, node_bits: u32) -> Self {
         Self {
-            forward: Side::new(nodes),
-            backward: Side::new(nodes),
+            forward: Ring::new(nodes, node_bits),
+            backward: Ring::new(nodes, node_bits),
             overflowed: false,
         }
     }
 
-    /// Stops when the two queue minima sum to at least the best path seen, or a
-    /// side runs out (then every path has been seen). A path shorter than
-    /// `D::MAX` is exact even if larger sums were skipped: all its prefixes and
-    /// suffixes fit. Otherwise `overflowed` tells the caller to widen.
+    /// Stops when the two lower bounds sum to at least the best path seen, or a
+    /// side runs out (then every path has been seen). Drained buckets hold every
+    /// vertex closer than the bound, so the usual bidirectional argument holds.
+    /// A path shorter than `u32::MAX` is exact even if larger sums were skipped.
     fn run(&mut self, [forward, backward]: [&Graph; 2], source: u32, target: u32) -> Option<u64> {
         self.overflowed = false;
-        self.forward.reach(source, D::default());
-        self.backward.reach(target, D::default());
+        self.forward.start(source);
+        self.backward.start(target);
         let mut best = u64::MAX;
-        while let (Some(ahead), Some(behind)) = (self.forward.top(), self.backward.top()) {
-            if ahead + behind >= best {
+        while let (Some(ahead), Some(behind)) =
+            (self.forward.lower_bound(), self.backward.lower_bound())
+        {
+            if u64::from(ahead) + u64::from(behind) >= best {
                 break;
             }
-            let meeting = if self.forward.heap.len() <= self.backward.heap.len() {
-                self.forward
-                    .settle_next(forward, &self.backward, &mut self.overflowed)
+            if self.forward.expanded <= self.backward.expanded {
+                let other = &self.backward.labels;
+                self.forward.drain(forward, other, &mut best, &mut self.overflowed);
             } else {
-                self.backward
-                    .settle_next(backward, &self.forward, &mut self.overflowed)
-            };
-            best = best.min(meeting);
+                let other = &self.forward.labels;
+                self.backward.drain(backward, other, &mut best, &mut self.overflowed);
+            }
         }
-        self.forward.reset();
-        self.backward.reset();
         (best != u64::MAX).then_some(best)
     }
-}
 
-impl Search<u32> {
-    /// Answers one query with this compact search, repeating it in the shared
-    /// `u64` search only when a sum overflowed and no shorter `u32` path exists.
-    fn shortest_path(
-        &mut self,
-        wide: &WideSearch,
-        graphs: [&Graph; 2],
-        source: usize,
-        target: usize,
-    ) -> Option<u64> {
+    /// Answers one query with this compact search, repeating it with `u64`
+    /// labels only when a sum overflowed and no shorter `u32` path exists.
+    fn shortest_path(&mut self, wide: &Mutex<()>, graphs: [&Graph; 2], source: usize, target: usize) -> Option<u64> {
         let [forward, backward] = graphs;
         if source == target {
             return Some(0);
@@ -768,22 +821,45 @@ impl Search<u32> {
         if !self.overflowed || found.is_some_and(|distance| distance < u32::MAX.into()) {
             return found;
         }
-        let nodes = forward.offsets.len() - 1;
-        wide.lock()
-            .unwrap()
-            .get_or_insert_with(|| Search::new(nodes))
-            .run(graphs, source, target)
+        let _one_at_a_time = wide.lock().unwrap();
+        wide_distance(forward, source, target)
     }
+}
+
+/// Exact `u64` Dijkstra from `source` until `target` is settled. Labels hold the
+/// distance plus one, so untouched (zeroed, never resident) pages mean unvisited.
+fn wide_distance(graph: &Graph, source: u32, target: u32) -> Option<u64> {
+    let mut labels = vec![0_u64; graph.offsets.len() - 1];
+    labels[source as usize] = 1;
+    let mut heap = BinaryHeap::from([Reverse((1, source))]);
+    while let Some(Reverse((label, node))) = heap.pop() {
+        if node == target {
+            return Some(label - 1);
+        }
+        if label > labels[node as usize] {
+            continue;
+        }
+        for (next, weight) in graph.row(node as usize) {
+            // Paths have fewer than 2^31 edges below 2^32 each, so sums stay below 2^63.
+            let candidate = label + u64::from(weight);
+            let known = &mut labels[next as usize];
+            if *known == 0 || candidate < *known {
+                *known = candidate;
+                heap.push(Reverse((candidate, next)));
+            }
+        }
+    }
+    None
 }
 
 fn answer_queries(graph: &Graph, queries: &[(usize, usize)], workers: usize) -> Vec<Option<u64>> {
     let graphs = [graph, &transpose(graph, workers)];
-    let (wide, next) = (Mutex::new(None), AtomicUsize::new(0));
+    let (wide, next) = (Mutex::new(()), AtomicUsize::new(0));
     let answers: Vec<_> = queries.iter().map(|_| AtomicU64::new(u64::MAX)).collect();
     thread::scope(|scope| {
         for _ in 0..workers.clamp(1, 12).min(queries.len()) {
             scope.spawn(|| {
-                let mut search = Search::new(graph.offsets.len() - 1);
+                let mut search = Search::new(graph.offsets.len() - 1, graph.packing.head_bits);
                 loop {
                     let index = next.fetch_add(1, Relaxed);
                     let Some(&(source, target)) = queries.get(index) else {

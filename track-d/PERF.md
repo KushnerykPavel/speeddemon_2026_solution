@@ -866,3 +866,44 @@ per edge (≈30 ms on the Mac at 12 threads, with CAS or `fetch_add` alike). A s
 renumbering costs 152 ms on the VPS (total 0.486 → 0.568 s, +17%). Evidence:
 [bypass](../tests/performance/2026-11-01-traverse-bypass/README.md).
 
+## Step 29 — proxy calibration against public competitor binaries (VPS measurement, no code change)
+
+Public MIT-licensed Track D solutions with known board times were built from their own Dockerfile flags and run
+with ours on the VPS (full seed 1, CPU set 0-5, rotating order, 10 rounds; all four byte-equal on ten datasets).
+At 6 workers the VPS time ratios to ours are Cache Me 0.82 (board 0.84), FlyHigh 0.82 (board 0.76) and HighVelocity
+0.58 (board 0.56). So the VPS does reproduce large code differences. The gap is user CPU (HighVelocity 1.28 vs our
+2.21 CPU-s), not sys time or faults. Phase diff against HighVelocity with its bypass off: search +76 ms, renumber
++32, reverse graph +26, load +20 (wall, 6 workers). Its search does the same work as ours (7.52M expansions vs our
+7.57M settles) at 84–92 ns of CPU per expansion against our 147 (97 ns with its 4-ahead prefetch off; 1.5–1.75×, across sessions). Its out-degree
+bypass is worth −10% of its total. No code change. Evidence:
+[plateau model](../tests/performance/2026-11-02-track-d-plateau-model/README.md).
+
+## Step 30 — bucket-ring search engine (VPS measurement, accepted on the VPS)
+
+Our own implementation of the per-expansion mechanisms measured in step 29 (idea credit: HighVelocity, MIT):
+- each side queues entries in a ring of 2,048 buckets, each 128 units wide, and drains a bucket in insertion
+  order, label-correcting inside it;
+- rows and labels are prefetched 4 entries ahead;
+- relaxation is branch-free and label reads go through a blank page;
+- the rare `u64` rerun is a compact one-way Dijkstra.
+
+Four versions were measured. The candidate (v3b) stores 4-byte entries (vertex plus the low 7 distance bits) and
+caps retained bucket capacity at 256. Same VPS protocol (10 alternating pairs, full seed 1):
+- 12 workers 0.4878 → 0.4452 s (−8.7%, 9/10 faster);
+- 6 workers 0.5043 → 0.4446 s (−11.8%, 10/10);
+- search CPU 1.03 → 0.73 s at equal work (7.43M expansions), 98 ns per expansion;
+- cgroup peak at 12 workers 79.4 → 82.1 MB; S 714 → 788.
+
+The earlier versions:
+- v1 was as fast but peaked at 89.4 MB, because every bucket kept its grown vector;
+- a chunk-arena v2 fixed the memory but lost most of the gain on Haswell (−4.1%).
+
+Correctness:
+- all-pairs reference test (400 random graphs, more than 1M pairs, weights covering ring wrap, the far heap and
+  near-2^32);
+- 204 Python cases × 6 thread settings;
+- ten datasets byte-equal;
+- seven mutants caught.
+
+Estimated board effect ≈ +0.7 points (estimate; not yet on the board). Evidence:
+[engine](../tests/performance/2026-11-02-track-d-engine/README.md).

@@ -1,0 +1,17 @@
+n 1740512 m 5000000 lines 5000000
+self-loops 508 directed lines after self-loop drop 4999492 distinct directed pairs 4993476 collapsed lines 6016
+directed pairs with reverse 0.9712 one-way pairs 144060
+unordered neighbour pairs 2568768 merged row entries 5137536 vs current fwd+rev entries 10000000
+per-row entry kinds: both-dir 4849416 out-only 144060 in-only 144060
+merged row length histogram (0..8): [17, 101147, 441141, 701013, 444748, 44695, 6491, 506, 676] max 10
+vertices with merged row length 2 and both dirs on both entries: 400452
+weights >= 2^10: 1.0398%
+weights >= 2^11: 0.0691%
+weights >= 2^12: 0.0010%
+weights >= 2^13: 0.0010%
+weights >= 2^14: 0.0010%
+weights >= 2^16: 0.0010%
+weights >= 2^20: 0.0010%
+weights >= 2^21: 0.0010%
+weight percentiles 50/90/99/99.9/99.99: [121.0, 182.0, 1048.0, 1949.0, 2471.0]
+head bits for n: 21

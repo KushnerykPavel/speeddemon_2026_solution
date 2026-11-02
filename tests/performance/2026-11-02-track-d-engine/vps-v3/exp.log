@@ -1,0 +1,211 @@
+THP={"enabled": "always [madvise] never", "defrag": "always defer defer+madvise [madvise] never", "kernel": "7.0.0-28-generic"}
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work -w /work/before rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --locke
+   Compiling traverse-baseline v0.1.0 (/work/before)
+    Finished `release` profile [optimized] target(s) in 7.97s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work -w /work/engine rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --locke
+   Compiling traverse-baseline v0.1.0 (/work/engine)
+    Finished `release` profile [optimized] target(s) in 8.12s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work -w /work/diag-before rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --
+   Compiling traverse-baseline v0.1.0 (/work/diag-before)
+    Finished `release` profile [optimized] target(s) in 8.46s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work -w /work/diag-engine rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb cargo build --release --offline --
+   Compiling traverse-baseline v0.1.0 (/work/diag-engine)
+    Finished `release` profile [optimized] target(s) in 9.00s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work -w /work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc --edition=2024 -O measure.rs -o measure
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc -Vv
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work -w /work/unit-engine rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc --edition=2024 --test -O eng
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work debian:13-slim@sha256:62bd423aeee912639ca8ee681c2b762cb
+UNIT engine: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.75s
+COMMAND=docker run --rm --network=none --user 1001:1001 -e CARGO_HOME=/tmp/cargo -e RUSTFLAGS=-C target-cpu=native -v /home/student/sd-engine-v3-2026-11-02:/work -w /work/unit-before rust:1-slim-trixie@sha256:1a939748a7cbab172de91a014e3804a97af1394a8c844faa67fce9401c4e40fb rustc --edition=2024 --test -O eng
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work debian:13-slim@sha256:62bd423aeee912639ca8ee681c2b762cb
+UNIT before: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.88s
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work python:3.13-slim@sha256:d98cc29d3266e535dd9da1099688d9c
+PYTHON before: {"python_byte_equal_cases": 204, "thread_counts": ["default", 1, 2, 4, 6, 12], "invalid_input_cases": 8, "invalid_thread_options": 3}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work python:3.13-slim@sha256:d98cc29d3266e535dd9da1099688d9c
+PYTHON engine: {"python_byte_equal_cases": 204, "thread_counts": ["default", 1, 2, 4, 6, 12], "invalid_input_cases": 8, "invalid_thread_options": 3}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL edge-cases 2e9871bba1d5
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL full-seed1 a23dbdf0a3e4
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL no-edges 506e2bfd1165
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL no-queries e3b0c44298fc
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL sample-seed1 a4c76ed030bc
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL sample-seed42 e003ecd1553a
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL sample-seed7 88bf36c94620
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL tiny-seed1 ecaca77d3221
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL tiny-seed42 fbfcc9488170
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+EQUAL tiny-seed7 70595ddd5a56
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-before expanded=0 marks={'load': 0.123449, 'queries': 0.12378, 'reorder': 0.269352, 'transpose': 0.335652, 'search': 0.539312, 'output': 0.542368}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-engine expanded=7434921 marks={'load': 0.099626, 'queries': 0.10065, 'reorder': 0.228437, 'transpose': 0.283894, 'search': 0.409303, 'output': 0.411584}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-engine expanded=7434925 marks={'load': 0.102729, 'queries': 0.10303, 'reorder': 0.240401, 'transpose': 0.302791, 'search': 0.444189, 'output': 0.446964}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-before expanded=0 marks={'load': 0.111966, 'queries': 0.112267, 'reorder': 0.229275, 'transpose': 0.282718, 'search': 0.470808, 'output': 0.473323}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-before expanded=0 marks={'load': 0.091303, 'queries': 0.091635, 'reorder': 0.235051, 'transpose': 0.304604, 'search': 0.502676, 'output': 0.506167}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-engine expanded=7434960 marks={'load': 0.104713, 'queries': 0.105143, 'reorder': 0.243384, 'transpose': 0.303242, 'search': 0.429409, 'output': 0.431598}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-engine expanded=7434951 marks={'load': 0.103954, 'queries': 0.104553, 'reorder': 0.229497, 'transpose': 0.283612, 'search': 0.411095, 'output': 0.41418}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-before expanded=0 marks={'load': 0.086574, 'queries': 0.086878, 'reorder': 0.215265, 'transpose': 0.276543, 'search': 0.475683, 'output': 0.479005}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-before expanded=0 marks={'load': 0.102268, 'queries': 0.102921, 'reorder': 0.220856, 'transpose': 0.277069, 'search': 0.479635, 'output': 0.482788}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-engine expanded=7434940 marks={'load': 0.093834, 'queries': 0.094206, 'reorder': 0.230211, 'transpose': 0.288885, 'search': 0.42314, 'output': 0.42631}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-engine expanded=7434927 marks={'load': 0.096163, 'queries': 0.09736, 'reorder': 0.220392, 'transpose': 0.279473, 'search': 0.417853, 'output': 0.422074}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+DIAG diag-before expanded=0 marks={'load': 0.091938, 'queries': 0.092774, 'reorder': 0.205759, 'transpose': 0.261377, 'search': 0.46385, 'output': 0.466918}
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+COMMAND=docker run --rm --network=none --read-only --cpuset-cpus=0-5 --memory=8g --memory-swap=8g --pids-limit=512 --cap-drop=ALL --security-opt=no-new-privileges --user 65534:65534 --tmpfs /tmp:rw,size=1g -v /home/student/sd-engine-v3-2026-11-02:/work -v /home/student/speed-demon-2026/data/rust-validation/
+SUMMARY={
+ "cpuset": "0-5",
+ "rounds_excluding_warmup": 10,
+ "order": "alternating",
+ "thp": {
+  "enabled": "always [madvise] never",
+  "defrag": "always defer defer+madvise [madvise] never",
+  "kernel": "7.0.0-28-generic"
+ },
+ "method": "round 0 discarded; trimmed mean (drop min/max) of remaining rounds",
+ "output_sha256": "a23dbdf0a3e49cc8901310a9ee1dc6a9a569a85297b6da75c2a7002cb2ed277e",
+ "results": {
+  "12": {
+   "before": {
+    "trimmed_mean_s": 0.487159670375,
+    "median_s": 0.490280144,
+    "spread_percent": 19.099997835971894,
+    "user_s_median": 2.193064,
+    "sys_s_median": 0.24743900000000002,
+    "minflt_median": 47978.5,
+    "max_cgroup_peak_bytes": 78962688
+   },
+   "engine": {
+    "trimmed_mean_s": 0.425001018,
+    "median_s": 0.4211947685,
+    "spread_percent": 30.04511004748651,
+    "user_s_median": 1.808028,
+    "sys_s_median": 0.26207400000000003,
+    "minflt_median": 48947.0,
+    "max_cgroup_peak_bytes": 82792448
+   },
+   "change_percent_trimmed_mean": -12.759400285978572,
+   "paired_change_percent_median": -14.374736897291758,
+   "paired_engine_faster_rounds": "10/10"
+  },
+  "6": {
+   "before": {
+    "trimmed_mean_s": 0.490782337875,
+    "median_s": 0.486520589,
+    "spread_percent": 11.141451672053492,
+    "user_s_median": 2.1066269999999996,
+    "sys_s_median": 0.2489425,
+    "minflt_median": 47251.0,
+    "max_cgroup_peak_bytes": 78127104
+   },
+   "engine": {
+    "trimmed_mean_s": 0.458133506375,
+    "median_s": 0.451230513,
+    "spread_percent": 40.83927047548981,
+    "user_s_median": 1.8223635,
+    "sys_s_median": 0.25693750000000004,
+    "minflt_median": 47911.0,
+    "max_cgroup_peak_bytes": 78151680
+   },
+   "change_percent_trimmed_mean": -6.6524055534197934,
+   "paired_change_percent_median": -6.60790608148999,
+   "paired_engine_faster_rounds": "9/10"
+  }
+ },
+ "diag": {
+  "diag-before": {
+   "expanded": [
+    0
+   ],
+   "search_cpu_s_median": 1.1431959999999999,
+   "load_s_median": 0.091938,
+   "reorder_s_median": 0.117935,
+   "transpose_s_median": 0.05621300000000001,
+   "search_s_median": 0.19914000000000004,
+   "total_s_median": 0.479005
+  },
+  "diag-engine": {
+   "expanded": [
+    7434925,
+    7434927,
+    7434940,
+    7434951,
+    7434960
+   ],
+   "search_cpu_s_median": 0.72664,
+   "load_s_median": 0.102729,
+   "reorder_s_median": 0.136005,
+   "transpose_s_median": 0.05908100000000002,
+   "search_s_median": 0.134255,
+   "total_s_median": 0.42631
+  }
+ }
+}
