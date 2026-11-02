@@ -30,7 +30,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 27 | Huge pages for the dense final graph arrays (`a86b62a`; mean of 3 samples 0.2145 s; reverted) | Not in public history | 0.196730 | 79.540224 | 65.385135 |
 | 21 (re-sample) | `21df4fd` code rebuilt by a Track A push (`14001f9`); 21 board runs of this binary to that point average 0.2069 ± 0.0069 s and 64.95 ± 0.35 points | run-8040ef5bc533 | 0.198594 | 79.650816 | 65.391789 |
 | 21 (re-sample) | Same `21df4fd` code after the step 27 revert, docs-only push (`b1926e0`); best board sample, not a new optimization | run-5857d62f5472 | 0.198704 | 79.192064 | **65.410862** |
-| 30 | Bucket-ring search engine with lookahead prefetch (`9d69ece`; first of a board resample) | run-b907b8e94554 | 0.180510 | 81.920000 | **65.989013** |
+| 30 | Bucket-ring search engine with lookahead prefetch (`9d69ece`; first of a board resample) | run-b907b8e94554 | 0.180510 | 81.920000 | 65.989013 |
+| 30 (re-sample) | Same engine code, record-only for Track D (`b56aebf`); mean of 2 samples 0.1766 s vs baseline mean 0.2069 s | run-d682888f6e1c | 0.172689 | 81.002496 | **66.518843** |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.
@@ -908,3 +909,7 @@ Correctness:
 
 Estimated board effect ≈ +0.7 points (estimate; not yet on the board). Evidence:
 [engine](../tests/performance/2026-11-02-track-d-engine/README.md).
+
+Board resample: run-b907b8e94554 (0.1805 s, 65.99) and run-d682888f6e1c (0.1727 s, 66.52). The mean is 0.1766 s,
+14.6% below the 21-run baseline mean, about 6 standard errors. Accepted on the board. Record:
+[engine board results](../tests/performance/2026-11-02-board-engine-results/README.md).

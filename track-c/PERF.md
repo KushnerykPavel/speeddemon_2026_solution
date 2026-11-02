@@ -10,7 +10,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 3 | Dense name ids (half-size bitsets); the arena compares 8-byte words (`5105fc0`) | run-cf05c9b4105c | 0.109433 | 18.759680 | 61.801278 |
 | 4 | SWAR field scan; slot tag and span interleaved (`c1299a8`) | run-e9164c284dcd | 0.138005 | 19.054592 | 59.131135 |
 | 4 | Same code, resampled (`bd28aab`) | run-36d47f614eeb | 0.104650 | 18.587648 | 62.242777 |
-| 5 | 64-byte block parser; batched name lookups and region lookups with prefetch; one-byte region table | pending | | | |
+| 5 | 64-byte block parser; batched name lookups and region lookups with prefetch; one-byte region table (`b56aebf`; S 394 → 489 outweighs the time gain) | run-d1588758e7d8 | 0.101051 | 18.243584 | 62.000290 |
 
 ## Step 1 — first Rust version, 2026-11-01
 
