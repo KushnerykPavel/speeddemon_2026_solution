@@ -134,9 +134,9 @@ Count of recent non-winning local experiments: the loops, S-trim and interleave 
 12. **Profile of current source.** The only flamegraphs are for 69aefa2. A perf record of 6d5802b is missing.
 
 ## Evidence paths
-- /Users/pavelkushneryk/Documents/vsprojects/kaggle_notebooks/speed_demon/track-a/PERF.md
-- /Users/pavelkushneryk/Documents/vsprojects/kaggle_notebooks/speed_demon/docs/track-a-research-2026-11-01.md (local experiments after ea2ee34)
-- /Users/pavelkushneryk/Documents/vsprojects/kaggle_notebooks/speed_demon/docs/track-a-competitor-research-2026-11-01.md
-- /Users/pavelkushneryk/Documents/vsprojects/kaggle_notebooks/speed_demon/tests/performance/2026-11-01-track-a-competitor-research/board.json (10:15Z feed, ea2ee34 only)
-- /Users/pavelkushneryk/Documents/vsprojects/kaggle_notebooks/speed_demon/tests/performance/2026-11-01-track-a-chunks4/README.md
+- track-a/PERF.md
+- docs/track-a-research-2026-11-01.md (local experiments after ea2ee34)
+- docs/track-a-competitor-research-2026-11-01.md
+- tests/performance/2026-11-01-track-a-competitor-research/board.json (10:15Z feed, ea2ee34 only)
+- tests/performance/2026-11-01-track-a-chunks4/README.md
 - Live feed (11:06:56Z): https://s3.amazonaws.com/raptors.dev/speeddemon.dev/2026/board/board.json. The run IDs run-20d64f688eec and run-9e5d2dfb4e65 are not in any file in the repo.

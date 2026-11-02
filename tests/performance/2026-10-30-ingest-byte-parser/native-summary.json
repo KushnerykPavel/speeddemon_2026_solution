@@ -176,7 +176,7 @@
       "warmup": false
     }
   ],
-  "reference_reused_from": "/Users/pavelkushneryk/Documents/vsprojects/kaggle_notebooks/speed_demon/tests/performance/2026-10-30-ingest-byte-parser/first-summary.json",
+  "reference_reused_from": "tests/performance/2026-10-30-ingest-byte-parser/first-summary.json",
   "trimmed_mean_seconds": {
     "before": 0.8658023613194624,
     "after": 0.9226138056255877

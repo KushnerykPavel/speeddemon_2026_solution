@@ -13,6 +13,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 5 | 64-byte block parser; batched name lookups and region lookups with prefetch; one-byte region table (`b56aebf`; S 394 → 489 outweighs the time gain) | run-d1588758e7d8 | 0.101051 | 18.243584 | 62.000290 |
 | 5 (re-sample) | Same code, documentation-only push (`e6c1701`) | run-8e02dfa1589d | 0.094483 | 18.161664 | 62.750489 |
 | 6 | 64-bit name fingerprints instead of stored names; region rows freed before the records (`7098fb8`) | run-11c93a57a1e3 | 0.083026 | 10.805248 | **66.593209** |
+| 6 (re-sample) | Same code, documentation-only push (`d989a96`); Track D slowed in the same run; mean of 2 samples 0.0923 s | run-7018018f489b | 0.101659 | 10.264576 | 64.617853 |
 
 ## Step 1 — first Rust version, 2026-11-01
 

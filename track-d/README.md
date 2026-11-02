@@ -5,8 +5,8 @@ The task, the input files and the exact output format are in the [spec](https://
 ## Result
 
 Board, final code (bucket-ring search engine, PERF step 30): best `run-366f80786fd3`, 0.160719 s, 82.3 MB,
-S 797, no dependencies, **67.23 points**. Four samples of the same binary average 0.1710 s and 66.6
-points. The previous code averaged 0.2069 s over 21 runs (64.95 points), so time fell 17%. Every step, its
+S 797, no dependencies, **67.23 points**. Five samples of the same binary average 0.1799 s and 66.1
+points. The previous code averaged 0.2069 s over 21 runs (64.95 points), so time fell 13%. Every step, its
 run ID and the rejected experiments are in [PERF.md](PERF.md).
 
 ## Approach

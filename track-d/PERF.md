@@ -34,6 +34,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 30 (re-sample) | Same engine code, record-only for Track D (`b56aebf`); mean of 2 samples 0.1766 s vs baseline mean 0.2069 s | run-d682888f6e1c | 0.172689 | 81.002496 | 66.518843 |
 | 30 (re-sample) | Same engine code, record-only for Track D (`e6c1701`); mean of 3 samples 0.1713 s | run-366f80786fd3 | 0.160719 | 82.276352 | **67.231013** |
 | 30 (re-sample) | Same engine code, pushed with Track C step 6 (`7098fb8`); mean of 4 samples 0.1710 s | run-2ac7dc8f59d4 | 0.170100 | 82.272256 | 66.615302 |
+| 30 (re-sample) | Same engine code, documentation-only push (`d989a96`); slow sample, Track C slowed in the same run; mean of 5 samples 0.1799 s | run-0816beddea18 | 0.215697 | 81.965056 | 64.053054 |
 
 Initial audit feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 A/D attempts in that snapshot passed.

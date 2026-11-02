@@ -5,7 +5,7 @@ The task, the input files and the exact output format are in the [spec](https://
 ## Result
 
 Board best: `run-11c93a57a1e3`, 0.083026 s, 10.8 MB, S 462, no dependencies, **66.59 points** (PERF step
-6). Every step, its run ID and the rejected experiments are in [PERF.md](PERF.md).
+6). A second sample of the same code (`run-7018018f489b`) scored 0.1017 s, 64.62 points. Every step, its run ID and the rejected experiments are in [PERF.md](PERF.md).
 
 ## Approach
 
