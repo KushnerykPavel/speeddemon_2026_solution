@@ -2,6 +2,11 @@
 
 The task, the input files and the exact output format are in the [spec](https://github.com/hackathon-raptors/speed-demon-2026/blob/main/specs/c-join.md).
 
+## Result
+
+Board best: `run-11c93a57a1e3`, 0.083026 s, 10.8 MB, S 462, no dependencies, **66.59 points** (PERF step
+6). Every step, its run ID and the rejected experiments are in [PERF.md](PERF.md).
+
 ## Approach
 
 Rust, standard library only. `records.csv` and `regions.csv` are mapped read-only.
@@ -29,7 +34,8 @@ Rust, standard library only. `records.csv` and `regions.csv` are mapped read-onl
   fingerprint, and the slot is the name's id. A record ORs its name's id bit into its group's bitset;
   `names_distinct` is a popcount. Two different names share a fingerprint with probability about
   n²/2^65, under 10^-9 for the generator's ~100,000 names (an accepted risk). Past 7/8 of the slots, a
-  slow exact pass with hash sets counts instead.
+  slow exact pass with hash sets counts instead. Idea credit: Cache Me's public Track C (MIT) keys names
+  by short tags; we use full 64-bit fingerprints.
 - **Regions.** Country codes (three capital letters) map through a 26³ table to their rank, which is also
   the output order; `_UNMATCHED` comes last. The parsed region rows are freed before the records are read. The region-to-group table uses one byte per region when the
   groups fit.
@@ -46,4 +52,13 @@ None.
 
 ## With another 24 hours
 
-A smaller name table (8-byte slots), fewer bitset cache misses, and faster number conversion.
+On the same VPS, Cache Me's public solution (board 0.023 s) runs in 0.070 s against our 0.19 s, so the
+gap is real and reproducible; memory is now close (8.4 vs 8.9 MB there). Our earlier one-thread breakdown
+put about 45% of the time in parsing, number conversion and aggregates and about 40% in the name table
+and bitsets. The next steps would be:
+- list the separators of a whole chunk first and take five per record, instead of a field-by-field state
+  machine;
+- pipeline the lookups: prefetch a record's region and name slot when it is parsed, look it up some
+  records later, then mark its bitset later still, so several misses overlap per thread;
+- one persistent pool of 12 threads working through about 100 pieces, for balance;
+- put the bitsets on huge pages (they are dense and fully used).

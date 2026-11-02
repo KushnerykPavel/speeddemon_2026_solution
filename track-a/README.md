@@ -4,7 +4,8 @@ The task, the input files and the exact output format are in the [spec](https://
 
 ## Result
 
-Board best: `run-7fbd8d58705c`, 0.029519 s, 20.2 MB, S 516, no dependencies, 79.18 points. Board runs
+Board best: `run-b6e6f7905600`, 0.029262 s, 20.4 MB, S 516, no dependencies, 79.23 points (a resample of
+step 17, `run-7fbd8d58705c`, 79.18). Board runs
 of one binary vary by about 10% in time. Every step, its run ID and the
 rejected experiments are in [PERF.md](PERF.md).
 

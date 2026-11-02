@@ -11,7 +11,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 4 | SWAR field scan; slot tag and span interleaved (`c1299a8`) | run-e9164c284dcd | 0.138005 | 19.054592 | 59.131135 |
 | 4 | Same code, resampled (`bd28aab`) | run-36d47f614eeb | 0.104650 | 18.587648 | 62.242777 |
 | 5 | 64-byte block parser; batched name lookups and region lookups with prefetch; one-byte region table (`b56aebf`; S 394 → 489 outweighs the time gain) | run-d1588758e7d8 | 0.101051 | 18.243584 | 62.000290 |
-| 6 | 64-bit name fingerprints instead of stored names; region rows freed before the records | pending | | | |
+| 5 (re-sample) | Same code, documentation-only push (`e6c1701`) | run-8e02dfa1589d | 0.094483 | 18.161664 | 62.750489 |
+| 6 | 64-bit name fingerprints instead of stored names; region rows freed before the records (`7098fb8`) | run-11c93a57a1e3 | 0.083026 | 10.805248 | **66.593209** |
 
 ## Step 1 — first Rust version, 2026-11-01
 
@@ -135,3 +136,6 @@ VPS board-like protocol (`tools/bench-c.sh`, full seed 1, 9 runs per variant, al
 An 8-digit SWAR number conversion was slower in two pairs (+5%, +19%) and was dropped. Locally, output equals
 the reference on all 10 datasets at 1/2/3/5/8/12 threads (60 runs); with the exact fallback forced, too. A
 mutant with a length-only fingerprint is caught. S 481 → 454 (rustfmt count).
+
+Board: `run-11c93a57a1e3`, 0.0830 s, 10.8 MB, S 462, **66.59 points** (+3.84 over the best step 5 sample,
+`run-8e02dfa1589d`, 62.75). Time −12% and memory −41% on the board; most of the gain is memory.

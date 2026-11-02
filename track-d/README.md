@@ -4,9 +4,10 @@ The task, the input files and the exact output format are in the [spec](https://
 
 ## Result
 
-Board, 21 runs of the final code: T 0.2069 ± 0.0069 s, M 79.6 MB, S 723, no dependencies,
-64.95 ± 0.35 points. Best sample: `run-5857d62f5472`, 0.198704 s, 79.2 MB, 65.41 points. Every step, its run ID and the
-rejected experiments are in [PERF.md](PERF.md).
+Board, final code (bucket-ring search engine, PERF step 30): best `run-366f80786fd3`, 0.160719 s, 82.3 MB,
+S 797, no dependencies, **67.23 points**. Four samples of the same binary average 0.1710 s and 66.6
+points. The previous code averaged 0.2069 s over 21 runs (64.95 points), so time fell 17%. Every step, its
+run ID and the rejected experiments are in [PERF.md](PERF.md).
 
 ## Approach
 
@@ -91,9 +92,13 @@ These are measured; details and evidence are in PERF.md.
 
 ## With another 24 hours
 
-The board's time splits about 55% building and 45% searching. Closing the 2× gap to the leaders needs
-the building phases to do less random-access work, not a faster search loop. The next steps would be:
-- build the reverse graph without atomics, from per-worker inboxes bucketed by target block;
-- run the prefix sums and large zero-fills in parallel;
-- classify degree-2 chains inside an existing per-edge pass rather than a separate one, so the 21% smaller
-  search pays off.
+Step 29 measured the gap to the public leaders on the same VPS. At equal search work, our search used to
+cost 1.5–1.75× more CPU per expansion; step 30 closed most of that (98 ns per expansion). The rest of
+the gap is in building the graph: renumbering (+32 ms on the VPS against HighVelocity), the reverse
+graph (+26 ms) and loading (+20 ms). The next steps would be:
+- classify degree-2 vertices from out-degree alone while rows are placed, and bypass them during the
+  renumbering walk. HighVelocity's own ablation puts this at −10%, and our step 28 rule needed in-edges
+  that this rule does not;
+- replace the reverse CSR with a reverse weight per forward edge. 97% of neighbour pairs are two-way, so
+  this halves the stored entries; the remaining one-way in-edges go to a side list;
+- shrink the memory peak at load placement (6-byte bucket records).

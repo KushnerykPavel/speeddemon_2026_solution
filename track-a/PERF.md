@@ -22,7 +22,8 @@ Every step from the reference to your final version, each with the live-board ru
 | 15 | AVX2 newline scan and `target-cpu=haswell` build; S 554 (`6d5802b`) | Not in public history | 0.031695 | 20.561920 | 78.103491 |
 | 16 | Rely on the spec's well-formed input: per-line validation removed; S 521 (`807ceec`) | run-90ca2d3d0a71 | 0.029539 | 20.766720 | 79.025363 |
 | 16 (re-sample) | Same code, rebuilt by a Track D record-only push (`d6900d5`); best of 6 board runs of this code, which average 0.0315 ± 0.0033 s | run-fd8ba455984c | 0.029442 | 20.619264 | 79.092022 |
-| 17 | Map the input over a zero-filled reservation instead of copying the tail; S 521 → 516 (`e9095f6`, cherry-pick of `539b15f`) | run-7fbd8d58705c | 0.029519 | 20.242432 | **79.175179** |
+| 17 | Map the input over a zero-filled reservation instead of copying the tail; S 521 → 516 (`e9095f6`, cherry-pick of `539b15f`) | run-7fbd8d58705c | 0.029519 | 20.242432 | 79.175179 |
+| 17 (re-sample) | Same code, rebuilt by a documentation-only push (`c40e9c6`); best board sample | run-b6e6f7905600 | 0.029262 | 20.447232 | **79.226402** |
 
 Official feed generated at **2026-10-31 15:19:48 UTC (16:19:48 Europe/Warsaw)**; history
 snapshot generated at 15:19:40 UTC. All 18 published A/D attempts passed.
