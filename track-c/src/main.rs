@@ -4,15 +4,13 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::os::fd::AsRawFd;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize};
 use std::thread;
 
 const BOM: &[u8] = b"\xEF\xBB\xBF";
-/// Name table slots; the table counts as full at half of them (the generator has ~100,000 names),
-/// so dense name ids stay below 2^(SLOT_BITS - 1).
-const SLOT_BITS: u32 = 18;
-const IDS: usize = 1 << (SLOT_BITS - 1);
+/// Name table slots, which are also the name ids (the generator has ~100,000 names).
+const IDS: usize = 1 << 17;
 
 unsafe extern "C" {
     fn mmap(
@@ -55,49 +53,38 @@ fn map_file(path: &Path) -> std::io::Result<&'static [u8]> {
     Ok(unsafe { std::slice::from_raw_parts(address, length) })
 }
 
-/// The bytes of `name` as little-endian words, the last one padded with zeros.
-fn words(name: &[u8]) -> impl Iterator<Item = u64> + '_ {
-    name.chunks(8).map(|chunk| {
-        let mut word = [0; 8];
-        word[..chunk.len()].copy_from_slice(chunk);
-        u64::from_le_bytes(word)
-    })
-}
-
-/// Distinct names, shared by all threads without locks. Names are kept in their raw (still
-/// escaped) form, which is one-to-one with the value. A thread claims a free slot by swapping its
-/// tag from 0 to 1, copies the name's words into the arena, then publishes the tag (a hash with
-/// the top bit set). A name's id is its insertion number.
+/// Distinct names, shared by all threads without locks. A name is known by a 64-bit fingerprint
+/// of its raw (still escaped) bytes, which are one-to-one with the value; its id is its slot. Two
+/// different names share a fingerprint with probability about n^2 / 2^65, under 10^-9 for the
+/// generator's ~100,000 names.
 struct Table {
-    /// Per slot: the tag, then the name's arena offset, id and length.
-    slots: Vec<[AtomicU64; 2]>,
-    arena: &'static [AtomicU64],
-    next: AtomicUsize,
+    slots: Vec<AtomicU64>,
     used: AtomicUsize,
 }
 
 impl Table {
-    fn new(bytes: usize) -> Self {
-        let slots = 1 << SLOT_BITS;
-        // Zeroed on demand by the kernel: only the pages names are copied to are charged.
-        let arena = Box::leak(vec![0_u64; bytes / 8 + 1].into_boxed_slice());
+    fn new() -> Self {
         Self {
-            slots: (0..slots).map(|_| Default::default()).collect(),
-            // SAFETY: same size and alignment, and the words are only used through atomics now.
-            arena: unsafe { std::slice::from_raw_parts(arena.as_ptr().cast(), arena.len()) },
-            next: AtomicUsize::new(0),
+            slots: (0..IDS).map(|_| AtomicU64::new(0)).collect(),
             used: AtomicUsize::new(0),
         }
     }
 
+    /// A fingerprint of `name`, never 0 (0 marks a free slot).
     fn hash(name: &[u8]) -> u64 {
-        words(name).fold(name.len() as u64, |state, word| {
-            (state.rotate_left(5) ^ word).wrapping_mul(0x517c_c1b7_2722_0a95)
-        })
+        let mut state = name.len() as u64;
+        for chunk in name.chunks(8) {
+            let mut word = [0; 8];
+            word[..chunk.len()].copy_from_slice(chunk);
+            state = (state.rotate_left(5) ^ u64::from_le_bytes(word)).wrapping_mul(0x517c_c1b7_2722_0a95);
+        }
+        state ^= state >> 32;
+        state = state.wrapping_mul(0xd6e8_feb8_6659_fd93);
+        (state ^ state >> 32) | 1
     }
 
     fn slot(hash: u64) -> usize {
-        (hash >> 20) as usize & ((1 << SLOT_BITS) - 1)
+        (hash >> 40) as usize % IDS
     }
 
     /// Starts loading the slot a lookup of `hash` probes first.
@@ -105,50 +92,28 @@ impl Table {
         prefetch(&self.slots[Self::slot(hash)]);
     }
 
-    /// Returns the id of `name` (whose hash is `hash`), or `None` once the table is half full.
-    fn id(&self, name: &[u8], hash: u64) -> Option<usize> {
-        let tag = hash | 1 << 63;
-        let mask = (1 << SLOT_BITS) - 1;
+    /// Returns the id of the name with fingerprint `hash`, or `None` once the table is 7/8 full.
+    fn id(&self, hash: u64) -> Option<usize> {
         let mut slot = Self::slot(hash);
         loop {
-            let mut seen = self.slots[slot][0].load(Acquire);
-            if seen == 0 {
-                if self.used.load(Relaxed) >= IDS || name.len() >= 1 << 16 {
-                    return None;
-                }
-                if self.slots[slot][0]
-                    .compare_exchange(0, 1, Acquire, Acquire)
-                    .is_ok()
-                {
-                    let at = self.next.fetch_add(name.len().div_ceil(8), Relaxed);
-                    for (cell, word) in self.arena[at..].iter().zip(words(name)) {
-                        cell.store(word, Relaxed);
+            match self.slots[slot].load(Relaxed) {
+                seen if seen == hash => return Some(slot),
+                0 => {
+                    if self.used.load(Relaxed) >= IDS / 8 * 7 {
+                        return None;
                     }
-                    let id = self.used.fetch_add(1, Relaxed);
-                    let span = (at as u64) << 33 | (id as u64) << 16 | name.len() as u64;
-                    self.slots[slot][1].store(span, Relaxed);
-                    self.slots[slot][0].store(tag, Release);
-                    return Some(id);
+                    match self.slots[slot].compare_exchange(0, hash, Relaxed, Relaxed) {
+                        Ok(_) => {
+                            self.used.fetch_add(1, Relaxed);
+                            return Some(slot);
+                        }
+                        Err(seen) if seen == hash => return Some(slot),
+                        Err(_) => {}
+                    }
                 }
-                seen = self.slots[slot][0].load(Acquire);
+                _ => {}
             }
-            while seen == 1 {
-                std::hint::spin_loop();
-                seen = self.slots[slot][0].load(Acquire);
-            }
-            if seen == tag {
-                let span = self.slots[slot][1].load(Relaxed);
-                let at = (span >> 33) as usize;
-                if span & 0xFFFF == name.len() as u64
-                    && self.arena[at..]
-                        .iter()
-                        .zip(words(name))
-                        .all(|(cell, word)| cell.load(Relaxed) == word)
-                {
-                    return Some((span >> 16 & 0x1_FFFF) as usize);
-                }
-            }
-            slot = (slot + 1) & mask;
+            slot = (slot + 1) % IDS;
         }
     }
 }
@@ -375,32 +340,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Regions: `region_id,country` lines after the header; codes are three capital letters, so
     // a code's number in base 26 orders codes like their bytes.
     let mut rows = Vec::new();
-    let mut present = vec![false; 26 * 26 * 26];
-    for line in map_file(&data.join("regions.csv"))?
-        .split(|&byte| byte == b'\n')
-        .skip(1)
-    {
+    let mut rank = vec![0; 26 * 26 * 26];
+    for line in map_file(&data.join("regions.csv"))?.split(|&byte| byte == b'\n').skip(1) {
         if let [.., b',', a, b, c] = *line {
-            let code = [a, b, c]
-                .iter()
-                .fold(0, |code, &letter| code * 26 + usize::from(letter - b'A'));
-            present[code] = true;
-            rows.push((digits(line, 0, b',').0 as usize, code));
+            let code = [a, b, c].iter().fold(0, |code, &letter| code * 26 + usize::from(letter - b'A'));
+            rank[code] = 1;
+            rows.push((digits(line, 0, b',').0 as u32, code as u16));
         }
     }
-    let codes: Vec<usize> = (0..present.len()).filter(|&code| present[code]).collect();
+    let codes: Vec<usize> = (0..rank.len()).filter(|&code| rank[code] == 1).collect();
+    for (index, &code) in codes.iter().enumerate() {
+        rank[code] = index;
+    }
     let groups = codes.len() + 1;
     // Group of each region id: one byte when the groups fit (the generator has 240 countries),
-    // two otherwise. Holes hold the `_UNMATCHED` group.
-    let regions = rows.iter().map(|&(region, _)| region + 1).max().unwrap_or(0);
+    // two otherwise. Holes hold the `_UNMATCHED` group. The rows are freed before the records.
+    let regions = rows.iter().map(|&(region, _)| region as usize + 1).max().unwrap_or(0);
     let wide = groups > 256;
     let mut narrow = vec![codes.len() as u8; if wide { 0 } else { regions }];
     let mut country = vec![codes.len() as u16; if wide { regions } else { 0 }];
-    for &(region, code) in &rows {
-        let group = codes.binary_search(&code).unwrap();
+    for (region, code) in rows {
         match wide {
-            false => narrow[region] = group as u8,
-            true => country[region] = group as u16,
+            false => narrow[region as usize] = rank[code as usize] as u8,
+            true => country[region as usize] = rank[code as usize] as u16,
         }
     }
     // Records: skip a leading BOM and the header line.
@@ -410,7 +372,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .position(|&byte| byte == b'\n')
         .map_or(file.len(), |at| at + 1)..];
-    let table = Table::new(body.len());
+    let table = Table::new();
     let full = AtomicBool::new(false);
     let group_of = |region: u64| match wide {
         false => narrow.get(region as usize).map(|&group| group as usize),
@@ -434,7 +396,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let flush = |batch: &mut Vec<(Record, u64)>, part: &mut [Group]| {
                         let mut bits = [(0, 0); BATCH];
                         for (bit, &(record, hash)) in bits.iter_mut().zip(batch.iter()) {
-                            let (id, name, name_length, note_length, region, amount) = record;
+                            let (id, _, name_length, note_length, region, amount) = record;
                             let index = group_of(region);
                             let group = &mut part[index];
                             group.count += 1;
@@ -444,7 +406,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             group.max = group.max.max(amount);
                             group.name_bytes += name_length as u64;
                             group.note_bytes += note_length as u64;
-                            match table.id(name, hash) {
+                            match table.id(hash) {
                                 Some(id) => {
                                     *bit = (index * words + id / 64, 1 << (id % 64));
                                     prefetch(&names[bit.0]);

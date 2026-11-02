@@ -11,6 +11,7 @@ Every step from the reference to your final version, each with the live-board ru
 | 4 | SWAR field scan; slot tag and span interleaved (`c1299a8`) | run-e9164c284dcd | 0.138005 | 19.054592 | 59.131135 |
 | 4 | Same code, resampled (`bd28aab`) | run-36d47f614eeb | 0.104650 | 18.587648 | 62.242777 |
 | 5 | 64-byte block parser; batched name lookups and region lookups with prefetch; one-byte region table (`b56aebf`; S 394 → 489 outweighs the time gain) | run-d1588758e7d8 | 0.101051 | 18.243584 | 62.000290 |
+| 6 | 64-bit name fingerprints instead of stored names; region rows freed before the records | pending | | | |
 
 ## Step 1 — first Rust version, 2026-11-01
 
@@ -108,3 +109,29 @@ Rows 1–2 and rows 3–4 are separate alternating pairs. Parse-phase medians (1
 1420 → 986 ms, 6 threads 246 → 221 ms. A `target-cpu=haswell` build was within noise and is not used.
 Same 10-dataset check at 1/2/3/5/8/12 threads; the two-byte table path, forced, also matches.
 Raw numbers: `tests/performance/2026-11-01-join-blocks/`.
+
+## Step 6 — name fingerprints, region rows freed, 2026-11-02
+
+Calibration first (`tests/performance/2026-11-02-join-fingerprint/`): Cache Me's public Track C binary (board
+0.0228 s) against ours (board 0.1047 s) on the VPS gives 0.070 vs 0.250 s (ratio 0.28; board ratio 0.22), so
+the VPS shows the gap. Two changes:
+1. **Fingerprints.** The name table kept every name's bytes in an arena and compared them on each lookup. It
+   now keeps a 64-bit fingerprint per slot (2^17 slots, 1 MB), and the slot is the id. No arena and no byte
+   compare. The idea of tag-only name keys comes from Cache Me's README (MIT); they use 32-bit tags with a
+   stated 1-in-10,000 risk, and we use 64 bits (under 10^-9).
+2. **Region rows.** The `(region, code)` rows (3.2 MB) lived until the end of the run; they are now compact
+   and dropped before the records, and a code's rank comes from a table instead of a binary search.
+
+VPS board-like protocol (`tools/bench-c.sh`, full seed 1, 9 runs per variant, alternating pairs, all outputs
+`d8088b1cd42b…`):
+
+| Variant | T (s) | M (MB) |
+|---|---|---:|
+| step 5 | 0.249 / 0.225 | 16.7 / 16.7 |
+| fingerprints | 0.212 / 0.194 | 12.1 / 12.1 |
+| fingerprints (second pair) | 0.185 / 0.203 | 12.4 / 12.2 |
+| **fingerprints + region rows freed** | 0.189 / 0.191 | 9.1 / 8.9 |
+
+An 8-digit SWAR number conversion was slower in two pairs (+5%, +19%) and was dropped. Locally, output equals
+the reference on all 10 datasets at 1/2/3/5/8/12 threads (60 runs); with the exact fallback forced, too. A
+mutant with a length-only fingerprint is caught. S 481 → 454 (rustfmt count).

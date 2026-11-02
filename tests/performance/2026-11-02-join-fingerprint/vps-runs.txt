@@ -1,0 +1,26 @@
+# tools/bench-c.sh output (VPS, Docker with board flags, sd-timer, cgroup memory.peak, full seed 1)
+# E0 calibration, 7 runs each, alternating
+e0-cacheme  T(trimmed mean) 0.0707 s  min 0.0557  M(max) 8.41 MB  hashes {'d8088b1cd42b'}
+e0-ours     T(trimmed mean) 0.2463 s  min 0.2045  M(max) 16.67 MB  hashes {'d8088b1cd42b'}
+e0-cacheme  T(trimmed mean) 0.0703 s  min 0.0669  M(max) 8.44 MB  hashes {'d8088b1cd42b'}
+e0-ours     T(trimmed mean) 0.2543 s  min 0.1950  M(max) 16.78 MB  hashes {'d8088b1cd42b'}
+# step 5 (base) vs fingerprints (fp), 9 runs each
+base T(trimmed mean) 0.2485 s  min 0.2158  M(max) 16.72 MB
+fp   T(trimmed mean) 0.2117 s  min 0.1882  M(max) 12.13 MB
+base T(trimmed mean) 0.2245 s  min 0.1929  M(max) 16.70 MB
+fp   T(trimmed mean) 0.1937 s  min 0.1427  M(max) 12.10 MB
+# fp vs fp + two-pass regions + SWAR numbers (fp2)
+fp  T(trimmed mean) 0.1888 s  min 0.1551  M(max) 12.39 MB
+fp2 T(trimmed mean) 0.2252 s  min 0.1833  M(max) 8.90 MB
+fp  T(trimmed mean) 0.1832 s  min 0.1677  M(max) 12.15 MB
+fp2 T(trimmed mean) 0.1923 s  min 0.1777  M(max) 8.86 MB
+# fp vs fp + one-pass regions dropped + SWAR numbers (fp3)
+fp  T(trimmed mean) 0.1964 s  min 0.1699  M(max) 12.15 MB
+fp3 T(trimmed mean) 0.2266 s  min 0.1907  M(max) 8.91 MB
+fp  T(trimmed mean) 0.1913 s  min 0.1707  M(max) 12.14 MB
+fp3 T(trimmed mean) 0.1978 s  min 0.1793  M(max) 9.09 MB
+# fp vs fp + one-pass regions dropped, original numbers (fp4, committed)
+fp  T(trimmed mean) 0.1851 s  min 0.1644  M(max) 12.39 MB
+fp4 T(trimmed mean) 0.1890 s  min 0.1611  M(max) 9.14 MB
+fp  T(trimmed mean) 0.2031 s  min 0.1642  M(max) 12.17 MB
+fp4 T(trimmed mean) 0.1911 s  min 0.1692  M(max) 8.85 MB

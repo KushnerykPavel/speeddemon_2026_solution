@@ -23,18 +23,15 @@ Rust, standard library only. `records.csv` and `regions.csv` are mapped read-onl
   The amount becomes exact integer cents. Each thread keeps per-group counts, sums, min/max and byte totals.
 - **Batches.** Records are handled 32 at a time: while a batch fills, each name's table slot and each
   region's group entry are prefetched, so the cache misses of the batch overlap.
-- **Distinct names.** One lock-free open-addressing table (2^18 slots) is shared by all threads. Names are
-  kept in their raw quoted form, which is one-to-one with the unescaped value, so nothing is unescaped:
-  - a thread claims a slot with a compare-and-swap on its tag, copies the bytes into an append-only arena,
-    then publishes the tag;
-  - lookups compare full bytes, so ids are exact;
-  - each new name gets a dense id (its insertion number, below 2^17);
-  - a record ORs its name's id bit into its group's bitset, and `names_distinct` is a popcount.
-  
-  Past half the slots (over 131,000 names; the generator has about 100,000) a slow exact pass with hash sets
-  counts instead.
+- **Distinct names.** One lock-free open-addressing table (2^17 slots) is shared by all threads. A name
+  is known by a 64-bit fingerprint of its raw quoted bytes, which are one-to-one with the unescaped value,
+  so nothing is unescaped or stored. A thread claims a free slot with a compare-and-swap of the
+  fingerprint, and the slot is the name's id. A record ORs its name's id bit into its group's bitset;
+  `names_distinct` is a popcount. Two different names share a fingerprint with probability about
+  n²/2^65, under 10^-9 for the generator's ~100,000 names (an accepted risk). Past 7/8 of the slots, a
+  slow exact pass with hash sets counts instead.
 - **Regions.** Country codes (three capital letters) map through a 26³ table to their rank, which is also
-  the output order; `_UNMATCHED` comes last. The region-to-group table uses one byte per region when the
+  the output order; `_UNMATCHED` comes last. The parsed region rows are freed before the records are read. The region-to-group table uses one byte per region when the
   groups fit.
 
 Output equals the Python reference on generated tiny and sample datasets for seeds 1–3, full datasets for seeds 1–2, and on the
